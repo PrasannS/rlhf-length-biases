@@ -55,7 +55,7 @@ class ScriptArguments:
         },
     )
     bf16: Optional[bool] = field(
-        default=True,
+        default=False,
         metadata={
             "help": "This essentially cuts the training time in half if you want to sacrifice a little precision and have a supported GPU."
         },
@@ -89,6 +89,10 @@ class ScriptArguments:
         default=False,
         metadata={"help": "Whether to run eval after the first step"},
     )
+    output_dir: Optional[str] = field(
+        default="checkpoints/wgptsaved"
+    )
+
 
 # NOTE process anthro hh data for mixture with se data
 def preproc_shp(example):
@@ -126,7 +130,7 @@ print("new size ", len(train_dataset))
 
 # Define the training args. Needs to be done before the model is loaded if you are using deepspeed.
 model_name_split = script_args.model_name.split("/")[-1]
-output_name = "./checkpoints/llamashp/"
+output_name = script_args.output_dir
 
 training_args = TrainingArguments(
     output_dir=output_name,
@@ -136,9 +140,9 @@ training_args = TrainingArguments(
     num_train_epochs=script_args.num_train_epochs,
     weight_decay=script_args.weight_decay,
     evaluation_strategy="steps",
-    eval_steps=200,
+    eval_steps=500,
     save_strategy="steps",
-    save_steps=200,
+    save_steps=500,
     gradient_accumulation_steps=script_args.gradient_accumulation_steps,
     gradient_checkpointing=script_args.gradient_checkpointing,
     deepspeed=script_args.deepspeed,
