@@ -1,3 +1,4 @@
 logs/
 */checkpoints/
 */models/
+*/wandb/
