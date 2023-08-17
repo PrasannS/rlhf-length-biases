@@ -55,7 +55,7 @@ class ScriptArguments:
         },
     )
     bf16: Optional[bool] = field(
-        default=False,
+        default=True,
         metadata={
             "help": "This essentially cuts the training time in half if you want to sacrifice a little precision and have a supported GPU."
         },
@@ -95,7 +95,7 @@ class ScriptArguments:
 
 
 # NOTE process anthro hh data for mixture with se data
-def preproc_shp(example):
+def preproc_wgpt(example):
     ex = {}
     ex['question'] = example['question']['full_text']
     if example['score_0']>example['score_1']:
@@ -115,7 +115,7 @@ script_args = parser.parse_args_into_dataclasses()[0]
 #hh_train = load_dataset("Anthropic/hh-rlhf", data_dir="helpful-base", split="train")
 #hh_train = hh_train.map(preproc_hh)
 train_dataset = load_dataset("openai/webgpt_comparisons", split="train")
-train_dataset = train_dataset.map(preproc_shp)
+train_dataset = train_dataset.map(preproc_wgpt)
 
 print("initial size ", len(train_dataset))
 train_dataset = train_dataset.shuffle(seed=100)
