@@ -229,14 +229,14 @@ sentiment_pipe = pipeline(
 # are passed to the `generate` function of the PPOTrainer, which is a wrapper around
 # the `generate` function of the trained model.
 generation_kwargs = {
-    "min_length": -1, # HACK this is a weird thing to do
+    # "min_length": -1, # HACK this is a weird thing to do
     "top_k": 0.0,
     "top_p": 1.0,
     "do_sample": True,
     "pad_token_id": tokenizer.pad_token_id,
-    # "eos_token_id": 100_000,
+    "eos_token_id": 100_000,
 }
-output_min_length = script_args.output_max_length-1
+output_min_length = 32
 output_max_length = script_args.output_max_length
 output_length_sampler = LengthSampler(output_min_length, output_max_length)
 
