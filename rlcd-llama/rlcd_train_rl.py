@@ -1,48 +1,53 @@
-# coding=utf-8
-# Copyright 2022 The HuggingFace Inc. team. All rights reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-from dataclasses import dataclass, field
-from typing import Optional
+import os
 
 import torch
+import time
+from dataclasses import dataclass, field
+from typing import Optional
 from accelerate import Accelerator
 from datasets import load_dataset
 from peft import LoraConfig
 from tqdm import tqdm
-from transformers import Adafactor, AutoTokenizer, HfArgumentParser, pipeline
+import pandas as pd
+from datasets import Dataset
+from transformers import (
+    Adafactor,
+    AutoTokenizer,
+    LlamaTokenizer,
+    HfArgumentParser,
+    pipeline,
+    T5Tokenizer,
+    T5ForConditionalGeneration
+)
+import re
 
 from trl import AutoModelForCausalLMWithValueHead, PPOConfig, PPOTrainer, set_seed
 from trl.core import LengthSampler
-import os
+
+DEFAULT_PAD_TOKEN = "[PAD]"
+DEFAULT_EOS_TOKEN = "</s>"
+DEFAULT_BOS_TOKEN = "</s>"
+DEFAULT_UNK_TOKEN = "</s>"
 
 os.environ["WANDB_TAGS"] = "[\"llamatrl\"]"
 
-
 tqdm.pandas()
-
 
 @dataclass
 class ScriptArguments:
     """
-    The name of the Casual LM model we wish to fine with PPO
+    The name of the Causal LM model we wish to fine with PPO
     """
 
     # NOTE: gpt2 models use Conv1D instead of Linear layers which are not yet supported in 8 bit mode
     # models like gpt-neo* models are more suitable.
+    # model was /mnt/data1/prasann/prefixdecoding/tfr-decoding/apfarm_models/sft10k
+    # also used lxuechen/tldr-gpt2-xl
     model_name: Optional[str] = field(default="", metadata={"help": "the model name"})
-    tokenizer_name: Optional[str] = field(default="", metadata={"help": "the tokenizer name"})
     reward_model_name: Optional[str] = field(default="", metadata={"help": "the reward model name"})
+    tokenizer_name: Optional[str] = field(default="", metadata={"help": "the tokenizer name"})
+    dataset_name: Optional[str] = field(default="eli5", metadata={"help": "the dataset name"})
+    # reward_model_name: Optional[str] = field(default="", metadata={"help": "the reward model name"})
     log_with: Optional[str] = field(default=None, metadata={"help": "use 'wandb' to log with wandb"})
     learning_rate: Optional[float] = field(default=1.41e-5, metadata={"help": "the learning rate"})
     output_max_length: Optional[int] = field(default=128, metadata={"help": "maximum length for generation"})
@@ -55,70 +60,37 @@ class ScriptArguments:
     adafactor: Optional[bool] = field(default=False, metadata={"help": "whether to use the adafactor optimizer"})
     early_stopping: Optional[bool] = field(default=False, metadata={"help": "whether to early stop"})
     target_kl: Optional[float] = field(default=0.1, metadata={"help": "kl target for early stopping"})
-    reward_baseline: Optional[float] = field(
-        default=0,
-        metadata={"help": "a baseline value that is subtracted from the reward"},
-    )
-    batched_gen: Optional[bool] = field(default=False, metadata={"help": "whether to use the batched text gen"})
+    #reward_baseline: Optional[float] = field(
+    #    default=0.5,
+    #    metadata={"help": "a baseline value that is subtracted from the reward"},
+    #)
     save_freq: Optional[int] = field(default=None, metadata={"help": "n steps to save the model"})
     output_dir: Optional[str] = field(default="runs/", metadata={"help": "n steps to save the model"})
     seed: Optional[int] = field(default=1, metadata={"help": "the seed"})
-    steps: Optional[int] = field(default=40000, metadata={"help": "number of epochs"})
+    steps: Optional[int] = field(default=10000, metadata={"help": "number of epochs"})
     init_kl_coef: Optional[float] = field(
-        default=0.2,
+        default=0.2, #HACK used to be 0.2, make sure to switch back at some point
         metadata={"help": "Initial KL penalty coefficient (used for adaptive and linear control)"},
     )
-
-    adap_kl_ctrl: Optional[bool] = field(default=True, metadata={"help": "Use adaptive KL control, otherwise linear"})
 
 
 parser = HfArgumentParser(ScriptArguments)
 script_args: ScriptArguments = parser.parse_args_into_dataclasses()[0]
-reward_model_name = script_args.reward_model_name
-dataset_name = "lvwerra/stack-exchange-paired"
-config = PPOConfig(
-    steps=script_args.steps,
-    model_name=script_args.model_name,
-    learning_rate=script_args.learning_rate,
-    log_with=script_args.log_with,
-    batch_size=script_args.batch_size,
-    mini_batch_size=script_args.mini_batch_size,
-    gradient_accumulation_steps=script_args.gradient_accumulation_steps,
-    optimize_cuda_cache=True,
-    early_stopping=script_args.early_stopping,
-    target_kl=script_args.target_kl,
-    ppo_epochs=script_args.ppo_epochs,
-    seed=script_args.seed,
-    init_kl_coef=script_args.init_kl_coef,
-    adap_kl_ctrl=script_args.adap_kl_ctrl,
-)
 
-train_dataset = load_dataset("lvwerra/stack-exchange-paired", data_dir="data/rl", split="train")
-train_dataset = train_dataset.select(range(100000))
-# We then define the arguments to pass to the sentiment analysis pipeline.
-# We set `return_all_scores` to True to get the sentiment score for each token.
-sent_kwargs = {
-    "return_all_scores": True,
-    "function_to_apply": "none",
-    "batch_size": 8,
-    "truncation": True,
-}
+set_seed(script_args.seed)
 
-tokenizer = AutoTokenizer.from_pretrained(script_args.tokenizer_name)
-# GPT-2 tokenizer has a pad token, but it is not eos_token by default. We need to set it to eos_token.
-# only for this model.
+def adjust_input(strval, resp=None):
+    if resp:
+        return "Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\n"+strval+"\n\n### Response:"+resp
 
-if getattr(tokenizer, "pad_token", None) is None:
-    tokenizer.pad_token = tokenizer.eos_token
+    return "Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\n"+strval+"\n\n### Response:"
 
+    
 
 # Below is an example function to build the dataset. In our case, we use the IMDB dataset
 # from the `datasets` library. One should customize this function to train the model on
 # its own dataset.
-def build_dataset(
-    tokenizer,
-    dataset_name="lvwerra/stack-exchange-paired",
-):
+def build_dataset(tokenizer, dataset_name="eli5", input_min_text_length=2, input_max_text_length=8):
     """
     Build dataset for training. This builds the dataset from `load_dataset`, one should
     customize this function to train the model on its own dataset.
@@ -132,46 +104,90 @@ def build_dataset(
             The dataloader for the dataset.
     """
 
-    # load imdb with datasets
-    ds = load_dataset(dataset_name, data_dir="data/rl", split="train")
-    original_columns = ds.column_names
-    num_proc = 24
+    # input_size = LengthSampler(input_min_text_length, input_max_text_length)
+    ds = load_dataset("Anthropic/hh-rlhf", data_dir="helpful-base", split="train")
 
-    def preprocess_function(examples):
+    def tokenize(sample):
+        # TODO trying out this thing for batching
         new_examples = {
             "query": [],
             "input_ids": [],
         }
-        for question in examples["question"]:
-            query = "Question: " + question + "\n\nAnswer: "
+        for question in sample["chosen"]:
+            
+            hind = question.index("Human:")+6
+            aind = question.index("Assistant:")+len("Assistant:")
+            qstr = question[hind:aind-len("Assistant:")]
+            query = adjust_input(qstr)
+            
+            #query = "Question: " + question + "\n\nAnswer: "
             tokenized_question = tokenizer(query, truncation=True)
             new_examples["query"].append(query)
             new_examples["input_ids"].append(tokenized_question["input_ids"])
 
         return new_examples
 
-    ds = train_dataset.map(
-        preprocess_function,
-        batched=True,
-        num_proc=num_proc,
-        remove_columns=original_columns,
-    )
+    ds = ds.map(tokenize, batched=True)
     ds = ds.filter(lambda x: len(x["input_ids"]) < 512, batched=False)
 
     ds.set_format(type="torch")
     return ds
 
 
-# We retrieve the dataloader by calling the `build_dataset` function.
-dataset = build_dataset(tokenizer)
-
-
 def collator(data):
     return dict((key, [d[key] for d in data]) for key in data[0])
 
+    
+config = PPOConfig(
+    model_name=script_args.model_name,
+    learning_rate=script_args.learning_rate,
+    log_with=script_args.log_with,
+    batch_size=script_args.batch_size,
+    mini_batch_size=script_args.mini_batch_size,
+    gradient_accumulation_steps=script_args.gradient_accumulation_steps,
+    optimize_cuda_cache=True,
+    early_stopping=script_args.early_stopping,
+    target_kl=script_args.target_kl,
+    ppo_epochs=script_args.ppo_epochs,
+    seed=script_args.seed,
+    cliprange=0.2,
+    cliprange_value=0.2,
+    vf_coef=.1,
+    horizon=10000,
+    target=script_args.target_kl,
+    init_kl_coef=script_args.init_kl_coef,
+    steps=script_args.steps,
+    gamma=1,
+    lam=0.95,
+)
 
-# set seed before initializing value head for deterministic eval
-set_seed(config.seed)
+# We then define the arguments to pass to the sentiment analysis pipeline.
+# We set `return_all_scores` to True to get the sentiment score for each token.
+rw_kwargs = {
+    "topk": None,
+    "function_to_apply": "none",
+    "batch_size": script_args.mini_batch_size,
+    "truncation": True
+}
+
+if "decapoda" in script_args.model_name.lower():
+    tokenizer = LlamaTokenizer.from_pretrained(script_args.model_name)
+    # required for llama
+    tokenizer.add_special_tokens(
+        {
+            "eos_token": DEFAULT_EOS_TOKEN,
+            "bos_token": DEFAULT_BOS_TOKEN,
+            "unk_token": DEFAULT_UNK_TOKEN,
+            "pad_token": DEFAULT_PAD_TOKEN,
+        }
+    )
+else:
+    tokenizer = AutoTokenizer.from_pretrained(script_args.model_name)
+    if getattr(tokenizer, "pad_token", None) is None:
+        tokenizer.pad_token = tokenizer.eos_token
+
+# We retrieve the dataloader by calling the `build_dataset` function.
+dataset = build_dataset(tokenizer, script_args.dataset_name)
 
 # Now let's build the model, the reference model, and the tokenizer.
 current_device = Accelerator().local_process_index
@@ -184,8 +200,8 @@ lora_config = LoraConfig(
     task_type="CAUSAL_LM",
 )
 model = AutoModelForCausalLMWithValueHead.from_pretrained(
-    config.model_name,
-    load_in_8bit=True,
+    script_args.model_name,
+    load_in_8bit=True, # re-enable for llama model
     device_map={"": current_device},
     peft_config=lora_config,
 )
@@ -199,6 +215,7 @@ if script_args.adafactor:
         warmup_init=False,
         lr=config.learning_rate,
     )
+
 # We then build the PPOTrainer, passing the model, the reference model, the tokenizer
 ppo_trainer = PPOTrainer(
     config,
@@ -210,18 +227,28 @@ ppo_trainer = PPOTrainer(
     optimizer=optimizer,
 )
 
+sent_kwargs = {
+    "return_all_scores": True,
+    "function_to_apply": "none",
+    "batch_size": 8,
+    "truncation": True,
+}
+
 # We then build the sentiment analysis pipeline, passing the model name and the
 # sentiment analysis pipeline arguments. Let's also make sure to set the device
 # to the same device as the PPOTrainer.
 device = ppo_trainer.accelerator.device
 if ppo_trainer.accelerator.num_processes == 1:
     device = 0 if torch.cuda.is_available() else "cpu"  # to avoid a ` pipeline` bug
+    
+pipetok = AutoTokenizer.from_pretrained(script_args.reward_model_name)
+pipetok.pad_token_id = pipetok.eos_token_id
 sentiment_pipe = pipeline(
     "sentiment-analysis",
-    model=reward_model_name,
+    model=script_args.reward_model_name,
     device_map={"": current_device},
     model_kwargs={"load_in_8bit": True},
-    tokenizer=tokenizer,
+    tokenizer=pipetok,
     return_token_type_ids=False,
 )
 
@@ -229,11 +256,11 @@ sentiment_pipe = pipeline(
 # are passed to the `generate` function of the PPOTrainer, which is a wrapper around
 # the `generate` function of the trained model.
 generation_kwargs = {
-    "min_length": -1, # HACK this is a weird thing to do
+    "min_length": -1,
     "top_k": 0.0,
-    "top_p": 1.0,
+    "top_p": 1,
     "do_sample": True,
-    # "pad_token_id": tokenizer.pad_token_id,
+    #"pad_token_id": tokenizer.pad_token_id,
     # "eos_token_id": 100_000,
 }
 output_min_length = script_args.output_max_length-2
@@ -241,7 +268,7 @@ output_max_length = script_args.output_max_length
 output_length_sampler = LengthSampler(output_min_length, output_max_length)
 
 for epoch, batch in tqdm(enumerate(ppo_trainer.dataloader)):
-
+    #try:
     if epoch >= config.steps:
         break
 
@@ -254,12 +281,14 @@ for epoch, batch in tqdm(enumerate(ppo_trainer.dataloader)):
         **generation_kwargs,
     )
     batch["response"] = tokenizer.batch_decode(response_tensors, skip_special_tokens=True)
-        
+
     # Compute sentiment score
-    texts = [q + r for q, r in zip(batch["query"], batch["response"])]    
-        
+    # Just concat since we already do processing before
+    texts = [q+r for q, r in zip(batch["query"], batch["response"])]
+    if epoch==0:
+        print(texts[0])
     pipe_outputs = sentiment_pipe(texts, **sent_kwargs)
-    rewards = [torch.tensor(output[0]["score"] - script_args.reward_baseline) for output in pipe_outputs]
+    rewards = [torch.tensor(output[0]["score"]) for output in pipe_outputs]
 
     # Run PPO step
     stats = ppo_trainer.step(question_tensors, response_tensors, rewards)
@@ -267,3 +296,6 @@ for epoch, batch in tqdm(enumerate(ppo_trainer.dataloader)):
 
     if script_args.save_freq and epoch and epoch % script_args.save_freq == 0:
         ppo_trainer.save_pretrained(script_args.output_dir + f"step_{epoch}")
+    #except:
+    #    print("error (probably OOM)")
+    #    torch.cuda.empty_cache()

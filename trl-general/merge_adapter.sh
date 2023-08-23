@@ -1,5 +1,40 @@
 # adapter for llama webgpt model
+#python merge_peft_adapter.py \
+#    --adapter_model_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/checkpoints/wgptllama/checkpoint-4000" \
+#    --base_model_name="/home/prasann/Projects/tfr-decoding/llama/llama" \
+#    --output_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/rewardmodel/"
+
+# adapter for steamSHP llama reward model
+#python merge_peft_adapter.py \
+#    --adapter_model_name="/home/prasann/Projects/rlhf-exploration/shp-llama/checkpoints/llamashp/checkpoint-19000" \
+#    --base_model_name="/home/prasann/Projects/tfr-decoding/llama/llama" \
+#    --output_name="/home/prasann/Projects/rlhf-exploration/shp-llama/models/shprm/"
+
+# adapter for SHP llama sft model
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/home/prasann/Projects/rlhf-exploration/shp-llama/checkpoints/llamasft/checkpoint-2000" \
+#     --base_model_name="/home/prasann/Projects/tfr-decoding/llama/llama" \
+#     --output_name="/home/prasann/Projects/rlhf-exploration/shp-llama/models/shpsft/"
+
+# adapter for adv DA model 
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/home/prasann/Projects/rlhf-exploration/rlcd-llama/checkpoints/rlcdsaved/checkpoint-3500" \
+#     --base_model_name="/home/prasann/Projects/tfr-decoding/apfarm_models/sft10k" \
+#     --output_name="/home/prasann/Projects/rlhf-exploration/rlcd-llama/models/helprm7b/"
+
+# # adapter for RLCD reward model 
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/home/prasann/Projects/rlhf-exploration/stack-llama/checkpoints/advda/checkpoint-3500" \
+#     --base_model_name="/home/prasann/Projects/rlhf-exploration/stack-llama/models/sft" \
+#     --output_name="/home/prasann/Projects/rlhf-exploration/stack-llama/models/rewardadvda/"
+
+export CUDA_VISIBLE_DEVICES=2,3
 python merge_peft_adapter.py \
-    --adapter_model_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/checkpoints/wgptllama/checkpoint-4000" \
-    --base_model_name="/home/prasann/Projects/tfr-decoding/llama/llama" \
-    --output_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/rewardmodel/"
+    --adapter_model_name="/home/prasann/Projects/rlhf-exploration/stack-llama/checkpoints/advtiebreak/checkpoint-4000" \
+    --base_model_name="/home/prasann/Projects/rlhf-exploration/stack-llama/models/sft" \
+    --output_name="/home/prasann/Projects/rlhf-exploration/stack-llama/models/rewardadvtiebreak/"
+
+python merge_peft_adapter.py \
+    --adapter_model_name="/home/prasann/Projects/rlhf-exploration/stack-llama/checkpoints/advmse/checkpoint-8000" \
+    --base_model_name="/home/prasann/Projects/rlhf-exploration/stack-llama/models/sft" \
+    --output_name="/home/prasann/Projects/rlhf-exploration/stack-llama/models/rewardadvmse/"
