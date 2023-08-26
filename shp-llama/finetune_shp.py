@@ -27,7 +27,7 @@ def get_args():
 
     parser.add_argument("--seq_length", type=int, default=1024)
     parser.add_argument("--max_steps", type=int, default=10000)
-    parser.add_argument("--batch_size", type=int, default=4)
+    parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--gradient_accumulation_steps", type=int, default=1)
     parser.add_argument("--eos_token_id", type=int, default=49152)
 
@@ -38,7 +38,7 @@ def get_args():
 
     parser.add_argument("--local_rank", type=int, default=0)
     parser.add_argument("--no_fp16", action="store_false")
-    parser.add_argument("--bf16", action="store_true", default=False)
+    parser.add_argument("--bf16", action="store_true", default=True)
     parser.add_argument("--no_gradient_checkpointing", action="store_false", default=False)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--num_workers", type=int, default=None)
@@ -82,15 +82,20 @@ def print_trainable_parameters(model):
 
 def prepare_sample_text(example):
     """Prepare the text from a sample of the dataset."""
-    text = f"Question: {example['question']}\n\nAnswer: {example['response_j']}"
+    
+    bestresponse=example['human_ref_B']
+    if example['score_A']>example['score_B']:
+        bestresponse=example['human_ref_A']
+        
+    text = f"Question: {example['history']}\n\nAnswer: {bestresponse}"
     return text
 
 def create_datasets(tokenizer, args):
+    
     dataset = load_dataset(
-        args.dataset_name,
-        data_dir=args.subset,
-        split=args.split,
-        use_auth_token=True,
+        "stanfordnlp/SHP",
+        split="train",
+        use_auth_token=False,
         num_proc=args.num_workers if not args.streaming else None,
         streaming=args.streaming,
     )
