@@ -9,14 +9,8 @@ secret/
 *.pyc
 simulated_data/
 *.out
-logs/
-*/checkpoints/
-*/models/
-*/wandb/
-basepath.txt
 apfpath.txt
 *.jsonl
 *.log 
 *.out
-*.pyc
 *wandb

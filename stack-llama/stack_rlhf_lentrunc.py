@@ -233,8 +233,8 @@ generation_kwargs = {
     "top_k": 0.0,
     "top_p": 1.0,
     "do_sample": True,
-    # "pad_token_id": tokenizer.pad_token_id,
-    # "eos_token_id": 100_000,
+    #"pad_token_id": tokenizer.pad_token_id,
+    #"eos_token_id": 100_000,
 }
 output_min_length = script_args.output_max_length-2
 output_max_length = script_args.output_max_length
@@ -254,12 +254,21 @@ for epoch, batch in tqdm(enumerate(ppo_trainer.dataloader)):
         **generation_kwargs,
     )
     batch["response"] = tokenizer.batch_decode(response_tensors, skip_special_tokens=True)
+    fulls = tokenizer.batch_decode(response_tensors, skip_special_tokens=False)
+    addrs = []
+    for f in fulls:
+        if "</s>" in f[-5:]:
+            addrs.append(0.5)
+        else:
+            addrs.append(-1)
     # Compute sentiment score
     texts = [q + r for q, r in zip(batch["query"], batch["response"])]
-        
+    
+    print("Within len: ", sum([1 if a > 0 else 0 for a in addrs])) 
+    
     pipe_outputs = sentiment_pipe(texts, **sent_kwargs)
     rewards = [torch.tensor(output[0]["score"] - script_args.reward_baseline) for output in pipe_outputs]
-
+    rewards = [r+a for r, a in zip(rewards, addrs)]
     # Run PPO step
     stats = ppo_trainer.step(question_tensors, response_tensors, rewards)
     ppo_trainer.log_stats(stats, batch, rewards)
