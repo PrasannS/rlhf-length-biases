@@ -18,6 +18,13 @@ def adjust_input_apf(strval, response=None):
     else:
         return qstr
 
+def adjust_input_stack(strval, response=None):
+    qstr = "Question: " + strval + "\n\nAnswer: "
+    if response:
+        return qstr+response
+    else:
+        return qstr
+
 def get_peft_ckpt(base, fname):
     if fname=="orig":
         print("using original")

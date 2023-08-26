@@ -3,3 +3,14 @@ logs/
 */models/
 */wandb/
 basepath.txt
+*outputs/
+*attackouts/
+secret/
+*.pyc
+simulated_data/
+*.out
+apfpath.txt
+*.jsonl
+*.log 
+*.out
+*wandb

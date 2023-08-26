@@ -1,0 +1,37 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "StackDebug",
+            "type": "python",
+            "request": "launch",
+            "module": "accelerate.commands.launch",
+            "args": [
+            "--multi_gpu",
+            "--config_file=/mnt/data1/prasann/rlhf-exploration/stack-llama/default_config.yaml",
+            "--num_machines=1",
+            "--num_processes=2", 
+            "/mnt/data1/prasann/rlhf-exploration/stack-llama/stack_rlhf.py",
+            "--log_with=wandb",
+            "--adafactor=False",
+            "--model_name=/mnt/data1/prasann/rlhf-exploration/stack-llama/models/sft",
+            "--reward_model_name=/mnt/data1/prasann/rlhf-exploration/stack-llama/models/rewardda",
+            "--tokenizer_name=/mnt/data1/prasann/rlhf-exploration/stack-llama/models/sft",
+            "--gradient_accumulation_steps=1", "--batched_gen=True",
+            "--save_freq=50",
+            "--output_max_length=200",
+            "--batch_size=4",
+            "--mini_batch_size=1",
+            "--ppo_epochs=1",
+            "--learning_rate=1.4e-5",
+            "--early_stopping=True",
+            "--output_dir='./checkpoints/debugging/'"], // other args comes after train.py
+            "console": "integratedTerminal",
+            "justMyCode": false
+            // "env": {"CUDA_LAUNCH_BLOCKING": "1"}
+          },
+    ]
+}
