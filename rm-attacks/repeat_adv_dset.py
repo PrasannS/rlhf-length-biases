@@ -11,6 +11,7 @@ def main(args):
     rmpath = args.rmpath
     # load reward model (sanity check RM)
     print("loading dataset")
+    
     startdf = pd.read_json(args.inpname, orient='records', lines=True)
     print(len(startdf))
     # get starter dataset (new data) to mess around with while using the RM

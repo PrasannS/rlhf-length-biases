@@ -84,12 +84,6 @@ set_seed(script_args.seed)
 def adjust_input(strval):
     return "Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\n"+strval+"\n\n### Response:"
 
-
-def adjust_wgpt(inp):
-    new_input = f"Human: {inp}\n Assistant: "
-    
-    return new_input
-    
 # Below is an example function to build the dataset. In our case, we use the IMDB dataset
 # from the `datasets` library. One should customize this function to train the model on
 # its own dataset.

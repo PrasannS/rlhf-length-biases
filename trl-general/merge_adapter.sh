@@ -29,12 +29,33 @@
 #     --output_name="/home/prasann/Projects/rlhf-exploration/stack-llama/models/rewardadvda/"
 
 export CUDA_VISIBLE_DEVICES=2,3
-python merge_peft_adapter.py \
-    --adapter_model_name="/home/prasann/Projects/rlhf-exploration/stack-llama/checkpoints/advtiebreak/checkpoint-4000" \
-    --base_model_name="/home/prasann/Projects/rlhf-exploration/stack-llama/models/sft" \
-    --output_name="/home/prasann/Projects/rlhf-exploration/stack-llama/models/rewardadvtiebreak/"
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/home/prasann/Projects/rlhf-exploration/stack-llama/checkpoints/advtiebreak/checkpoint-4000" \
+#     --base_model_name="/home/prasann/Projects/rlhf-exploration/stack-llama/models/sft" \
+#     --output_name="/home/prasann/Projects/rlhf-exploration/stack-llama/models/rewardadvtiebreak/"
 
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/home/prasann/Projects/rlhf-exploration/stack-llama/checkpoints/advmse/checkpoint-8000" \
+#     --base_model_name="/home/prasann/Projects/rlhf-exploration/stack-llama/models/sft" \
+#     --output_name="/home/prasann/Projects/rlhf-exploration/stack-llama/models/rewardadvmse/"
+
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/home/prasann/Projects/rlhf-exploration/stack-llama/checkpoints/rm_da_randonly/checkpoint-4000" \
+#     --base_model_name="/home/prasann/Projects/rlhf-exploration/stack-llama/models/sft" \
+#     --output_name="/home/prasann/Projects/rlhf-exploration/stack-llama/models/rewardrandaug/"
+
+# new bigdata model 
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/home/prasann/Projects/rlhf-exploration/stack-llama/checkpoints/rm_bigdata/checkpoint-16000" \
+#     --base_model_name="/home/prasann/Projects/rlhf-exploration/stack-llama/models/sft" \
+#     --output_name="/home/prasann/Projects/rlhf-exploration/stack-llama/models/rewardbigdset/"
+
+# webgpt with random DA
 python merge_peft_adapter.py \
-    --adapter_model_name="/home/prasann/Projects/rlhf-exploration/stack-llama/checkpoints/advmse/checkpoint-8000" \
-    --base_model_name="/home/prasann/Projects/rlhf-exploration/stack-llama/models/sft" \
-    --output_name="/home/prasann/Projects/rlhf-exploration/stack-llama/models/rewardadvmse/"
+   --adapter_model_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/checkpoints/webgptrandda/checkpoint-1500" \
+   --base_model_name="/home/prasann/Projects/tfr-decoding/llama/llama" \
+   --output_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/rewardrandda/"
+
+
+
+    
