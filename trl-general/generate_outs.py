@@ -118,6 +118,45 @@ def generate_outs(model, results, generation_kwargs, qsize=1, savefile="tmp.json
 
     return scored_results
 
+# generate_outs but for cases where we want to generate a distribution 
+def multi_generate_outs(model, results, generation_kwargs, bsize=1, savefile="tmp.jsonl"):
+    generation_kwargs['num_return_sequences']=bsize
+    scored_results = []
+    with torch.no_grad():
+        curcnt = 0
+        for result in tqdm(results, desc='Processing results'):            
+            generated_responses = []
+            model_inputs = tokenizer([result['query']], return_tensors='pt', padding=True, truncation=True).to(model.device)
+            try: 
+                # Generate outputs for N things in one go
+                generated_output = [model.generate(**model_inputs, **generation_kwargs)]
+            except:
+                generation_kwargs['num_return_sequences']=2
+                # if batch is too big then split it up
+                generated_output = []
+                print("Got an OOM error")
+                torch.cuda.empty_cache()
+                for i in range(0, bsize, 2):
+                    generated_output.append(model.generate(**model_inputs, **generation_kwargs))
+            for gen in generated_output:
+                for generated_sequence in gen:
+                    # HACK to see if the huggingface issue was the problem
+                    decoded_sequence = tokenizer.decode(generated_sequence, skip_special_tokens=True)
+                    generated_responses.append(decoded_sequence)
+    
+            # Append scored results
+            
+            # we're only generating for 1 thing at a time
+            scored_results.append({
+                'question': result['query'],
+                'response': generated_responses,
+                #'score': score
+            })
+            pd.DataFrame(scored_results).to_json(savefile, orient='records', lines=True)
+            curcnt = curcnt+1
+
+    return scored_results    
+
 def main(args):
     # NOTE, make sure to set CUDA_VISIBLE_DEVICES in a call
     # load in original sft model
@@ -125,27 +164,13 @@ def main(args):
         args.basemodel,
         load_in_8bit=True, # re-enable for llama model
         device_map={"": 0},
-        #peft_config=lora_config,
     )
     print("original model loaded")
-    #if getattr(tokenizer, "pad_token", None) is None:
-    #    tokenizer.pad_token = tokenizer.eos_token
+
         
     print(tokenizer.decode(tokenizer.eos_token_id))
     print(tokenizer.decode(tokenizer.pad_token_id))
-    
-    # generation_kwargs = {
-    #     "min_new_tokens": -1,
-    #     "max_new_tokens":256,
-    #     #"top_k": 0.0,
-    #     "top_p": 0.9,
-    #     "temperature": 0.9,
-    #     "do_sample": True,
-    #     "repetition_penalty": 1.2,
-    #     #"pad_token_id": tokenizer.pad_token_id,
-    #     #"eos_token_id": tokenizer.eos_token_id,
-    # }
-    
+        
     # NOTE try original kwargs since new ones are broken?
     generation_kwargs = {
         "min_length": -1,
@@ -176,7 +201,10 @@ def main(args):
         print("going through process for checkpoint "+str(ckpts[i]))
         fname = "generated_"+str(fnames[i])+".jsonl"
         model = get_step_ckpt(ckpts[i], origmodel)
-        generate_outs(model, results, generation_kwargs, 6, fname)
+        if args.bsize>1:
+            multi_generate_outs(model, results, generation_kwargs, args.bsize, fname)
+        else:
+            generate_outs(model, results, generation_kwargs, 6, fname)
         
         # TODO is model deletion necessary?
         del model
@@ -191,6 +219,7 @@ if __name__=="__main__":
     parser.add_argument('fname', type=str, help='generation filename')
     parser.add_argument('bottom', type=int, help='bottom of range to generate for')
     parser.add_argument('top', type=int, help='top of range to generate for')
+    parser.add_argument('bsize', type=int, help='outputs per prompt')
     
     progargs = parser.parse_args()
     # make tokenizer, get stuff started

@@ -5,6 +5,7 @@ from alpaca_farm.auto_annotations import PairwiseAutoAnnotator
 import pandas as pd
 from statistics import mean, stdev
 from transformers import AutoTokenizer
+import re
 
 toker = AutoTokenizer.from_pretrained("../stack-llama/models/sft")
 toker.pad_token_id = toker.eos_token_id
@@ -13,6 +14,8 @@ toker.pad_token_id = toker.eos_token_id
 def oai_kwargs():
     with open("../secret/openaikey.txt", 'r') as f:
         keyval = f.read()
+    os.environ['OPENAI_API_KEY'] = keyval
+    openai.api_key = keyval
     if 'OPENAI_API_KEY' not in os.environ:
         decoding_kwargs = dict(
             openai_api_key = keyval, #"sk-...",
@@ -27,12 +30,29 @@ def count_words(indf, k):
     wcnt = [len(s.split(" ")) for s in indf[k]]
     return wcnt
 
+# given list, get num tokens for all and return that list
+def tok_dist(lis, toker):
+    res = []
+    for l in lis:
+        res.append(len(toker(l).input_ids))
+    return res
 
 def reconvert(inp):
     strnew = inp.replace("</s>", "")
     strnew = strnew.replace("<s>", "")
     strnew = strnew.replace("<unk>", "")
     return strnew
+
+def getapfsft(inp, tostack=False):
+    instruction_match = re.search(r'### Instruction:\n(.*?)(### Response:|\Z)', inp, re.DOTALL)
+    instruction = instruction_match.group(1).strip() if instruction_match else None
+    
+    # Extract Response
+    response_match = re.search(r'### Response:.*?(.*?)(### |\Z)', inp, re.DOTALL)
+    response = response_match.group(1).strip() if response_match else None
+    if tostack:
+        return "Question: " + instruction + "\n\nAnswer: " + response
+    return instruction, response
     
 def load_alldfs(base="use_outs/"):
     alldfs = {}
@@ -42,6 +62,11 @@ def load_alldfs(base="use_outs/"):
             if "<s>" in tmp['response'][0]:
                 tmp['response'] = [reconvert(r) for r in tmp['response']]
                 tmp['question'] = [reconvert(r) for r in tmp['question']]
+            if "### Instruction" in tmp['response'][0]:
+                resps = [getapfsft(r)[1] for r in tmp['response']]
+                qs = [getapfsft(r)[0] for r in tmp['response']]
+                tmp['response'] = resps
+                tmp['question'] = qs
             if "Question:" in tmp['response'][0]:
                 tmp['response'] = [r[len(q):] for r, q in zip(tmp['response'], tmp['question'])]
             if "Question:" in tmp['question'][0]:
@@ -85,7 +110,7 @@ def apf_format(indf):
 
 def annotate_apfarm(alldfs, baseline, test, start, end, dec_kwargs):
     # make a fresh annotator each time (is this a good idea?, is it consistent?)
-    ann = PairwiseAutoAnnotator(annotators_config="annotators/annotator_pool_v0/configs.yaml", **dec_kwargs)
+    ann = PairwiseAutoAnnotator(annotators_config="annotator_pool_v0/configs.yaml", **dec_kwargs)
     base_outs = apf_format(alldfs[baseline])
     test_outs = apf_format(alldfs[test])
     assert end>0

@@ -236,7 +236,7 @@ device = ppo_trainer.accelerator.device
 if ppo_trainer.accelerator.num_processes == 1:
     device = 0 if torch.cuda.is_available() else "cpu"  # to avoid a ` pipeline` bug
     
-pipetok = AutoTokenizer.from_pretrained("/home/prasann/Projects/tfr-decoding/llama/llama")
+pipetok = AutoTokenizer.from_pretrained(script_args.reward_model_name)
 pipetok.pad_token_id = pipetok.eos_token_id
 sentiment_pipe = pipeline(
     "sentiment-analysis",
@@ -280,7 +280,7 @@ for epoch, batch in tqdm(enumerate(ppo_trainer.dataloader)):
     # Compute sentiment score
     texts = ["Question: " + q + "\n\nAnswer: " + r for q, r in zip(batch["query"], batch["response"])]
     pipe_outputs = sentiment_pipe(texts, **sent_kwargs)
-    rewards = [torch.clamp(torch.tensor(output[0]["score"]), min=-3, max=4) for output in pipe_outputs]
+    rewards = [torch.tensor(output[0]["score"]).to(current_device) for output in pipe_outputs]
 
     # Run PPO step
     stats = ppo_trainer.step(question_tensors, response_tensors, rewards)
