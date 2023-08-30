@@ -51,6 +51,20 @@ def load_all_dfs(dir):
             res[name]['answer'] = [s.split("Answer:")[1] for s in res[name]['response']]
     return res
 
+
+def load_all_rmdfs(dir):
+    res = {}
+    for f in os.listdir(dir):
+        if ".jsonl" in f:
+            name = f.replace(".jsonl", "")
+            tmp = pd.read_json(dir+f, orient='records', lines=True)
+            tmp['reward'] = tmp[name]
+            if "Below is an instruction" in tmp['question'][0]:
+                res["wgpt_"+name] = tmp
+            else:
+                res['stack_'+name] = tmp
+    return res
+
 def load_all_hackdfs(base):
     alldfs = {}
     for f in os.listdir(base):
@@ -74,7 +88,7 @@ def load_rm(name, device):
         tokenizer=tokenizer,
         return_token_type_ids=False,
     )
-    kwargs = sent_kwargs = {
+    kwargs = {
         "return_all_scores": True,
         "function_to_apply": "none",
         "batch_size": 8,
