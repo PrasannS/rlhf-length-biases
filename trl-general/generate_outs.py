@@ -7,7 +7,6 @@ from peft import PeftModel
 from tqdm import tqdm
 from transformers import  AutoTokenizer, AutoModelForCausalLM
 
-from transformers import pipeline, AutoTokenizer
 import pandas as pd
 import copy
 import argparse
@@ -156,8 +155,8 @@ def main(args):
         "temperature": 0.9,
         "do_sample": True,
         "repetition_penalty": 1.2,
-        #"pad_token_id": tokenizer.pad_token_id,
-        #"eos_token_id": tokenizer.eos_token_id,
+        "pad_token_id": tokenizer.pad_token_id,
+        "eos_token_id": tokenizer.eos_token_id,
     }
     
     results = load_dset(args.dset, args.top, args.bottom)
@@ -195,6 +194,7 @@ if __name__=="__main__":
     
     progargs = parser.parse_args()
     # make tokenizer, get stuff started
-    tokenizer = AutoTokenizer.from_pretrained(progargs.basemodel)
-    # tokenizer.pad_token = tokenizer.eos_token
+    tokenizer = AutoTokenizer.from_pretrained(progargs.basemodel, padding_side='left')
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
     main(progargs)

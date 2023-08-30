@@ -4,6 +4,7 @@ from typing import Optional
 import torch
 from peft import PeftConfig, PeftModel
 from transformers import AutoModelForCausalLM, AutoModelForSequenceClassification, AutoTokenizer, HfArgumentParser
+from rlhfutils.rmcode import LlamaForTokenClassification
 
 
 @dataclass
@@ -29,6 +30,11 @@ if peft_config.task_type == "SEQ_CLS":
     model = AutoModelForSequenceClassification.from_pretrained(
         script_args.base_model_name, num_labels=1, torch_dtype=torch.bfloat16
     )
+elif peft_config.task_type == "TOKEN_CLS":
+    tmp = AutoModelForSequenceClassification.from_pretrained(
+        script_args.base_model_name, num_labels=1, torch_dtype=torch.bfloat16
+    )
+    model = LlamaForTokenClassification(seqmodel=tmp, config=tmp.config)
 else:
     model = AutoModelForCausalLM.from_pretrained(
         script_args.base_model_name, return_dict=True, torch_dtype=torch.bfloat16

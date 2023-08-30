@@ -11,6 +11,7 @@ def get_scograds(rmodel, tokenizer, text, sftmodel=None, alpha=0):
     inputs = tokenizer(text, return_tensors='pt', truncation=True).to(rmodel.device)
     tokinps = inputs.input_ids.squeeze() 
     
+    # HACK this is dataset specific
     # NOTE: this is on the assumption that we're looking for gradients on the answer only, and is a hack based on the format of stuff
     try:
         islice = slice(list(tokinps).index(22550)+2,len(tokinps))

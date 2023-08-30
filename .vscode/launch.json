@@ -33,5 +33,22 @@
             "justMyCode": false
             // "env": {"CUDA_LAUNCH_BLOCKING": "1"}
           },
+          {
+            "name": "TFRDebug",
+            "type": "python",
+            "request": "launch",
+            "module": "torch.distributed.run",
+            "args": [
+            "--nnodes=1",
+            "--nproc_per_node=2",
+            "--master-port=29521",
+            "/home/prasann/Projects/rlhf-exploration/webgpt-llama/train_tfrm.py",
+            "--model_name=/home/prasann/Projects/tfr-decoding/llama/llama",
+            "--output_dir=checkpoints/tfrtest",
+            ], // other args comes after train.py
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "env": {"CUDA_VISIBLE_DEVICES": "2,3"}
+          },
     ]
 }

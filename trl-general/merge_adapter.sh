@@ -51,11 +51,18 @@ export CUDA_VISIBLE_DEVICES=2,3
 #     --output_name="/home/prasann/Projects/rlhf-exploration/stack-llama/models/rewardbigdset/"
 
 # webgpt with random DA
+# python merge_peft_adapter.py \
+#    --adapter_model_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/checkpoints/webgptrandda/checkpoint-1500" \
+#    --base_model_name="/home/prasann/Projects/tfr-decoding/llama/llama" \
+#    --output_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/rewardrandda/"
+
+# webgpt with TFRM (first attempt)
+# python merge_peft_adapter.py \
+#    --adapter_model_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/checkpoints/tfrtest/checkpoint-4500" \
+#    --base_model_name="/home/prasann/Projects/tfr-decoding/apfarm_models/sft10k" \
+#    --output_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/rewardtfr"
+
 python merge_peft_adapter.py \
-   --adapter_model_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/checkpoints/webgptrandda/checkpoint-1500" \
-   --base_model_name="/home/prasann/Projects/tfr-decoding/llama/llama" \
-   --output_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/rewardrandda/"
-
-
-
-    
+   --adapter_model_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/checkpoints/webgptmix/checkpoint-1500" \
+   --base_model_name="/home/prasann/Projects/tfr-decoding/apfarm_models/sft10k" \
+   --output_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/mixrm"

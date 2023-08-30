@@ -14,3 +14,4 @@ apfpath.txt
 *.log 
 *.out
 *wandb
+*.egg-info

@@ -5,7 +5,7 @@ import evaluate
 import numpy as np
 import torch
 import torch.nn as nn
-from datasets import load_dataset, concatenate_datasets
+from datasets import load_dataset, concatenate_datasets, Features
 from peft import LoraConfig, TaskType, get_peft_model
 from transformers import (
     AutoModelForSequenceClassification,
@@ -93,6 +93,16 @@ class ScriptArguments:
         default="checkpoints/wgptsaved"
     )
 
+# NOTE process anthro hh data for mixture with se data
+def preproc_hh(example):
+    j = example['chosen']
+    hind = j.index("Human:")+6
+    aind = j.index("Assistant:")+len("Assistant:")
+    ex = {}
+    ex['question'] = j[hind:aind-len("Assistant:")]
+    ex['response_j'] = example['chosen'][aind:]
+    ex['response_k'] = example['rejected'][aind:]
+    return ex
 
 # NOTE process anthro hh data for mixture with se data
 def preproc_wgpt(example):
@@ -112,8 +122,10 @@ script_args = parser.parse_args_into_dataclasses()[0]
 # Load the human stack-exchange-paired dataset for tuning the reward model.
 # HACK using wrong kind of data
 
-#hh_train = load_dataset("Anthropic/hh-rlhf", data_dir="helpful-base", split="train")
-#hh_train = hh_train.map(preproc_hh)
+hh_train = load_dataset("Anthropic/hh-rlhf", data_dir="helpful-base", split="train")
+hh_train = hh_train.map(preproc_hh)
+hh_train = hh_train.shuffle(seed=100)
+
 train_dataset = load_dataset("openai/webgpt_comparisons", split="train")
 train_dataset = train_dataset.map(preproc_wgpt)
 
@@ -123,8 +135,12 @@ train_dataset = train_dataset.shuffle(seed=100)
 eval_dataset = train_dataset.select(range(18000, len(train_dataset)))
 # use the rest as necessary
 train_dataset = train_dataset.select(range(18000))
+mixratio = 0.2
+hh_train = hh_train.select(range(int(len(train_dataset)*mixratio)))
 
+train_dataset = concatenate_datasets([train_dataset, hh_train])
 print("new size ", len(train_dataset))
+train_dataset = train_dataset.shuffle(seed=100)
 
 # Define the training args. Needs to be done before the model is loaded if you are using deepspeed.
 model_name_split = script_args.model_name.split("/")[-1]
@@ -153,11 +169,11 @@ training_args = TrainingArguments(
     optim=script_args.optim,
     lr_scheduler_type=script_args.lr_scheduler_type,
 )
+
 # Load the value-head model and tokenizer.
 tokenizer_name = script_args.tokenizer_name if script_args.tokenizer_name is not None else script_args.model_name
 tokenizer = AutoTokenizer.from_pretrained(tokenizer_name, use_auth_token=True)
 tokenizer.pad_token = tokenizer.eos_token
-
 
 peft_config = LoraConfig(
     task_type=TaskType.SEQ_CLS,
@@ -178,8 +194,7 @@ tokenizer.pad_token = tokenizer.eos_token
 model.config.pad_token_id = tokenizer.eos_token_id
 model.config.use_cache = not script_args.gradient_checkpointing
 num_proc = 24  # Can adjust to be higher if you have more processors.
-original_columns = train_dataset.column_names
-
+eval_columns = eval_dataset.column_names
 
 # Turn the dataset into pairs of post + summaries, where text_j is the preferred question + answer and text_k is the other.
 # Then tokenize the dataset.
@@ -201,13 +216,14 @@ def preprocess_function(examples):
 
     return new_examples
 
-
+train_dataset = train_dataset.select_columns(['question', 'response_j', 'response_k'])
+orig_columns = train_dataset.column_names
 # preprocess the dataset and filter out QAs that are longer than script_args.max_length
 train_dataset = train_dataset.map(
     preprocess_function,
     batched=True,
     num_proc=num_proc,
-    remove_columns=original_columns,
+    remove_columns=orig_columns,
 )
 train_dataset = train_dataset.filter(
     lambda x: len(x["input_ids_j"]) <= script_args.max_length and len(x["input_ids_k"]) <= script_args.max_length
@@ -217,7 +233,7 @@ eval_dataset = eval_dataset.map(
     preprocess_function,
     batched=True,
     num_proc=num_proc,
-    remove_columns=original_columns,
+    remove_columns=eval_columns,
 )
 eval_dataset = eval_dataset.filter(
     lambda x: len(x["input_ids_j"]) <= script_args.max_length and len(x["input_ids_k"]) <= script_args.max_length
@@ -272,10 +288,8 @@ class RewardDataCollatorWithPadding:
         }
         return batch
 
-
 # Define the metric that we'll use for validation.
 accuracy = evaluate.load("accuracy")
-
 
 def compute_metrics(eval_pred):
     predictions, _ = eval_pred
@@ -284,7 +298,6 @@ def compute_metrics(eval_pred):
     predictions = np.argmax(predictions, axis=0)
     labels = np.zeros(predictions.shape)
     return accuracy.compute(predictions=predictions, references=labels)
-
 
 class RewardTrainer(Trainer):
     # Define how to compute the reward loss. We use the InstructGPT pairwise logloss: https://arxiv.org/abs/2203.02155
@@ -296,7 +309,6 @@ class RewardTrainer(Trainer):
             return loss, {"rewards_j": rewards_j, "rewards_k": rewards_k}
         return loss
 
-
 # Train the model, woohoo.
 trainer = RewardTrainer(
     model=model,
@@ -306,7 +318,6 @@ trainer = RewardTrainer(
     compute_metrics=compute_metrics,
     data_collator=RewardDataCollatorWithPadding(tokenizer=tokenizer, max_length=script_args.max_length),
 )
-
 
 if script_args.eval_first_step:
 

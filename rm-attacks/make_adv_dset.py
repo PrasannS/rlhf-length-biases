@@ -1,4 +1,4 @@
-from datasets import load_dataset
+from datasets import load_dataset, Dataset
 from tqdm import tqdm
 from transformers import  AutoModelForSequenceClassification
 from rm_grad_inputs import propose_new_sequence
@@ -8,20 +8,41 @@ import random
 import torch
 import os
 import argparse
+import re
 
+# def combresp(example, juse=False):
+#     ex = {}
+#     # randomly use either a chosen or rejected string, ideally this should give some more variance / cover some gaps
+#     # NOTE what if it's necessary to generate from SFT model for stuff to work?
+#     jbool = bool(random.getrandbits(1))
+#     if juse:
+#         jbool = juse
+#     if jbool:
+#         ex['instr'] =  "Question: " + example['question'] + "\n\nAnswer: " + example['response_j']
+#     else:
+#         ex['instr'] =  "Question: " + example['question'] + "\n\nAnswer: " + example['response_k']
+#     return ex
 
-def combresp(example, juse=False):
+def get_qa(inpres):
+    instruction_match = re.search(r'### Instruction:\n(.*?)(### Response:|\Z)', inpres, re.DOTALL)
+    instruction = instruction_match.group(1).strip() if instruction_match else None
+    
+    # Extract Response
+    response_match = re.search(r'### Response:.*?(.*?)(### |\Z)', inpres, re.DOTALL)
+    response = response_match.group(1).strip() if response_match else None
+    return instruction, response
+
+def processwgpt(example):
     ex = {}
-    # randomly use either a chosen or rejected string, ideally this should give some more variance / cover some gaps
-    # NOTE what if it's necessary to generate from SFT model for stuff to work?
-    jbool = bool(random.getrandbits(1))
-    if juse:
-        jbool = juse
-    if jbool:
-        ex['instr'] =  "Question: " + example['question'] + "\n\nAnswer: " + example['response_j']
-    else:
-        ex['instr'] =  "Question: " + example['question'] + "\n\nAnswer: " + example['response_k']
+    quest, ans = get_qa(example['response'])
+    ex['instr'] = "Question: " + quest + "\n\nAnswer: " + ans
     return ex
+    
+def processstack(example):
+    ex = {}
+    ex['instr'] = example['response']
+    return ex
+    
 
 def load_reward(rname, device):
     return AutoModelForSequenceClassification.from_pretrained(
@@ -47,10 +68,10 @@ def make_rmset(rmpath, indset, N, B, sdevice, savepath):
     ind = 0
     for row in tqdm(indset):
         # skip over row that cause error
-        if ind < num_existing_rows+random.randint(1,10):
-            print("skip")
-            ind = ind+1
-            continue 
+        # if ind < num_existing_rows+random.randint(1,10):
+        #     print("skip")
+        #     ind = ind+1
+        #     continue 
         try:
             rmodel.zero_grad()
             torch.cuda.empty_cache()
@@ -67,33 +88,44 @@ def make_rmset(rmpath, indset, N, B, sdevice, savepath):
     return allres
     
 def main(args):
-    print("process ", str(args.process))
-    proc = args.process
+    #print("process ", str(args.process))
+    #proc = args.process
     MAXROUNDS = 5
     ROUNDCANDS = 10
     SDEVICE=0
-    DSTART= [0,20000]
-    fname = ["attackouts/dset/dsetshuff.jsonl", "attackouts/dset/dsetshuff2.jsonl"]
     
-    rmpath = "../stack-llama/models/rewardsanity"
+    # DSTART= [0,20000]
+    fname = args.inpf
+    # fname = ["attackouts/dset/dsetshuff.jsonl", "attackouts/dset/dsetshuff2.jsonl"]
+    
+    rmpath = args.rmname
     # load reward model (sanity check RM)
     print("loading dataset")
     # get starter dataset (new data) to mess around with while using the RM
-    startdset = load_dataset("lvwerra/stack-exchange-paired", data_dir="data/reward", split="train")
-    startdset = startdset.shuffle(seed=0)
-    startdset = startdset.select(range(DSTART[proc],DSTART[proc]+20000))
+    # startdset = load_dataset("lvwerra/stack-exchange-paired", data_dir="data/reward", split="train")
+    # startdset = startdset.shuffle(seed=0)
+    # startdset = startdset.select(range(DSTART[proc],DSTART[proc]+20000))
     
     print("mapping")
+    inpdf = pd.read_json(fname, orient='records', lines=True)
+    startdset = Dataset.from_pandas(inpdf)
+    if args.dset == "stack":
+        startdset = startdset.map(processstack)
+    else:
+        startdset = startdset.map(processwgpt)
+    
     # take random strings from either chosen or rejected
-    startdset = startdset.map(combresp)
     startdset = startdset.filter(lambda x: len(x["instr"]) < 4000, batched=False)
     
     # generate adversarial dataset, store automatically
-    make_rmset(rmpath, startdset, MAXROUNDS, ROUNDCANDS, SDEVICE, fname[proc])
+    make_rmset(rmpath, startdset, MAXROUNDS, ROUNDCANDS, SDEVICE, args.savef)
     
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='My Python script.')
-    parser.add_argument('process', type=int, help='an integer argument')
+    parser.add_argument("inpf", type=str, help='an integer argument')
+    parser.add_argument("savef", type=str, help='an integer argument')
+    parser.add_argument("dset", type=str, help='an integer argument')
+    parser.add_argument("rmname", type=str, help='an integer argument')
 
     progargs = parser.parse_args()
     main(progargs)

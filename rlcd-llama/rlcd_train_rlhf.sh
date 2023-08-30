@@ -16,8 +16,8 @@ accelerate launch --multi_gpu --config_file=/home/prasann/Projects/rlhf-explorat
     --output_max_length=156 --batch_size=32 \
     --gradient_accumulation_steps=1 \
     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
-    --early_stopping=False --output_dir=checkpoints/rlcdppo/ \
-    --init_kl_coef=0.04 --steps=10000
+    --early_stopping=False --output_dir=checkpoints/rlcdpposkl/ \
+    --init_kl_coef=0.008 --steps=10000
 
 #v3, aimed at greater stability (4 gpu run, 2 ppo epochs per thing)
 #lowp is 0.8 top p, should constrain exploration a bit
