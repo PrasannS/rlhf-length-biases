@@ -4,24 +4,10 @@ from transformers import  AutoModelForSequenceClassification
 from rm_grad_inputs import propose_new_sequence
 import pandas as pd
 from debug_utils import load_rm as load_rm_pipe
-import random
 import torch
 import os
 import argparse
-import re
-
-# def combresp(example, juse=False):
-#     ex = {}
-#     # randomly use either a chosen or rejected string, ideally this should give some more variance / cover some gaps
-#     # NOTE what if it's necessary to generate from SFT model for stuff to work?
-#     jbool = bool(random.getrandbits(1))
-#     if juse:
-#         jbool = juse
-#     if jbool:
-#         ex['instr'] =  "Question: " + example['question'] + "\n\nAnswer: " + example['response_j']
-#     else:
-#         ex['instr'] =  "Question: " + example['question'] + "\n\nAnswer: " + example['response_k']
-#     return ex
+import re   
 
 def get_qa(inpres):
     instruction_match = re.search(r'### Instruction:\n(.*?)(### Response:|\Z)', inpres, re.DOTALL)
