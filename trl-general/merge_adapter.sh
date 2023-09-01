@@ -62,7 +62,31 @@ export CUDA_VISIBLE_DEVICES=2,3
 #    --base_model_name="/home/prasann/Projects/tfr-decoding/apfarm_models/sft10k" \
 #    --output_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/rewardtfr"
 
+# python merge_peft_adapter.py \
+#    --adapter_model_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/checkpoints/webgptmix/checkpoint-1500" \
+#    --base_model_name="/home/prasann/Projects/tfr-decoding/apfarm_models/sft10k" \
+#    --output_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/mixrm"
+
+# adapter for adv DA model 
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/home/prasann/Projects/rlhf-exploration/rlcd-llama/checkpoints/rlcdsaved/checkpoint-2000" \
+#     --base_model_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     --output_name="/home/prasann/Projects/rlhf-exploration/rlcd-llama/models/rlcdhelp/"
+
+# adapter for adv DA model 
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/checkpoints/rmmix50/checkpoint-2500" \
+#     --base_model_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     --output_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/mix50rm"
+
+# APFarm human RM 
 python merge_peft_adapter.py \
-   --adapter_model_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/checkpoints/webgptmix/checkpoint-1500" \
-   --base_model_name="/home/prasann/Projects/tfr-decoding/apfarm_models/sft10k" \
-   --output_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/mixrm"
+    --adapter_model_name="/home/prasann/Projects/rlhf-exploration/apf/checkpoints/apfinithuman/checkpoint-1000" \
+    --base_model_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+    --output_name="/home/prasann/Projects/rlhf-exploration/apf/models/humanrm"
+
+# APFarm GPT4 RM
+python merge_peft_adapter.py \
+    --adapter_model_name="/home/prasann/Projects/rlhf-exploration/apf/checkpoints/apfgptrm/checkpoint-1500" \
+    --base_model_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+    --output_name="/home/prasann/Projects/rlhf-exploration/apf/models/gptrm"

@@ -1,25 +1,19 @@
 import os
 
 import torch
-import time
 from dataclasses import dataclass, field
 from typing import Optional
 from accelerate import Accelerator
 from datasets import load_dataset
 from peft import LoraConfig
 from tqdm import tqdm
-import pandas as pd
-from datasets import Dataset
 from transformers import (
     Adafactor,
     AutoTokenizer,
     LlamaTokenizer,
     HfArgumentParser,
     pipeline,
-    T5Tokenizer,
-    T5ForConditionalGeneration
 )
-import re
 
 from trl import AutoModelForCausalLMWithValueHead, PPOConfig, PPOTrainer, set_seed
 from trl.core import LengthSampler
@@ -63,7 +57,7 @@ class ScriptArguments:
     early_stopping: Optional[bool] = field(default=False, metadata={"help": "whether to early stop"})
     target_kl: Optional[float] = field(default=0.1, metadata={"help": "kl target for early stopping"})
     reward_baseline: Optional[float] = field(
-       default=1,
+       default=1.5,
        metadata={"help": "a baseline value that is subtracted from the reward"},
     )
     save_freq: Optional[int] = field(default=None, metadata={"help": "n steps to save the model"})
@@ -71,7 +65,7 @@ class ScriptArguments:
     seed: Optional[int] = field(default=1, metadata={"help": "the seed"})
     steps: Optional[int] = field(default=10000, metadata={"help": "number of epochs"})
     init_kl_coef: Optional[float] = field(
-        default=0.2, #HACK used to be 0.2, make sure to switch back at some point
+        default=0.02, #HACK used to be 0.2, make sure to switch back at some point
         metadata={"help": "Initial KL penalty coefficient (used for adaptive and linear control)"},
     )
 
@@ -81,8 +75,14 @@ script_args: ScriptArguments = parser.parse_args_into_dataclasses()[0]
 
 set_seed(script_args.seed)
 
-def adjust_input(strval):
-    return "Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\n"+strval+"\n\n### Response:"
+def adjust_input(instr, inp):
+    if len(inp)==0:   
+        return "Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\n"+instr+"\n\n### Response:"
+    # version that also has the input
+    return "Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.\n\n### Instruction:\n"+instr+"\n\n### Input:\n"+inp+"\n\n### Response:"
+
+def inp_origformat(instr, inp):
+    return "Question: "+instr+"\n\nInput: "+inp+"\n\nAnswer: "
 
 # Below is an example function to build the dataset. In our case, we use the IMDB dataset
 # from the `datasets` library. One should customize this function to train the model on
@@ -102,7 +102,7 @@ def build_dataset(tokenizer, dataset_name="eli5", input_min_text_length=2, input
     """
 
     # input_size = LengthSampler(input_min_text_length, input_max_text_length)
-    ds = load_dataset("openai/webgpt_comparisons", split="train")
+    ds = load_dataset("tatsu-lab/alpaca_farm", 'alpaca_instructions')['unlabeled']
 
     def tokenize(sample):
         # TODO trying out this thing for batching
@@ -110,14 +110,13 @@ def build_dataset(tokenizer, dataset_name="eli5", input_min_text_length=2, input
             "query": [],
             "input_ids": [],
         }
-        for question in sample["question"]:
-            query = question['full_text']
-            
-            query = adjust_input(query)
+        for i in range(len(sample['instruction'])):
+            # get apfarm processed input
+            query = adjust_input(sample['instruction'][i], sample['input'][i])
             
             #query = "Question: " + question + "\n\nAnswer: "
             tokenized_question = tokenizer(query, truncation=True)
-            new_examples["query"].append(question['full_text'])
+            new_examples["query"].append(inp_origformat(sample['instruction'][i], sample['input'][i]))
             new_examples["input_ids"].append(tokenized_question["input_ids"])
 
         return new_examples
@@ -258,7 +257,7 @@ generation_kwargs = {
     #"pad_token_id": tokenizer.pad_token_id,
     # "eos_token_id": 100_000,
 }
-output_min_length = script_args.output_max_length-5
+output_min_length = script_args.output_max_length-2
 output_max_length = script_args.output_max_length
 output_length_sampler = LengthSampler(output_min_length, output_max_length)
 
@@ -278,9 +277,12 @@ for epoch, batch in tqdm(enumerate(ppo_trainer.dataloader)):
     batch["response"] = tokenizer.batch_decode(response_tensors, skip_special_tokens=True)
 
     # Compute sentiment score
-    texts = ["Question: " + q + "\n\nAnswer: " + r for q, r in zip(batch["query"], batch["response"])]
+    texts = [q+r for q, r in zip(batch["query"], batch["response"])]
     pipe_outputs = sentiment_pipe(texts, **sent_kwargs)
     rewards = [torch.tensor(output[0]["score"]-script_args.reward_baseline).to(current_device) for output in pipe_outputs]
+    
+    # set this to give clearer idea to wandb logs
+    batch["query"] = tokenizer.batch_decode(batch['input_ids'])
 
     # Run PPO step
     stats = ppo_trainer.step(question_tensors, response_tensors, rewards)
