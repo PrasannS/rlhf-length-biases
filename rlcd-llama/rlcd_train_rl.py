@@ -60,10 +60,10 @@ class ScriptArguments:
     adafactor: Optional[bool] = field(default=False, metadata={"help": "whether to use the adafactor optimizer"})
     early_stopping: Optional[bool] = field(default=False, metadata={"help": "whether to early stop"})
     target_kl: Optional[float] = field(default=0.1, metadata={"help": "kl target for early stopping"})
-    #reward_baseline: Optional[float] = field(
-    #    default=0.5,
-    #    metadata={"help": "a baseline value that is subtracted from the reward"},
-    #)
+    reward_baseline: Optional[float] = field(
+       default=1,
+       metadata={"help": "a baseline value that is subtracted from the reward"},
+    )
     save_freq: Optional[int] = field(default=None, metadata={"help": "n steps to save the model"})
     output_dir: Optional[str] = field(default="runs/", metadata={"help": "n steps to save the model"})
     seed: Optional[int] = field(default=1, metadata={"help": "the seed"})
@@ -288,7 +288,7 @@ for epoch, batch in tqdm(enumerate(ppo_trainer.dataloader)):
     if epoch==0:
         print(texts[0])
     pipe_outputs = sentiment_pipe(texts, **sent_kwargs)
-    rewards = [torch.tensor(output[0]["score"]) for output in pipe_outputs]
+    rewards = [torch.tensor(output[0]["score"]-script_args.reward_baseline) for output in pipe_outputs]
 
     # Run PPO step
     stats = ppo_trainer.step(question_tensors, response_tensors, rewards)

@@ -4,7 +4,10 @@ from rlhfutils.eval_utils import getapfsft, tok_dist
 import matplotlib.pyplot as plt
 from rlhfutils.debug_utils import load_rm, progress_rm
 import argparse
-
+import nltk
+from nltk.tokenize import sent_tokenize
+import random
+nltk.download('punkt')
 
 # replace all wgptouts with corresponding stack QA format (RM input format)
 def setall(l):
@@ -49,17 +52,43 @@ def procall(indf, toker, needset=True):
     indf['ttoks'] = [tok_dist(s, toker) for s in list(indf['response'])]
     return indf
 
+def shuffle_sents(paragraph):
+    # Use NLTK to split the paragraph into sentences
+    sentences = sent_tokenize(paragraph)
+    
+    # Shuffle the sentences
+    random.shuffle(sentences)
+    
+    # Combine the shuffled sentences back into a paragraph
+    shuffled_paragraph = ' '.join(sentences)
+    
+    return shuffled_paragraph
+
+def shuffle_row_resp(row):
+    # shuffle answers for 
+    shuffans = [shuffle_sents(r) for r in row['answers']]
+    return [row['response'][i][:-len(row['answers'][i])]+shuffans[i] for i in range(len(shuffans))]
+
+
 def main(args):
     "../trl-general/genouts/generated_stackmultisampset.jsonl"
     "../trl-general/genouts/generated_wgptmultisampset.jsonl"
     stack = "stack" in args.rmname
-    outdf = pd.read_json(args.inpf, orient='records', lines=True)
+    outdf = pd.read_json(args.inpf, orient='records', lines=True)    
+    if args.lim > 0:
+        outdf = outdf.iloc[:args.lim]
     if stack:
         tok = AutoTokenizer.from_pretrained("../stack-llama/models/sft/")
         outdf = procall(outdf, tok, False)
     else:
         tok = AutoTokenizer.from_pretrained("../webgpt-llama/models/sft10k/")
         outdf = procall(outdf, tok, True)
+        
+    # if we want, we can score perturbed data (shuffle sentences via nltk)
+    # TODO do a double check on whether removing truncated sentence from output helps (APEval)
+    if args.shuffle>0:
+        outdf['response'] = [shuffle_row_resp(r) for _, r in outdf.iterrows()]
+        
     tok, rm, kwargs = load_rm(args.rmname, args.device)
     allresps = getfulldist(outdf.response)
     allscos = progress_rm(allresps, rm, kwargs)
@@ -70,9 +99,11 @@ def main(args):
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='My Python script.')
     # TODO fix up arg names
-    parser.add_argument('rmname', type=str, help='base model checkpoint is trained on')
-    parser.add_argument('inpf', type=str, help='bottom of range to generate for')
-    parser.add_argument('device', type=int, help='outputs per prompt')
+    parser.add_argument('--rmname', type=str, help='base model checkpoint is trained on')
+    parser.add_argument('--inpf', type=str, help='bottom of range to generate for')
+    parser.add_argument('--device', type=int, help='outputs per prompt')
+    parser.add_argument('--lim', type=int, help="whatever")
+    parser.add_argument('--shuffle', type=int, help='whether to shuffle sentences before scoring or not')
     
     progargs = parser.parse_args()
     

@@ -8,6 +8,7 @@ import torch
 import os
 import argparse
 import re   
+import random
 
 def get_qa(inpres):
     instruction_match = re.search(r'### Instruction:\n(.*?)(### Response:|\Z)', inpres, re.DOTALL)
@@ -45,7 +46,7 @@ def make_rmset(rmpath, indset, N, B, sdevice, savepath):
     if os.path.exists(savepath):
         # Load the saved rows
         existing_data = pd.read_json(savepath, orient='records', lines=True)
-        num_existing_rows = len(existing_data)
+        num_existing_rows = len(existing_data)+random.randint(1,3)
         allres = existing_data.to_dict('records')
         print("loading in from existing file")
     else:
@@ -54,10 +55,10 @@ def make_rmset(rmpath, indset, N, B, sdevice, savepath):
     ind = 0
     for row in tqdm(indset):
         # skip over row that cause error
-        # if ind < num_existing_rows+random.randint(1,10):
-        #     print("skip")
-        #     ind = ind+1
-        #     continue 
+        if ind < num_existing_rows:
+            print("skip")
+            ind = ind+1
+            continue 
         try:
             rmodel.zero_grad()
             torch.cuda.empty_cache()
@@ -94,6 +95,9 @@ def main(args):
     
     print("mapping")
     inpdf = pd.read_json(fname, orient='records', lines=True)
+    
+    # HACK keep limited to 200 examples for now
+    inpdf = inpdf.iloc[:1600]
     startdset = Dataset.from_pandas(inpdf)
     if args.dset == "stack":
         startdset = startdset.map(processstack)

@@ -1,36 +1,48 @@
 # For stack sanity
 # python -u rmsco_outs.py \
-#     /home/prasann/Projects/rlhf-exploration/stack-llama/models/rewardsanity \
-#     "../trl-general/genouts/generated_stackmultisampset.jsonl" \
-#     0
+#     --rmname "/mnt/data1/prasann/rlhf-exploration/stack-llama/models/rewardsanity" \
+#     --inpf "../trl-general/genouts/generated_stackmultisampset.jsonl" \
+#     --device 0 \
+#     --lim 800 \
+#     --shuffle 10
 
-# For stack random only
-python -u rmsco_outs.py \
-    /home/prasann/Projects/rlhf-exploration/stack-llama/models/rewardrandaug \
-    "../trl-general/genouts/generated_stackmultisampset.jsonl" \
-    0
-
-# # For stack DA adhoc
+# # For stack random only
 # python -u rmsco_outs.py \
-#     /home/prasann/Projects/tfr-decoding/trlx_train/trl-stack/models/rewardda \
-#     "../trl-general/genouts/generated_stackmultisampset.jsonl" \
-#     2
+#     --rmname="/mnt/data1/prasann/rlhf-exploration/stack-llama/models/rewardrandaug" \
+#     --inpf="../trl-general/genouts/generated_stackmultisampset.jsonl" \
+#     --device 0 \
+#     --lim 800 \
+#     --shuffle 10
+
+# # # For stack DA adhoc
+# python -u rmsco_outs.py \
+#     --rmname="/mnt/data1/prasann/rlhf-exploration/stack-llama/models/rewardda" \
+#     --inpf="../trl-general/genouts/generated_stackmultisampset.jsonl" \
+#     --device 0 \
+#     --lim 800 \
+#     --shuffle 10
 
 # #For webgpt
-# python -u rmsco_outs.py \
-#     /home/prasann/Projects/rlhf-exploration/webgpt-llama/models/rewardmodel \
-#     "../trl-general/genouts/generated_wgptmultisampset.jsonl" \
-#     2
+python -u rmsco_outs.py \
+    --rmname="/mnt/data1/prasann/rlhf-exploration/webgpt-llama/models/rewardmodel" \
+    --inpf="../trl-general/genouts/generated_wgptmultisampset.jsonl" \
+    --device 1 \
+    --lim 800 \
+    --shuffle 10
 
 # # For stack mix
-# python -u rmsco_outs.py \
-#     /home/prasann/Projects/tfr-decoding/trlx_train/trl-stack/models/rewardmixed \
-#     "../trl-general/genouts/generated_stackmultisampset.jsonl" \
-#     3
+python -u rmsco_outs.py \
+    --rmname="/mnt/data1/prasann/rlhf-exploration/stack-llama/models/rewardmixed" \
+    --inpf="../trl-general/genouts/generated_stackmultisampset.jsonl" \
+    --device 1 \
+    --lim 800 \
+    --shuffle 10
 
 # # WebtGPT DA
-# python -u rmsco_outs.py \
-#     /home/prasann/Projects/rlhf-exploration/webgpt-llama/models/rewardrandda \
-#     "../trl-general/genouts/generated_wgptmultisampset.jsonl" \
-#     3
+python -u rmsco_outs.py \
+    --rmname="/mnt/data1/prasann/rlhf-exploration/webgpt-llama/models/rewardrandda" \
+    --inpf="../trl-general/genouts/generated_wgptmultisampset.jsonl" \
+    --device 1 \
+    --lim 800 \
+    --shuffle 10
 
