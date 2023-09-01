@@ -45,8 +45,8 @@ class ScriptArguments:
     )
     per_device_train_batch_size: Optional[int] = field(default=2)
     per_device_eval_batch_size: Optional[int] = field(default=2)
-    gradient_accumulation_steps: Optional[int] = field(default=4)
-    learning_rate: Optional[float] = field(default=2e-5)
+    gradient_accumulation_steps: Optional[int] = field(default=2)
+    learning_rate: Optional[float] = field(default=1e-5)
     weight_decay: Optional[float] = field(default=0.001)
     model_name: Optional[str] = field(
         default="gpt2",
@@ -61,7 +61,7 @@ class ScriptArguments:
         },
     )
     bf16: Optional[bool] = field(
-        default=False,
+        default=True,
         metadata={
             "help": "This essentially cuts the training time in half if you want to sacrifice a little precision and have a supported GPU."
         },
@@ -128,7 +128,7 @@ def get_trainargs(script_args):
         logging_steps=10,
         optim=script_args.optim,
         lr_scheduler_type=script_args.lr_scheduler_type,
-        include_inputs_for_metrics=False
+        include_inputs_for_metrics=False,
     )
      
 def load_rmodel_standard(script_args):
@@ -145,7 +145,7 @@ def load_rmodel_standard(script_args):
         lora_dropout=0.1,
     )
     model = AutoModelForSequenceClassification.from_pretrained(
-        script_args.model_name, num_labels=1, #torch_dtype=torch.bfloat16
+        script_args.model_name, num_labels=1, torch_dtype=torch.bfloat16
     )
     model = get_peft_model(model, peft_config)
     model.print_trainable_parameters()
@@ -174,7 +174,7 @@ def load_tokenfactored_rmodel(script_args):
 
     # NOTE token classification instead of sequence classification
     tmp = AutoModelForSequenceClassification.from_pretrained(
-        script_args.model_name, num_labels=1, # torch_dtype=torch.bfloat16 HACK just for denali
+        script_args.model_name, num_labels=1, torch_dtype=torch.bfloat16 # HACK just for denali
     )
     model = LlamaForTokenClassification(seqmodel=tmp, config=tmp.config)
     model = get_peft_model(model, peft_config)
@@ -265,7 +265,7 @@ def amask(seq):
     return mask
     
 class TokenFactoredRewardTrainer(Trainer):
-    rounds = 5
+    rounds = 1
     sublen = 25
                 
     # given batch for j and k, return sampled subseqs to use for loss
@@ -349,7 +349,7 @@ def compute_metrics_tfr(eval_pred):
 
 def load_rm(basepath, checkpath, iseval=True):
     tmp = AutoModelForSequenceClassification.from_pretrained(
-        basepath, num_labels=1,#  torch_dtype=torch.bfloat16 HACK just for denali
+        basepath, num_labels=1, torch_dtype=torch.bfloat16 # HACK just for denali
     )
     model = LlamaForTokenClassification(seqmodel=tmp, config=tmp.config)
     model = PeftModel.from_pretrained(model, checkpath)
@@ -369,7 +369,7 @@ class LlamaForTokenClassification(LlamaPreTrainedModel):
         self.classifier = nn.Linear(config.hidden_size, config.num_labels)
 
         # TODO maybe this is, isn't necessary?
-        #self.to(dtype=torch.bfloat16)
+        self.to(dtype=torch.bfloat16)
         # Model parallel
         # self.model_parallel = False
         # self.device_map = None

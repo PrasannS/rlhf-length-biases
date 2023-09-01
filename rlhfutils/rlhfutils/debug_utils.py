@@ -51,7 +51,6 @@ def load_all_dfs(dir):
             res[name]['answer'] = [s.split("Answer:")[1] for s in res[name]['response']]
     return res
 
-
 def load_all_rmdfs(dir):
     res = {}
     for f in os.listdir(dir):
