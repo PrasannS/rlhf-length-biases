@@ -47,7 +47,7 @@ class ScriptArguments:
     log_with: Optional[str] = field(default=None, metadata={"help": "use 'wandb' to log with wandb"})
     learning_rate: Optional[float] = field(default=1.41e-5, metadata={"help": "the learning rate"})
     output_max_length: Optional[int] = field(default=128, metadata={"help": "maximum length for generation"})
-    mini_batch_size: Optional[int] = field(default=1, metadata={"help": "the PPO minibatch size"})
+    mini_batch_size: Optional[int] = field(default=4, metadata={"help": "the PPO minibatch size"})
     batch_size: Optional[int] = field(default=32, metadata={"help": "the batch size"})
     ppo_epochs: Optional[int] = field(default=4, metadata={"help": "the number of ppo epochs"})
     gradient_accumulation_steps: Optional[int] = field(
@@ -57,7 +57,7 @@ class ScriptArguments:
     early_stopping: Optional[bool] = field(default=False, metadata={"help": "whether to early stop"})
     target_kl: Optional[float] = field(default=0.1, metadata={"help": "kl target for early stopping"})
     reward_baseline: Optional[float] = field(
-       default=0,
+       default=1,
        metadata={"help": "a baseline value that is subtracted from the reward"},
     )
     save_freq: Optional[int] = field(default=None, metadata={"help": "n steps to save the model"})
@@ -146,13 +146,13 @@ config = PPOConfig(
     seed=script_args.seed,
     cliprange=0.2,
     cliprange_value=0.2,
-    vf_coef=.1,
+    vf_coef=.2,
     horizon=10000,
     target=script_args.target_kl,
     init_kl_coef=script_args.init_kl_coef,
     steps=script_args.steps,
     gamma=1,
-    lam=0.95,
+    lam=1,
 )
 
 # We then define the arguments to pass to the sentiment analysis pipeline.
@@ -176,7 +176,7 @@ if "decapoda" in script_args.model_name.lower():
         }
     )
 else:
-    tokenizer = AutoTokenizer.from_pretrained(script_args.model_name)
+    tokenizer = AutoTokenizer.from_pretrained(script_args.tokenizer_name)
     if getattr(tokenizer, "pad_token", None) is None:
         tokenizer.pad_token = tokenizer.eos_token
 
@@ -254,7 +254,7 @@ generation_kwargs = {
     "top_k": 0.0,
     "top_p": 1,
     "do_sample": True,
-    #"pad_token_id": tokenizer.pad_token_id,
+    "pad_token_id": tokenizer.eos_token_id,
     # "eos_token_id": 100_000,
 }
 output_min_length = script_args.output_max_length-2
@@ -272,6 +272,7 @@ for epoch, batch in tqdm(enumerate(ppo_trainer.dataloader)):
         question_tensors,
         return_prompt=False,
         length_sampler=output_length_sampler,
+        batch_size=4,
         **generation_kwargs,
     )
     batch["response"] = tokenizer.batch_decode(response_tensors, skip_special_tokens=True)

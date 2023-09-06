@@ -28,7 +28,7 @@
 #     --base_model_name="/home/prasann/Projects/rlhf-exploration/stack-llama/models/sft" \
 #     --output_name="/home/prasann/Projects/rlhf-exploration/stack-llama/models/rewardadvda/"
 
-export CUDA_VISIBLE_DEVICES=2,3
+export CUDA_VISIBLE_DEVICES=0,1
 # python merge_peft_adapter.py \
 #     --adapter_model_name="/home/prasann/Projects/rlhf-exploration/stack-llama/checkpoints/advtiebreak/checkpoint-4000" \
 #     --base_model_name="/home/prasann/Projects/rlhf-exploration/stack-llama/models/sft" \
@@ -79,14 +79,45 @@ export CUDA_VISIBLE_DEVICES=2,3
 #     --base_model_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
 #     --output_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/mix50rm"
 
-# APFarm human RM 
-python merge_peft_adapter.py \
-    --adapter_model_name="/home/prasann/Projects/rlhf-exploration/apf/checkpoints/apfinithuman/checkpoint-1000" \
-    --base_model_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
-    --output_name="/home/prasann/Projects/rlhf-exploration/apf/models/humanrm"
+# # APFarm human RM 
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/home/prasann/Projects/rlhf-exploration/apf/checkpoints/apfinithuman/checkpoint-1000" \
+#     --base_model_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     --output_name="/home/prasann/Projects/rlhf-exploration/apf/models/humanrm"
 
-# APFarm GPT4 RM
+# # APFarm GPT4 RM
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/home/prasann/Projects/rlhf-exploration/apf/checkpoints/apfgptrm/checkpoint-1500" \
+#     --base_model_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     --output_name="/home/prasann/Projects/rlhf-exploration/apf/models/gptrm"
+
+#APFarm GPTNEO SFT 
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/checkpoints/alpsft/checkpoint-1000" \
+#     --base_model_name="EleutherAI/gpt-neo-1.3B" \
+#     --output_name="/home/prasann/Projects/rlhf-exploration/apf/models/neosft"
+
+# #APFarm Human RM attempt #2
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/home/prasann/Projects/rlhf-exploration/apf/checkpoints/apfhumrmlbase/checkpoint-2000" \
+#     --base_model_name="/home/prasann/Projects/tfr-decoding/llama/llama" \
+#     --output_name="/home/prasann/Projects/rlhf-exploration/apf/models/humannew"
+
+# RLCD New RM 
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/home/prasann/Projects/rlhf-exploration/rlcd-llama/checkpoints/wgptsaved/checkpoint-2000" \
+#     --base_model_name="/home/prasann/Projects/tfr-decoding/llama/llama" \
+#     --output_name="/home/prasann/Projects/rlhf-exploration/rlcd-llama/models/rlcdrm"
+
+# RLCD DA RM
 python merge_peft_adapter.py \
-    --adapter_model_name="/home/prasann/Projects/rlhf-exploration/apf/checkpoints/apfgptrm/checkpoint-1500" \
-    --base_model_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
-    --output_name="/home/prasann/Projects/rlhf-exploration/apf/models/gptrm"
+    --adapter_model_name="/home/prasann/Projects/rlhf-exploration/rlcd-llama/checkpoints/da20rlcd/checkpoint-3000" \
+    --base_model_name="/home/prasann/Projects/tfr-decoding/llama/llama" \
+    --output_name="/home/prasann/Projects/rlhf-exploration/rlcd-llama/models/rlcddarm"
+
+# WebGPT Mix RM
+python merge_peft_adapter.py \
+   --adapter_model_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/checkpoints/rmmix50/checkpoint-6000" \
+   --base_model_name="/home/prasann/Projects/tfr-decoding/llama/llama" \
+   --output_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/rewardmixwgpt/"
+

@@ -5,8 +5,7 @@ import evaluate
 import numpy as np
 import torch
 import torch.nn as nn
-import pandas as pd
-from datasets import load_dataset, concatenate_datasets
+from datasets import load_dataset, concatenate_datasets, Dataset
 from peft import LoraConfig, TaskType, get_peft_model
 from transformers import (
     AutoModelForSequenceClassification,
@@ -18,10 +17,8 @@ from transformers import (
     TrainingArguments,
 )
 from transformers.utils import PaddingStrategy
-import random
+import pandas as pd
 
-from typing import List, Callable
-from torch.utils.data import Dataset
 
 # Define and parse arguments.
 @dataclass
@@ -48,12 +45,6 @@ class ScriptArguments:
     weight_decay: Optional[float] = field(default=0.001)
     model_name: Optional[str] = field(
         default="gpt2",
-        metadata={
-            "help": "The model that you want to train from the Hugging Face hub. E.g. gpt2, gpt2-xl, bert, etc."
-        },
-    )
-    output_dir: Optional[str] = field(
-        default="./checkpoints/",
         metadata={
             "help": "The model that you want to train from the Hugging Face hub. E.g. gpt2, gpt2-xl, bert, etc."
         },
@@ -99,102 +90,10 @@ class ScriptArguments:
         default=False,
         metadata={"help": "Whether to run eval after the first step"},
     )
+    output_dir: Optional[str] = field(
+        default="checkpoints/wgptsaved"
+    )
 
-# NOTE process anthro hh data for mixture with se data
-def preproc_hh(example):
-    j = example['chosen']
-    hind = j.index("Human:")+6
-    aind = j.index("Assistant:")+len("Assistant:")
-    ex = {}
-    ex['question'] = j[hind:aind-len("Assistant:")]
-    ex['response_j'] = example['chosen'][aind:]
-    ex['response_k'] = example['rejected'][aind:]
-    return ex
-
-# enforce that adding \n at the end doesn't magically get associated with high RM score
-def augment_enter(example):
-    example['response_k'] = example['response_k']+"\n"
-    return example
-
-# all \ns should be worse than even the "worse" options
-def augment_allenters(example):
-    example['response_j'] = example['response_k']
-    example['response_k'] = "\n" * random.randint(1, 100)
-    return example
-
-# same as above but with code-snippet chars
-def augment_codesnips(example):
-    example['response_j'] = example['response_k']
-    example['response_k'] = "`" * random.randint(3, 30)
-    return example
-
-
-crazy = pd.read_json("/home/prasann/Projects/tfr-decoding/trlx_train/extra_scored/generated_600.jsonl", orient='records', lines=True)
-crazy['answer'] = [c[c.index("Answer:")+len("Answer:"):] for c in list(crazy['responses'])]
-crazy = list(crazy['answer'])
-
-sha = pd.read_json("/home/prasann/Projects/tfr-decoding/trlx_train/extra_scored/generated_300.jsonl", orient='records', lines=True)
-sha = list([c[c.index("Answer:")+len("Answer:"):] for c in list(sha['responses'])])
-# augment against gibberish (take "better" entries from within the dset, use them as worse when not question specific)
-def augment_crazy(example):
-    example['response_k'] = random.choice(crazy)
-    return example
-
-# augment against gibberish (take "better" entries from within the dset, use them as worse when not question specific)
-def augment_shortans(example):
-    example['response_k'] = random.choice(sha)
-    return example
-
-# discourage sentences with the last part removed
-def augment_trunc(example):
-    newbad = example['response_j']
-    example['response_j'] = example['response_k']
-    truncoff = random.randint(2, 5)
-    words = newbad.split(" ")
-    example['response_j'] = ' '.join(words[:-truncoff])
-    return example
-
-def augment_random(example, dset):
-    # Get a random index
-    index = random.randint(0, len(dset)-1)
-
-    # Get the sample at the random index
-    example['response_k'] = dset[index]['response_j']
-    return example
-
-def modify_dataset(functions: List[Callable], dataset: Dataset, props: List[float]) -> Dataset:
-    #assert sum(counts) <= len(dataset), "Counts sum should not exceed dataset size"
-    assert len(functions) == len(props), "Number of functions should equal number of counts"
-
-    # convert ratios into actual counts of data
-    counts = [int(p*len(dataset)) for p in props]
-    # Shuffle dataset
-    dataset = dataset.shuffle(seed=0)
-
-    # Keep track of modified parts of the dataset
-    modified_datasets = []
-
-    start_index = 0
-    for fn, count in zip(functions, counts):
-        print(fn.__name__)
-        end_index = start_index + count
-
-        # If function takes in both the example and the dataset
-        if fn.__code__.co_argcount == 2:
-            modified_datasets.append(dataset.select(list(range(start_index, end_index))).map(lambda example: fn(example, dataset)))
-
-        # If function only takes in the example
-        elif fn.__code__.co_argcount == 1:
-            modified_datasets.append(dataset.select(list(range(start_index, end_index))).map(fn))
-
-        start_index = end_index
-
-    # Add the unmodified part of the dataset
-    if start_index < len(dataset):
-        modified_datasets.append(dataset.select(list(range(start_index, len(dataset)))))
-
-    # Concatenate all parts of the dataset back together
-    return concatenate_datasets(modified_datasets)
 
 # NOTE process anthro hh data for mixture with se data
 def preproc_wgpt(example):
@@ -221,27 +120,13 @@ train_dataset = train_dataset.map(preproc_wgpt)
 
 print("initial size ", len(train_dataset))
 train_dataset = train_dataset.shuffle(seed=100)
+
 # take the last portion as a test set
 eval_dataset = train_dataset.select(range(18000, len(train_dataset)))
 # use the rest as necessary
 train_dataset = train_dataset.select(range(18000))
 
-# Load the human stack-exchange-paired dataset for tuning the reward model.
-#augmeths = [augment_enter, augment_allenters, augment_codesnips, augment_crazy, augment_shortans, augment_random, augment_trunc]
-#augamts = [0.01, 0.01, 0.01, 0.01, 0.01, 0.15, 0.02]
-augmeths = [augment_random]
-augamts = [0.20]
-
-extra = train_dataset.select(range(int(len(train_dataset)*sum(augamts))))
-# NOTE we need to expand size of dset since it's already quite small
-# augmentation happens from beginning?
-train_dataset = concatenate_datasets([extra, train_dataset])
-
-train_dataset = modify_dataset(augmeths, train_dataset, augamts)
-train_dataset = train_dataset.shuffle(seed=0)
-
 print("new size ", len(train_dataset))
-
 
 # Define the training args. Needs to be done before the model is loaded if you are using deepspeed.
 model_name_split = script_args.model_name.split("/")[-1]
@@ -255,9 +140,9 @@ training_args = TrainingArguments(
     num_train_epochs=script_args.num_train_epochs,
     weight_decay=script_args.weight_decay,
     evaluation_strategy="steps",
-    eval_steps=250,
+    eval_steps=500,
     save_strategy="steps",
-    save_steps=250,
+    save_steps=500,
     gradient_accumulation_steps=script_args.gradient_accumulation_steps,
     gradient_checkpointing=script_args.gradient_checkpointing,
     deepspeed=script_args.deepspeed,
@@ -318,6 +203,36 @@ def preprocess_function(examples):
 
     return new_examples
 
+def len_balance(indataset):
+    # Convert the Hugging Face dataset to a pandas DataFrame
+    dataset_df = pd.DataFrame(indataset)
+
+    # Create a new column to identify which row has longer input_ids_j
+    dataset_df['j_is_longer'] = dataset_df.apply(lambda row: len(row['input_ids_j']) > len(row['input_ids_k']), axis=1)
+
+    # Count how many examples are in each class
+    count_j_is_longer = len(dataset_df[dataset_df['j_is_longer'] == True])
+    count_k_is_longer = len(dataset_df) - count_j_is_longer
+
+    # Determine which class has fewer examples
+    min_count = min(count_j_is_longer, count_k_is_longer)
+
+    # Downsample the class with more examples to have as many as the class with fewer examples
+    if count_j_is_longer > min_count:
+        df_j_is_longer = dataset_df[dataset_df['j_is_longer'] == True].sample(n=min_count)
+        df_k_is_longer = dataset_df[dataset_df['j_is_longer'] == False]
+    else:
+        df_k_is_longer = dataset_df[dataset_df['j_is_longer'] == False].sample(n=min_count)
+        df_j_is_longer = dataset_df[dataset_df['j_is_longer'] == True]
+
+    # Concatenate the two downsampled classes to create a balanced DataFrame
+    balanced_df = pd.concat([df_j_is_longer, df_k_is_longer])
+
+    # Optionally, shuffle the rows
+    balanced_df = balanced_df.sample(frac=1).reset_index(drop=True)
+    
+    return  Dataset.from_pandas(balanced_df)
+
 
 # preprocess the dataset and filter out QAs that are longer than script_args.max_length
 train_dataset = train_dataset.map(
@@ -329,6 +244,11 @@ train_dataset = train_dataset.map(
 train_dataset = train_dataset.filter(
     lambda x: len(x["input_ids_j"]) <= script_args.max_length and len(x["input_ids_k"]) <= script_args.max_length
 )
+print("before balancing ", len(train_dataset))
+# HACK doing length balancing here
+train_dataset = len_balance(train_dataset)
+
+print("after", len(train_dataset))
 
 eval_dataset = eval_dataset.map(
     preprocess_function,

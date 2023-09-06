@@ -19,6 +19,7 @@ from transformers import (
     TrainingArguments,
 )
 from transformers.utils import PaddingStrategy
+import pandas as pd
 
 
 # NOTE process anthro hh data for mixture with se data
@@ -32,6 +33,46 @@ def preproc_wgpt(example):
         ex['response_k'] = example['answer_0']
         ex['response_j'] = example['answer_1']
     return ex
+
+# NOTE process anthro hh data for mixture with se data
+def preproc_hh(example):
+    j = example['chosen']
+    hind = j.index("Human:")+6
+    aind = j.index("Assistant:")+len("Assistant:")
+    ex = {}
+    ex['question'] = j[hind:aind-len("Assistant:")]
+    ex['response_j'] = example['chosen'][aind:]
+    ex['response_k'] = example['rejected'][aind:]
+    return ex
+
+def preproc_apf(example):
+    ex = {}
+    if len(example['input'])>0:
+        ex['question'] = example['instruction']+"\n\nInput: "+example['input']
+    else:
+        ex['question'] = example['instruction']
+        
+    if example['preference']==2:
+        ex['response_j'] = example['output_2']
+        ex['response_k'] = example['output_1']
+    else:
+        ex['response_k'] = example['output_2']
+        ex['response_j'] = example['output_1']
+    return ex
+
+def preproc_rlcd_all (inpdf):
+    allres = []
+    for row in inpdf:
+        res = {}
+        res['question'] = row['instruction']
+        if row['preference']==1:
+            res['response_j'] = row['output_1']
+            res['response_k'] = row['output_2']
+        else:
+            res['response_j'] = row['output_2']
+            res['response_k'] = row['output_1']
+        allres.append(res)
+    return pd.DataFrame(allres).dropna().reset_index(drop=True)
 
 # Turn the dataset into pairs of post + summaries, where text_j is the preferred question + answer and text_k is the other.
 # Then tokenize the dataset.

@@ -79,14 +79,14 @@ def load_all_hackdfs(base):
         
     return alldfs
     
-def load_rm(name, device):
+def load_rm(name, device, quant=True):
     tokenizer = AutoTokenizer.from_pretrained(name)
     tokenizer.pad_token_id = tokenizer.eos_token_id
     sentiment_pipe = pipeline(
         "sentiment-analysis",
         model=name,
         device_map={"": device},
-        model_kwargs={"load_in_8bit": True},
+        model_kwargs={"load_in_8bit": quant},
         tokenizer=tokenizer,
         return_token_type_ids=False,
     )

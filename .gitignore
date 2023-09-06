@@ -16,3 +16,4 @@ apfpath.txt
 *.out
 *wandb
 *.egg-info
+*distilbert-imdb/

@@ -90,7 +90,7 @@ class ScriptArguments:
         metadata={"help": "Whether to run eval after the first step"},
     )
     output_dir: Optional[str] = field(
-        default="checkpoints/wgptsaved"
+        default="checkpoints/rlcdfixsaved"
     )
 
 
@@ -231,7 +231,6 @@ eval_dataset = eval_dataset.map(
 eval_dataset = eval_dataset.filter(
     lambda x: len(x["input_ids_j"]) <= script_args.max_length and len(x["input_ids_k"]) <= script_args.max_length
 )
-
 
 # We need to define a special data collator that batches the data in our j vs k format.
 @dataclass

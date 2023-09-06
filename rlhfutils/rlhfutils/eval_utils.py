@@ -6,6 +6,7 @@ import pandas as pd
 from statistics import mean, stdev
 from transformers import AutoTokenizer
 import re
+from datasets import load_dataset
 
 from datasets import load_dataset
 
@@ -133,7 +134,6 @@ def annotate_apfarm(alldfs, baseline, test, start, end, dec_kwargs):
     #pd.DataFrame(annotated).to_json("../outputs/apeval/"+baseline+"_"+test+".jsonl")
     return annotated
 
-
 def preproc_wgpt(example):
     ex = {}
     ex['question'] = example['question']['full_text']
@@ -163,7 +163,6 @@ def load_wgpt(topval, bottom=0):
             'response_k':dset['response_k'][d],
         })
     return results
-
 
 def filter_and_sort_df(a, b):
     # Find the unique questions in DataFrame 'a'

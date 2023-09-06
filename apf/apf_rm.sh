@@ -16,6 +16,10 @@ export CUDA_VISIBLE_DEVICES=0,1
 #     --model_name=/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k \
 #     --output_dir=checkpoints/apfinithuman
 
+# torchrun --nnodes 1  --nproc_per_node 2 --master-port=29423 train_apf_rm.py \
+#     --model_name=/home/prasann/Projects/tfr-decoding/llama/llama \
+#     --output_dir=checkpoints/apfhumrmlbase
+
 torchrun --nnodes 1  --nproc_per_node 2 --master-port=29423 train_apf_rm.py \
-    --model_name=/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k \
-    --output_dir=checkpoints/apfgptrm
+    --model_name=/home/prasann/Projects/tfr-decoding/llama/llama \
+    --output_dir=checkpoints/apfgptlbase

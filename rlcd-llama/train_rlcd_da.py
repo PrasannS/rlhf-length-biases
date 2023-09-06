@@ -1,11 +1,13 @@
+import random 
+from datasets import concatenate_datasets
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Callable
 
 import evaluate
 import numpy as np
 import torch
 import torch.nn as nn
-from datasets import load_dataset, concatenate_datasets
+from datasets import load_dataset, concatenate_datasets, Dataset
 from peft import LoraConfig, TaskType, get_peft_model
 from transformers import (
     AutoModelForSequenceClassification,
@@ -17,6 +19,50 @@ from transformers import (
     TrainingArguments,
 )
 from transformers.utils import PaddingStrategy
+
+def augment_random(example, dset):
+    # Get a random index
+    index = random.randint(0, len(dset)-1)
+
+    # Get the sample at the random index
+    example['response_k'] = dset[index]['response_j']
+    return example
+
+def modify_dataset(functions: List[Callable], dataset: Dataset, props: List[float]) -> Dataset:
+    #assert sum(counts) <= len(dataset), "Counts sum should not exceed dataset size"
+    assert len(functions) == len(props), "Number of functions should equal number of counts"
+
+    # convert ratios into actual counts of data
+    counts = [int(p*len(dataset)) for p in props]
+    # Shuffle dataset
+    dataset = dataset.shuffle(seed=0)
+
+    # Keep track of modified parts of the dataset
+    modified_datasets = []
+
+    start_index = 0
+    for fn, count in zip(functions, counts):
+        print(fn.__name__)
+        end_index = start_index + count
+
+        # If function takes in both the example and the dataset
+        if fn.__code__.co_argcount == 2:
+            modified_datasets.append(dataset.select(list(range(start_index, end_index))).map(lambda example: fn(example, dataset)))
+
+        # If function only takes in the example
+        elif fn.__code__.co_argcount == 1:
+            modified_datasets.append(dataset.select(list(range(start_index, end_index))).map(fn))
+
+        start_index = end_index
+
+    # Add the unmodified part of the dataset
+    if start_index < len(dataset):
+        modified_datasets.append(dataset.select(list(range(start_index, len(dataset)))))
+
+    # Concatenate all parts of the dataset back together
+    return concatenate_datasets(modified_datasets)
+
+
 
 
 # Define and parse arguments.
@@ -90,24 +136,20 @@ class ScriptArguments:
         metadata={"help": "Whether to run eval after the first step"},
     )
     output_dir: Optional[str] = field(
-        default="checkpoints/wgptsaved"
+        default="checkpoints/rlcdfixsaved"
     )
 
-    
+
 # NOTE process anthro hh data for mixture with se data
-def preproc_apf(example):
+def preproc_rlcd(example):
     ex = {}
-    if len(example['input'])>0:
-        ex['question'] = example['instruction']+"\n\nInput: "+example['input']
-    else:
-        ex['question'] = example['instruction']
-        
-    if example['preference']==2:
-        ex['response_j'] = example['output_2']
-        ex['response_k'] = example['output_1']
-    else:
-        ex['response_k'] = example['output_2']
+    ex['question'] = example['instruction'][len("Human: "):-len("\n\nAssistant:")]
+    if example['preference']==1:
         ex['response_j'] = example['output_1']
+        ex['response_k'] = example['output_2']
+    else:
+        ex['response_k'] = example['output_1']
+        ex['response_j'] = example['output_2']
     return ex
 
 parser = HfArgumentParser(ScriptArguments)
@@ -118,24 +160,36 @@ script_args = parser.parse_args_into_dataclasses()[0]
 
 #hh_train = load_dataset("Anthropic/hh-rlhf", data_dir="helpful-base", split="train")
 #hh_train = hh_train.map(preproc_hh)
-# train_dataset = load_dataset("openai/webgpt_comparisons", split="train")
-gpt4data = True
-if gpt4data:
-    train_dataset = load_dataset("tatsu-lab/alpaca_farm", 'alpaca_gpt4_preference')['preference']
-else:
-    train_dataset = load_dataset("tatsu-lab/alpaca_farm", 'alpaca_human_preference')['preference']
-    
-train_dataset = train_dataset.map(preproc_apf)
+train_dataset = load_dataset("csv", data_files="./simulated_data/simulated_preference_data_consolidated_helpful7b.csv")['train']
+train_dataset = train_dataset.filter(
+    lambda x: x['output_1'] and x['output_2']
+)
+train_dataset = train_dataset.map(preproc_rlcd)
 
-trainperc =  0.95
 print("initial size ", len(train_dataset))
+
 train_dataset = train_dataset.shuffle(seed=100)
 # take the last portion as a test set
-eval_dataset = train_dataset.select(range(int(trainperc*len(train_dataset)), len(train_dataset)))
+eval_dataset = train_dataset.select(range(40000, len(train_dataset)))
 # use the rest as necessary
-train_dataset = train_dataset.select(range(int(trainperc*len(train_dataset))))
+train_dataset = train_dataset.select(range(40000))
+
+# Load the human stack-exchange-paired dataset for tuning the reward model.
+#augmeths = [augment_enter, augment_allenters, augment_codesnips, augment_crazy, augment_shortans, augment_random, augment_trunc]
+#augamts = [0.01, 0.01, 0.01, 0.01, 0.01, 0.15, 0.02]
+augmeths = [augment_random]
+augamts = [0.20]
+
+extra = train_dataset.select(range(int(len(train_dataset)*sum(augamts))))
+# NOTE we need to expand size of dset since it's already quite small
+# augmentation happens from beginning?
+train_dataset = concatenate_datasets([extra, train_dataset])
+
+train_dataset = modify_dataset(augmeths, train_dataset, augamts)
+train_dataset = train_dataset.shuffle(seed=0)
 
 print("new size ", len(train_dataset))
+
 
 # Define the training args. Needs to be done before the model is loaded if you are using deepspeed.
 model_name_split = script_args.model_name.split("/")[-1]
@@ -191,6 +245,8 @@ model.config.use_cache = not script_args.gradient_checkpointing
 num_proc = 24  # Can adjust to be higher if you have more processors.
 original_columns = train_dataset.column_names
 
+def adjust_input(qval, rval):
+    return "Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\n"+qval+"\n\n### Response:"+rval
 
 # Turn the dataset into pairs of post + summaries, where text_j is the preferred question + answer and text_k is the other.
 # Then tokenize the dataset.
@@ -202,8 +258,8 @@ def preprocess_function(examples):
         "attention_mask_k": [],
     }
     for question, response_j, response_k in zip(examples["question"], examples["response_j"], examples["response_k"]):
-        tokenized_j = tokenizer("Question: " + question + "\n\nAnswer: " + response_j, truncation=True)
-        tokenized_k = tokenizer("Question: " + question + "\n\nAnswer: " + response_k, truncation=True)
+        tokenized_j = tokenizer(adjust_input(question, response_j), truncation=True)
+        tokenized_k = tokenizer(adjust_input(question, response_k), truncation=True)
 
         new_examples["input_ids_j"].append(tokenized_j["input_ids"])
         new_examples["attention_mask_j"].append(tokenized_j["attention_mask"])
@@ -212,7 +268,6 @@ def preprocess_function(examples):
 
     return new_examples
 
-
 # preprocess the dataset and filter out QAs that are longer than script_args.max_length
 train_dataset = train_dataset.map(
     preprocess_function,
@@ -220,6 +275,7 @@ train_dataset = train_dataset.map(
     num_proc=num_proc,
     remove_columns=original_columns,
 )
+
 train_dataset = train_dataset.filter(
     lambda x: len(x["input_ids_j"]) <= script_args.max_length and len(x["input_ids_k"]) <= script_args.max_length
 )
@@ -233,7 +289,6 @@ eval_dataset = eval_dataset.map(
 eval_dataset = eval_dataset.filter(
     lambda x: len(x["input_ids_j"]) <= script_args.max_length and len(x["input_ids_k"]) <= script_args.max_length
 )
-
 
 # We need to define a special data collator that batches the data in our j vs k format.
 @dataclass
@@ -307,7 +362,6 @@ class RewardTrainer(Trainer):
             return loss, {"rewards_j": rewards_j, "rewards_k": rewards_k}
         return loss
 
-
 # Train the model, woohoo.
 trainer = RewardTrainer(
     model=model,
@@ -317,7 +371,6 @@ trainer = RewardTrainer(
     compute_metrics=compute_metrics,
     data_collator=RewardDataCollatorWithPadding(tokenizer=tokenizer, max_length=script_args.max_length),
 )
-
 
 if script_args.eval_first_step:
 

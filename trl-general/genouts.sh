@@ -16,15 +16,24 @@
 #     "wgptpporda" \
 #     0 200
 
-export CUDA_VISIBLE_DEVICES=3
+export CUDA_VISIBLE_DEVICES=2,3
+
+# generate normal set for webGPT
+python -u generate_outs.py \
+    "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+    "webgpt" \
+    "/home/prasann/Projects/rlhf-exploration/webgpt-llama/checkpoints/lenconstrppo/step_200" \
+    "wgptlencons" \
+    0 800  \
+    1
 
 # To generate from the bigdata stack RM
-python -u generate_outs.py \
-    "/home/prasann/Projects/tfr-decoding/trlx_train/trl-stack/models/sft" \
-    "stack" \
-    "/home/prasann/Projects/rlhf-exploration/stack-llama/checkpoints/bigrmppo/step_150" \
-    "stackbig150" \
-    0 200
+# python -u generate_outs.py \
+#     "/home/prasann/Projects/tfr-decoding/trlx_train/trl-stack/models/sft" \
+#     "stack" \
+#     "/home/prasann/Projects/rlhf-exploration/stack-llama/checkpoints/bigrmppo/step_150" \
+#     "stackbig150" \
+#     0 200
 
 # # To regen stack DA 125 (remember it has a different, old SFT model)
 # python -u generate_outs.py \
@@ -97,13 +106,13 @@ python -u generate_outs.py \
 #     8
 
 # multi-sample set generation for webgpt
-python -u generate_outs.py \
-    "/mnt/data1/prasann/rlhf-exploration/webgpt-llama/models/sft10k" \
-    "webgpt" \
-    "orig" \
-    "wgptmultisampset" \
-    0 800  \
-    8 
+# python -u generate_outs.py \
+#     "/mnt/data1/prasann/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "webgpt" \
+#     "orig" \
+#     "wgptmultisampset" \
+#     0 800  \
+#     8 
 
 # multi-sample set generation for stack
 # python -u generate_outs.py \
