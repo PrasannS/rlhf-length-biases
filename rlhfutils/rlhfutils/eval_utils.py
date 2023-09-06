@@ -7,6 +7,9 @@ from statistics import mean, stdev
 from transformers import AutoTokenizer
 import re
 
+from datasets import load_dataset
+
+
 toker = AutoTokenizer.from_pretrained("../stack-llama/models/sft")
 toker.pad_token_id = toker.eos_token_id
 
@@ -27,7 +30,7 @@ def oai_kwargs():
     return decoding_kwargs
 
 def count_words(indf, k):
-    wcnt = [len(s.split(" ")) for s in indf[k]]
+    wcnt = [len(toker(s).input_ids) for s in indf[k]]
     return wcnt
 
 # given list, get num tokens for all and return that list
@@ -57,6 +60,7 @@ def getapfsft(inp, tostack=False):
 def load_alldfs(base="use_outs/"):
     alldfs = {}
     for f in os.listdir(base):
+        print(f)
         if ".jsonl" in f:
             tmp = pd.read_json(base+f, lines=True, orient='records')
             if "<s>" in tmp['response'][0]:
@@ -73,6 +77,7 @@ def load_alldfs(base="use_outs/"):
                 tmp['question'] = [s[len("Question: "):-1*len("\n\nAnswer: ")] for s in tmp['question']]
             # constrain to only 200 examples for everything
             #tmp = tmp.loc[:199]
+            tmp = tmp.dropna()
             tmp['wcnt'] = count_words(tmp, "question")
             tmp['rcnt'] = count_words(tmp, "response")
             #tmp = tmp[tmp['wcnts']<200].reset_index()
@@ -82,6 +87,8 @@ def load_alldfs(base="use_outs/"):
     valid_indices_sets = []
 
     for df_key in alldfs:
+        if df_key=="davinciwebgpt":
+            continue
         df = alldfs[df_key]
         valid_indices_for_df = set(df[(df['wcnt'] < 1000) & (df['rcnt'] < 1000)].index)
         valid_indices_sets.append(valid_indices_for_df)
@@ -91,6 +98,8 @@ def load_alldfs(base="use_outs/"):
     
     # Step 3: Filter each dataframe using the common valid indices
     for df_key in alldfs:
+        if df_key=="davinciwebgpt":
+            continue
         alldfs[df_key] = alldfs[df_key].loc[list(common_valid_indices)].reset_index(drop=True)
         alldfs[df_key] = alldfs[df_key].sort_values(by='question').reset_index(drop=True)
         alldfs[df_key] = alldfs[df_key].loc[:99]
@@ -123,3 +132,47 @@ def annotate_apfarm(alldfs, baseline, test, start, end, dec_kwargs):
     dftmp.to_json("../outputs/apeval/"+baseline+"_"+test+".jsonl", orient='records', lines=True)
     #pd.DataFrame(annotated).to_json("../outputs/apeval/"+baseline+"_"+test+".jsonl")
     return annotated
+
+
+def preproc_wgpt(example):
+    ex = {}
+    ex['question'] = example['question']['full_text']
+    if example['score_0']>example['score_1']:
+        ex['response_j'] = example['answer_0']
+        ex['response_k'] = example['answer_1']
+    else:
+        ex['response_k'] = example['answer_0']
+        ex['response_j'] = example['answer_1']
+    return ex
+
+def load_wgpt(topval, bottom=0):
+    # take eval set using specific seed so it's not polluted by RM initial stuff
+    tdset = load_dataset("openai/webgpt_comparisons", split="train")
+    tdset = tdset.map(preproc_wgpt)
+    tdset = tdset.shuffle(seed=100)
+    # take the last portion as a test set
+    dset = tdset.select(range(18000, len(tdset)))
+    dset = dset.select(range(bottom, topval))
+    results = []
+    for d in range(len(dset)):
+        # use apfarm prompt format here
+        results.append({
+            'question':dset['question'][d],
+            # assume that better one is the response
+            'response':dset['response_j'][d],
+            'response_k':dset['response_k'][d],
+        })
+    return results
+
+
+def filter_and_sort_df(a, b):
+    # Find the unique questions in DataFrame 'a'
+    unique_questions_in_a = a['question'].unique()
+    
+    # Filter DataFrame 'b' to keep only rows where the 'question' value is in 'a'
+    filtered_b = b[b['question'].isin(unique_questions_in_a)]
+    
+    # Sort the filtered DataFrame 'b' by the 'question' column
+    sorted_b = filtered_b.sort_values(by='question')
+    
+    return sorted_b

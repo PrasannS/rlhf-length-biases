@@ -9,14 +9,14 @@ accelerate launch --multi_gpu --config_file=/mnt/data1/prasann/rlhf-exploration/
     --num_processes 2 \
     /mnt/data1/prasann/rlhf-exploration/rlcd-llama/rlcd_train_rl.py --log_with=wandb \
     --model_name=/mnt/data1/prasann/rlhf-exploration/webgpt-llama/models/sft10k \
-    --reward_model_name=/mnt/data1/prasann/rlhf-exploration/rlcd-llama/models/rlcdhelp \
+    --reward_model_name=/mnt/data1/prasann/rlhf-exploration/rlcd-llama/models/rlcddarm \
     --adafactor=False \
     --save_freq=25 \
     --output_max_length=156 --batch_size=32 \
     --gradient_accumulation_steps=1 \
     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
-    --early_stopping=False --output_dir=checkpoints/rlcdv3/ \
-    --init_kl_coef=0.002 --steps=10000
+    --early_stopping=False --output_dir=checkpoints/rlcddarmppo/ \
+    --init_kl_coef=0.04 --steps=10000
 
 #v3, aimed at greater stability (4 gpu run, 2 ppo epochs per thing)
 #lowp is 0.8 top p, should constrain exploration a bit
