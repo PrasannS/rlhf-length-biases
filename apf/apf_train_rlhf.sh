@@ -30,7 +30,7 @@ accelerate launch --multi_gpu --config_file=/mnt/data1/prasann/rlhf-exploration/
     --gradient_accumulation_steps=1 \
     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
     --early_stopping=False --output_dir=checkpoints/gptppo/ \
-    --init_kl_coef=0.0002 --steps=1000
+    --init_kl_coef=0.02 --steps=1000
 
 #v3, aimed at greater stability (4 gpu run, 2 ppo epochs per thing)
 #lowp is 0.8 top p, should constrain exploration a bit

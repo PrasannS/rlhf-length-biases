@@ -109,15 +109,26 @@ export CUDA_VISIBLE_DEVICES=0,1
 #     --base_model_name="/home/prasann/Projects/tfr-decoding/llama/llama" \
 #     --output_name="/home/prasann/Projects/rlhf-exploration/rlcd-llama/models/rlcdrm"
 
-# RLCD DA RM
-python merge_peft_adapter.py \
-    --adapter_model_name="/home/prasann/Projects/rlhf-exploration/rlcd-llama/checkpoints/da20rlcd/checkpoint-3000" \
-    --base_model_name="/home/prasann/Projects/tfr-decoding/llama/llama" \
-    --output_name="/home/prasann/Projects/rlhf-exploration/rlcd-llama/models/rlcddarm"
+# # RLCD DA RM
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/home/prasann/Projects/rlhf-exploration/rlcd-llama/checkpoints/da20rlcd/checkpoint-3000" \
+#     --base_model_name="/home/prasann/Projects/tfr-decoding/llama/llama" \
+#     --output_name="/home/prasann/Projects/rlhf-exploration/rlcd-llama/models/rlcddarm"
 
-# WebGPT Mix RM
+# # WebGPT Mix RM
+# python merge_peft_adapter.py \
+#    --adapter_model_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/checkpoints/rmmix50/checkpoint-6000" \
+#    --base_model_name="/home/prasann/Projects/tfr-decoding/llama/llama" \
+#    --output_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/rewardmixwgpt/"
+
+# WebGPT Len Balance RM
 python merge_peft_adapter.py \
-   --adapter_model_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/checkpoints/rmmix50/checkpoint-6000" \
+   --adapter_model_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/checkpoints/rmlenbalance/checkpoint-3500" \
    --base_model_name="/home/prasann/Projects/tfr-decoding/llama/llama" \
-   --output_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/rewardmixwgpt/"
+   --output_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/lenbalance/"
 
+#APFarm GPT RM attempt #2
+python merge_peft_adapter.py \
+    --adapter_model_name="/home/prasann/Projects/rlhf-exploration/apf/checkpoints/apfgptlbase/checkpoint-4500" \
+    --base_model_name="/home/prasann/Projects/tfr-decoding/llama/llama" \
+    --output_name="/home/prasann/Projects/rlhf-exploration/apf/models/gptcorrect"

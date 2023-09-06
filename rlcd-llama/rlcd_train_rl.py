@@ -76,7 +76,6 @@ set_seed(script_args.seed)
 def adjust_input(strval, resp=None):
     if resp:
         return "Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\n"+strval+"\n\n### Response:"+resp
-
     return "Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\n"+strval+"\n\n### Response:"
 
 # Below is an example function to build the dataset. In our case, we use the IMDB dataset
