@@ -1,25 +1,19 @@
 import os
 
 import torch
-import time
 from dataclasses import dataclass, field
 from typing import Optional
 from accelerate import Accelerator
 from datasets import load_dataset
 from peft import LoraConfig
 from tqdm import tqdm
-import pandas as pd
-from datasets import Dataset
 from transformers import (
     Adafactor,
     AutoTokenizer,
     LlamaTokenizer,
     HfArgumentParser,
     pipeline,
-    T5Tokenizer,
-    T5ForConditionalGeneration
 )
-import re
 
 from trl import AutoModelForCausalLMWithValueHead, PPOConfig, PPOTrainer, set_seed
 from trl.core import LengthSampler
@@ -51,7 +45,7 @@ class ScriptArguments:
     log_with: Optional[str] = field(default=None, metadata={"help": "use 'wandb' to log with wandb"})
     learning_rate: Optional[float] = field(default=1.41e-5, metadata={"help": "the learning rate"})
     output_max_length: Optional[int] = field(default=128, metadata={"help": "maximum length for generation"})
-    mini_batch_size: Optional[int] = field(default=1, metadata={"help": "the PPO minibatch size"})
+    mini_batch_size: Optional[int] = field(default=4, metadata={"help": "the PPO minibatch size"})
     batch_size: Optional[int] = field(default=32, metadata={"help": "the batch size"})
     ppo_epochs: Optional[int] = field(default=4, metadata={"help": "the number of ppo epochs"})
     gradient_accumulation_steps: Optional[int] = field(
@@ -84,8 +78,6 @@ def adjust_input(strval, resp=None):
         return "Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\n"+strval+"\n\n### Response:"+resp
 
     return "Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\n"+strval+"\n\n### Response:"
-
-    
 
 # Below is an example function to build the dataset. In our case, we use the IMDB dataset
 # from the `datasets` library. One should customize this function to train the model on
@@ -260,7 +252,7 @@ generation_kwargs = {
     "top_k": 0.0,
     "top_p": 1,
     "do_sample": True,
-    #"pad_token_id": tokenizer.pad_token_id,
+    "pad_token_id": tokenizer.pad_token_id,
     # "eos_token_id": 100_000,
 }
 output_min_length = script_args.output_max_length-2
@@ -278,6 +270,7 @@ for epoch, batch in tqdm(enumerate(ppo_trainer.dataloader)):
         question_tensors,
         return_prompt=False,
         length_sampler=output_length_sampler,
+        batch_size=4,
         **generation_kwargs,
     )
     batch["response"] = tokenizer.batch_decode(response_tensors, skip_special_tokens=True)

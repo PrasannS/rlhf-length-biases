@@ -12,6 +12,10 @@ export CUDA_VISIBLE_DEVICES=2,3
 #     --model_name=/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k \
 #     --output_dir=checkpoints/fixtfrm
 
-torchrun --nnodes 1  --nproc_per_node 2 --master-port=29421 train_wgpt_mix.py \
-    --model_name=/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k \
-    --output_dir=checkpoints/rmmix50
+# torchrun --nnodes 1  --nproc_per_node 2 --master-port=29421 train_wgpt_mix.py \
+#     --model_name=/home/prasann/Projects/tfr-decoding/llama/llama \
+#     --output_dir=checkpoints/rmmix50
+
+torchrun --nnodes 1  --nproc_per_node 2 --master-port=29421 lenbalance_train_rm.py \
+    --model_name=/home/prasann/Projects/tfr-decoding/llama/llama \
+    --output_dir=checkpoints/rmlenbalance

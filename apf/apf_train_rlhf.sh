@@ -1,4 +1,4 @@
-export CUDA_VISIBLE_DEVICES=0,1
+export CUDA_VISIBLE_DEVICES=2,3
 #export WORLD_SIZE=3
 #NOTE RL TRAINED IS CONSTRAINED TO SKIP CERTAIN KINDS OF ROLLOUTS
 # TODO back to normal training. use baseline
@@ -23,14 +23,15 @@ accelerate launch --multi_gpu --config_file=/home/prasann/Projects/rlhf-explorat
     --num_processes 2 \
     /home/prasann/Projects/rlhf-exploration/apf/apf_train_rl.py --log_with=wandb \
     --model_name=/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k \
-    --reward_model_name=/home/prasann/Projects/rlhf-exploration/apf/models/humanrm \
+    --tokenizer_name=/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k \
+    --reward_model_name=/home/prasann/Projects/rlhf-exploration/apf/models/humannew \
     --adafactor=False \
     --save_freq=25 \
     --output_max_length=156 --batch_size=32 \
     --gradient_accumulation_steps=1 \
     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
-    --early_stopping=False --output_dir=checkpoints/humanppo/ \
-    --init_kl_coef=0.02 --steps=1000
+    --early_stopping=False --output_dir=checkpoints/humanppofix/ \
+    --init_kl_coef=0.04 --steps=1000
 
 #v3, aimed at greater stability (4 gpu run, 2 ppo epochs per thing)
 #lowp is 0.8 top p, should constrain exploration a bit

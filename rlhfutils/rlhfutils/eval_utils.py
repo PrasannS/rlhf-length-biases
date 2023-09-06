@@ -6,6 +6,7 @@ import pandas as pd
 from statistics import mean, stdev
 from transformers import AutoTokenizer
 import re
+from datasets import load_dataset
 
 toker = AutoTokenizer.from_pretrained("../stack-llama/models/sft")
 toker.pad_token_id = toker.eos_token_id
@@ -123,3 +124,45 @@ def annotate_apfarm(alldfs, baseline, test, start, end, dec_kwargs):
     dftmp.to_json("../outputs/apeval/"+baseline+"_"+test+".jsonl", orient='records', lines=True)
     #pd.DataFrame(annotated).to_json("../outputs/apeval/"+baseline+"_"+test+".jsonl")
     return annotated
+
+def preproc_wgpt(example):
+    ex = {}
+    ex['question'] = example['question']['full_text']
+    if example['score_0']>example['score_1']:
+        ex['response_j'] = example['answer_0']
+        ex['response_k'] = example['answer_1']
+    else:
+        ex['response_k'] = example['answer_0']
+        ex['response_j'] = example['answer_1']
+    return ex
+
+def load_wgpt(topval, bottom=0):
+    # take eval set using specific seed so it's not polluted by RM initial stuff
+    tdset = load_dataset("openai/webgpt_comparisons", split="train")
+    tdset = tdset.map(preproc_wgpt)
+    tdset = tdset.shuffle(seed=100)
+    # take the last portion as a test set
+    dset = tdset.select(range(18000, len(tdset)))
+    dset = dset.select(range(bottom, topval))
+    results = []
+    for d in range(len(dset)):
+        # use apfarm prompt format here
+        results.append({
+            'question':dset['question'][d],
+            # assume that better one is the response
+            'response':dset['response_j'][d],
+            'response_k':dset['response_k'][d],
+        })
+    return results
+
+def filter_and_sort_df(a, b):
+    # Find the unique questions in DataFrame 'a'
+    unique_questions_in_a = a['question'].unique()
+    
+    # Filter DataFrame 'b' to keep only rows where the 'question' value is in 'a'
+    filtered_b = b[b['question'].isin(unique_questions_in_a)]
+    
+    # Sort the filtered DataFrame 'b' by the 'question' column
+    sorted_b = filtered_b.sort_values(by='question')
+    
+    return sorted_b
