@@ -294,7 +294,7 @@ def inp_origformat(instr, inp):
 def build_apf_promptdata(tokenizer):
 
     ds = load_dataset("tatsu-lab/alpaca_farm", 'alpaca_instructions')['unlabeled']
-
+ 
     def apftok(sample):
         new_examples = {
             "query": [],
