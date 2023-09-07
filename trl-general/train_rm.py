@@ -20,16 +20,16 @@ from rlhfutils.data import (
     load_rlcd,
     load_stack,
     load_apfarm,
-    tokenize_dset
+    tokenize_dset,
+    augment_data
 )
+from accelerate import Accelerator
 
 # parse args and load data
 parser = HfArgumentParser(ScriptArguments)
 script_args = parser.parse_args_into_dataclasses()[0]
 
 training_args = get_trainargs(script_args)
-
-tokenizer, model = load_rmodel_standard(script_args)
 
 # Load in dataset according to params, we get something in format of 
 if "wgpt" in script_args.dataset:
@@ -40,13 +40,23 @@ elif "stack" in script_args.dataset:
     train_dataset, eval_dataset = load_stack()
 elif "apfarm" in script_args.dataset:
     train_dataset, eval_dataset = load_apfarm(script_args.dataset)
+    
+if Accelerator().local_process_index == 0:
+    print(train_dataset[0]['question'])
+    print(train_dataset[0]['response_j'])
+    
+# apply different kinds of data augmentation
+train_dataset = augment_data(train_dataset, script_args)
 
-# TODO apply different kinds of data augmentation
+tokenizer, model = load_rmodel_standard(script_args)
 
-
-# TODO will need to do template application stuff for this I think
+# NOTE future RLCD models will be using standard template, TODO adjust PPO accordingly
 # tokenize the dataset
 train_dataset, eval_dataset = tokenize_dset(train_dataset, eval_dataset, script_args, tokenizer)
+
+if Accelerator().local_process_index == 0:
+    print(tokenizer.decode(train_dataset[0]['input_ids_j']))
+    
 # Train the model, woohoo.
 trainer = RewardTrainer(
     model=model,
@@ -56,6 +66,8 @@ trainer = RewardTrainer(
     compute_metrics=compute_metrics,
     data_collator=RewardDataCollatorWithPadding(tokenizer=tokenizer, max_length=script_args.max_length),
 )
+
+
 
 if script_args.eval_first_step:
     class EvaluateFirstStepCallback(TrainerCallback):

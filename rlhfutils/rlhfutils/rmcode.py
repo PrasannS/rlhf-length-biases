@@ -104,12 +104,19 @@ class ScriptArguments:
     output_dir: Optional[str] = field(
         default="checkpoints/wgptsaved"
     )
-    
+    mix_ratio: Optional[float] = field(
+        default=0, #HACK used to be 0.2, make sure to switch back at some point
+        metadata={"help": "How much HH data to mix in"},
+    )
+    rand_ratio: Optional[float] = field(
+        default=0, #HACK used to be 0.2, make sure to switch back at some point
+        metadata={"help": "How much random augmentation to do"},
+    )
+    balance_len: Optional[int] = field(default=0)
 
     
 def get_trainargs(script_args):
     # Define the training args. Needs to be done before the model is loaded if you are using deepspeed.
-    model_name_split = script_args.model_name.split("/")[-1]
     output_name = script_args.output_dir
 
     return TrainingArguments(

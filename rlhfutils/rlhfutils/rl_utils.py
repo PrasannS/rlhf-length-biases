@@ -52,7 +52,7 @@ class ScriptArguments:
     early_stopping: Optional[bool] = field(default=False, metadata={"help": "whether to early stop"})
     target_kl: Optional[float] = field(default=0.1, metadata={"help": "kl target for early stopping"})
     reward_baseline: Optional[float] = field(
-       default=1,
+       default=0,
        metadata={"help": "a baseline value that is subtracted from the reward"},
     )
     save_freq: Optional[int] = field(default=None, metadata={"help": "n steps to save the model"})

@@ -42,6 +42,7 @@ elif "rlcd" in script_args.dataset_name:
     rmformat = webgpt_template  # NOTE RLCD RM has a different prompt template, this is a bit ad-hoc
 elif "stack" in script_args.dataset_name:
     dataset = build_stack_promptdata(tokenizer)
+    rmformat = anscat
 elif "apfarm" in script_args.dataset_name:
     dataset = build_apf_promptdata(tokenizer)
     rmformat = anscat
