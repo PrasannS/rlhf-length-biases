@@ -1,7 +1,9 @@
 # Code for loading in data for reward modeling and PPO
 
-from datasets import load_dataset
+from datasets import load_dataset, concatenate_datasets, Dataset
 import pandas as pd
+import random
+from typing import List, Callable
 
 # NOTE process anthro hh data for mixture with se data
 def preproc_hh(example):
@@ -63,11 +65,105 @@ def preprocess_function_rm(examples, tokenizer):
 
     return new_examples
 
+def mix_hh(train_dset, ratio):
+    hh_train = load_dataset("Anthropic/hh-rlhf", data_dir="helpful-base", split="train")
+    hh_train = hh_train.map(preproc_hh)
+    hh_train = hh_train.shuffle(seed=100)
+    hh_train = hh_train.select(range(int(len(train_dset)*ratio)))
+    return hh_train
+
+def augment_random(example, dset):
+    # Get a random index
+    index = random.randint(0, len(dset)-1)
+
+    # Get the sample at the random index
+    example['response_k'] = dset[index]['response_j']
+    return example
+
+def modify_dataset(functions: List[Callable], dataset: Dataset, props: List[float]) -> Dataset:
+    #assert sum(counts) <= len(dataset), "Counts sum should not exceed dataset size"
+    assert len(functions) == len(props), "Number of functions should equal number of counts"
+
+    # convert ratios into actual counts of data
+    counts = [int(p*len(dataset)) for p in props]
+    # Shuffle dataset
+    dataset = dataset.shuffle(seed=0)
+
+    # Keep track of modified parts of the dataset
+    modified_datasets = []
+
+    start_index = 0
+    for fn, count in zip(functions, counts):
+        print(fn.__name__)
+        end_index = start_index + count
+
+        # If function takes in both the example and the dataset
+        if fn.__code__.co_argcount == 2:
+            modified_datasets.append(dataset.select(list(range(start_index, end_index))).map(lambda example: fn(example, dataset)))
+
+        # If function only takes in the example
+        elif fn.__code__.co_argcount == 1:
+            modified_datasets.append(dataset.select(list(range(start_index, end_index))).map(fn))
+
+        start_index = end_index
+
+    # Add the unmodified part of the dataset
+    if start_index < len(dataset):
+        modified_datasets.append(dataset.select(list(range(start_index, len(dataset)))))
+
+    # Concatenate all parts of the dataset back together
+    return concatenate_datasets(modified_datasets)
+
+
+def augment_data(train_dset, script_args):
+    # we can sub in initial dataset for 2 types of DA 
+    if script_args.rand_ratio > 0:
+        print("mixing in random data")
+        re_add = train_dset.select(range(int(len(train_dset))*script_args.rand_ratio))
+        train_dset = modify_dataset([augment_random], train_dset, [script_args.rand_ratio])
+        # add back in data that was randomized
+        train_dset = concatenate_datasets([train_dset, re_add])
+    if script_args.mix_ratio > 0:
+        print("mixing in HH data")
+        train_dset = concatenate_datasets([train_dset, mix_hh(train_dset, script_args.mix_ratio)])
+    return train_dset.shuffle(seed=100)
+    
+def len_balance(indataset):
+    # Convert the Hugging Face dataset to a pandas DataFrame
+    dataset_df = pd.DataFrame(indataset)
+
+    # Create a new column to identify which row has longer input_ids_j
+    dataset_df['j_is_longer'] = dataset_df.apply(lambda row: len(row['input_ids_j']) > len(row['input_ids_k']), axis=1)
+
+    # Count how many examples are in each class
+    count_j_is_longer = len(dataset_df[dataset_df['j_is_longer'] == True])
+    count_k_is_longer = len(dataset_df) - count_j_is_longer
+
+    # Determine which class has fewer examples
+    min_count = min(count_j_is_longer, count_k_is_longer)
+
+    # Downsample the class with more examples to have as many as the class with fewer examples
+    if count_j_is_longer > min_count:
+        df_j_is_longer = dataset_df[dataset_df['j_is_longer'] == True].sample(n=min_count)
+        df_k_is_longer = dataset_df[dataset_df['j_is_longer'] == False]
+    else:
+        df_k_is_longer = dataset_df[dataset_df['j_is_longer'] == False].sample(n=min_count)
+        df_j_is_longer = dataset_df[dataset_df['j_is_longer'] == True]
+
+    # Concatenate the two downsampled classes to create a balanced DataFrame
+    balanced_df = pd.concat([df_j_is_longer, df_k_is_longer])
+
+    # Optionally, shuffle the rows
+    balanced_df = balanced_df.sample(frac=1).reset_index(drop=True)
+    
+    return  Dataset.from_pandas(balanced_df)
+
 def tokenize_dset(train_dataset, eval_dataset, script_args, tokenizer):
     
+    train_dataset = train_dataset.select_columns(['question', 'response_j', 'response_k'])
     num_proc = 24  # Can adjust to be higher if you have more processors.
     original_columns = train_dataset.column_names
-
+    
     # preprocess the dataset and filter out QAs that are longer than script_args.max_length
     train_dataset = train_dataset.map(
         lambda example: preprocess_function_rm(example, tokenizer),
@@ -88,6 +184,10 @@ def tokenize_dset(train_dataset, eval_dataset, script_args, tokenizer):
     eval_dataset = eval_dataset.filter(
         lambda x: len(x["input_ids_j"]) <= script_args.max_length and len(x["input_ids_k"]) <= script_args.max_length
     )
+    if script_args.balance_len==1:
+        print("Balancing")
+        train_dataset = len_balance(train_dataset)
+    
     return train_dataset, eval_dataset
 
 # NOTE process anthro hh data for mixture with se data

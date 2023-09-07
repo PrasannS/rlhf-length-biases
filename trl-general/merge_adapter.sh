@@ -121,14 +121,26 @@ export CUDA_VISIBLE_DEVICES=0,1
 #    --base_model_name="/home/prasann/Projects/tfr-decoding/llama/llama" \
 #    --output_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/rewardmixwgpt/"
 
-# WebGPT Len Balance RM
-python merge_peft_adapter.py \
-   --adapter_model_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/checkpoints/rmlenbalance/checkpoint-3500" \
-   --base_model_name="/home/prasann/Projects/tfr-decoding/llama/llama" \
-   --output_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/lenbalance/"
+# # WebGPT Len Balance RM
+# python merge_peft_adapter.py \
+#    --adapter_model_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/checkpoints/rmlenbalance/checkpoint-3500" \
+#    --base_model_name="/home/prasann/Projects/tfr-decoding/llama/llama" \
+#    --output_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/lenbalance/"
 
-#APFarm GPT RM attempt #2
+# #APFarm GPT RM attempt #2
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/home/prasann/Projects/rlhf-exploration/apf/checkpoints/apfgptlbase/checkpoint-4500" \
+#     --base_model_name="/home/prasann/Projects/tfr-decoding/llama/llama" \
+#     --output_name="/home/prasann/Projects/rlhf-exploration/apf/models/gptcorrect"
+
+# # RLCD Mix 20
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/home/prasann/Projects/rlhf-exploration/trl-general/checkpoints/rlcdmix20/checkpoint-11000" \
+#     --base_model_name="/home/prasann/Projects/tfr-decoding/llama/llama" \
+#     --output_name="/home/prasann/Projects/rlhf-exploration/rlcd-llama/models/rlcdmix"
+
+# RLCD Length balancing
 python merge_peft_adapter.py \
-    --adapter_model_name="/home/prasann/Projects/rlhf-exploration/apf/checkpoints/apfgptlbase/checkpoint-4500" \
+    --adapter_model_name="/home/prasann/Projects/rlhf-exploration/trl-general/checkpoints/rlcdlenbal/checkpoint-7000" \
     --base_model_name="/home/prasann/Projects/tfr-decoding/llama/llama" \
-    --output_name="/home/prasann/Projects/rlhf-exploration/apf/models/gptcorrect"
+    --output_name="/home/prasann/Projects/rlhf-exploration/rlcd-llama/models/rlcdlenbal"

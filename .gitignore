@@ -17,3 +17,4 @@ apfpath.txt
 *wandb
 *.egg-info
 *distilbert-imdb/
+*ppochecks/
