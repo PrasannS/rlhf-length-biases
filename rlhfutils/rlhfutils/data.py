@@ -244,7 +244,7 @@ def preproc_rlcd(example):
     return ex
 
 # HACK assume all RM training is happening on Fuji
-BASE="/home/prasann/Projects/rlhf-exploration/"
+BASE="//u/prasanns/research/rlhf-exploration/"
 def load_rlcd():
     train_dataset = load_dataset("csv", data_files=BASE+"rlcd-llama/simulated_data/simulated_preference_data_consolidated_helpful7b.csv")['train']
     

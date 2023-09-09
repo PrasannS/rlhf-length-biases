@@ -18,3 +18,4 @@ apfpath.txt
 *.egg-info
 *distilbert-imdb/
 *ppochecks/
+models/
