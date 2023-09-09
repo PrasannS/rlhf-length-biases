@@ -93,6 +93,10 @@ class ScriptArguments:
         default="adamw_hf",
         metadata={"help": "The optimizer to use."},
     )
+    carto_file: Optional[str] = field(
+        default=None,
+        metadata={"help": "File storing indices of subset after dataset cartography"},
+    )
     lr_scheduler_type: Optional[str] = field(
         default="linear",
         metadata={"help": "The lr scheduler"},
