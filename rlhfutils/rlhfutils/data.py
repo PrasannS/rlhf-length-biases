@@ -53,8 +53,9 @@ def preprocess_function_rm(examples, tokenizer):
         "attention_mask_j": [],
         "input_ids_k": [],
         "attention_mask_k": [],
+        "ids": [], # used for data carto
     }
-    for question, response_j, response_k in zip(examples["question"], examples["response_j"], examples["response_k"]):
+    for question, response_j, response_k, rowid in zip(examples["question"], examples["response_j"], examples["response_k"], examples['row_index']):
         tokenized_j = tokenizer("Question: " + question + "\n\nAnswer: " + response_j, truncation=True)
         tokenized_k = tokenizer("Question: " + question + "\n\nAnswer: " + response_k, truncation=True)
 
@@ -62,6 +63,10 @@ def preprocess_function_rm(examples, tokenizer):
         new_examples["attention_mask_j"].append(tokenized_j["attention_mask"])
         new_examples["input_ids_k"].append(tokenized_k["input_ids"])
         new_examples["attention_mask_k"].append(tokenized_k["attention_mask"])
+        # get hash-based id for data carto, this will allow for selection of examples later on
+        # TODO do without hashing
+        # new_examples['ids'].append(str(hash(response_j))+"_"+str(hash(response_k)))
+        new_examples['ids'].append(rowid)
 
     return new_examples
 
@@ -87,7 +92,7 @@ def modify_dataset(functions: List[Callable], dataset: Dataset, props: List[floa
     # convert ratios into actual counts of data
     counts = [int(p*len(dataset)) for p in props]
     # Shuffle dataset
-    dataset = dataset.shuffle(seed=0)
+    # dataset = dataset.shuffle(seed=0)
 
     # Keep track of modified parts of the dataset
     modified_datasets = []
@@ -114,18 +119,27 @@ def modify_dataset(functions: List[Callable], dataset: Dataset, props: List[floa
     # Concatenate all parts of the dataset back together
     return concatenate_datasets(modified_datasets)
 
-
 def augment_data(train_dset, script_args):
     # we can sub in initial dataset for 2 types of DA 
     if script_args.rand_ratio > 0:
         print("mixing in random data")
-        re_add = train_dset.select(range(int(len(train_dset))*script_args.rand_ratio))
+        re_add = train_dset.select(range(int(len(train_dset)*script_args.rand_ratio)))
         train_dset = modify_dataset([augment_random], train_dset, [script_args.rand_ratio])
+        
         # add back in data that was randomized
         train_dset = concatenate_datasets([train_dset, re_add])
+        train_dset = train_dset.to_pandas()
+        train_dset['isrand'] = 0
+        train_dset['isrand'].iloc[:int(len(re_add))] = 1
+        train_dset = Dataset.from_pandas(train_dset)
     if script_args.mix_ratio > 0:
         print("mixing in HH data")
-        train_dset = concatenate_datasets([train_dset, mix_hh(train_dset, script_args.mix_ratio)])
+        mixdset = mix_hh(train_dset, script_args.mix_ratio)
+        train_dset = concatenate_datasets([train_dset, mixdset])
+        train_dset = train_dset.to_pandas()
+        train_dset['ismix'] = 0
+        train_dset['ismix'].iloc[:-int(len(mixdset))] = 1
+        train_dset = Dataset.from_pandas(train_dset)
     return train_dset.shuffle(seed=100)
     
 def len_balance(indataset):
@@ -160,7 +174,7 @@ def len_balance(indataset):
 
 def tokenize_dset(train_dataset, eval_dataset, script_args, tokenizer):
     
-    train_dataset = train_dataset.select_columns(['question', 'response_j', 'response_k'])
+    train_dataset = train_dataset.select_columns(['question', 'response_j', 'response_k', 'row_index'])
     num_proc = 24  # Can adjust to be higher if you have more processors.
     original_columns = train_dataset.column_names
     

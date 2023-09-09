@@ -24,6 +24,7 @@ from transformers.modeling_outputs import TokenClassifierOutput
 from transformers.utils import PaddingStrategy
 import random 
 from peft import PeftModel
+import json
 
 # Define and parse arguments.
 @dataclass
@@ -242,11 +243,25 @@ class RewardDataCollatorWithPadding:
             "attention_mask_j": batch_j["attention_mask"],
             "input_ids_k": batch_k["input_ids"],
             "attention_mask_k": batch_k["attention_mask"],
+            "ids": [f["ids"] for f in features], # propagate datapoint ID through code for data carto
             "return_loss": True,
         }
         return batch
     
 class RewardTrainer(Trainer):
+    def save_carto(self, inps, rewards_j, rewards_k):
+        fname = self.args.output_dir.strip().split("/")
+        if len(fname[-1])==0:
+            fname = fname[-2]
+        else:
+            fname = fname[-1]
+        savef = open("carto_outs/"+fname+".jsonl", "a")  # append mode
+        #print(rewards_j.shape)
+        for i in range(len(inps['ids'])):
+            td = {"uid":inps['ids'][i], "rew_j":float(rewards_j[i]), "rew_k":float(rewards_k[i])}
+            savef.write(json.dumps(td)+"\n")
+        savef.close()
+        
     # Define how to compute the reward loss. We use the InstructGPT pairwise logloss: https://arxiv.org/abs/2203.02155
     def compute_loss(self, model, inputs, return_outputs=False):
         rewards_j = model(input_ids=inputs["input_ids_j"], attention_mask=inputs["attention_mask_j"])[0]
@@ -254,6 +269,7 @@ class RewardTrainer(Trainer):
         loss = -nn.functional.logsigmoid(rewards_j - rewards_k).mean()
         if return_outputs:
             return loss, {"rewards_j": rewards_j, "rewards_k": rewards_k}
+        self.save_carto(inputs, rewards_j, rewards_k)
         return loss
 
 def get_starts(seq):

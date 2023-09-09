@@ -44,11 +44,22 @@ elif "apfarm" in script_args.dataset:
 if Accelerator().local_process_index == 0:
     print(train_dataset[0]['question'])
     print(train_dataset[0]['response_j'])
-    
+
+def add_row_index(example, idx):
+    example['row_index'] = idx
+    return example
+
 # apply different kinds of data augmentation
 train_dataset = augment_data(train_dataset, script_args)
 
+# add indices for carto debugging
+train_dataset = train_dataset.map(add_row_index, with_indices=True)
+eval_dataset = eval_dataset.map(add_row_index, with_indices=True)
+
+
 tokenizer, model = load_rmodel_standard(script_args)
+
+print("new size of dataset", len(train_dataset))
 
 # NOTE future RLCD models will be using standard template, TODO adjust PPO accordingly
 # tokenize the dataset
@@ -66,8 +77,6 @@ trainer = RewardTrainer(
     compute_metrics=compute_metrics,
     data_collator=RewardDataCollatorWithPadding(tokenizer=tokenizer, max_length=script_args.max_length),
 )
-
-
 
 if script_args.eval_first_step:
     class EvaluateFirstStepCallback(TrainerCallback):

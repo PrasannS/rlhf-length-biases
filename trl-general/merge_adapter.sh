@@ -139,8 +139,14 @@ export CUDA_VISIBLE_DEVICES=0,1
 #     --base_model_name="/home/prasann/Projects/tfr-decoding/llama/llama" \
 #     --output_name="/home/prasann/Projects/rlhf-exploration/rlcd-llama/models/rlcdmix"
 
-# RLCD Length balancing
+# # RLCD Length balancing
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/home/prasann/Projects/rlhf-exploration/trl-general/checkpoints/rlcdlenbal/checkpoint-7000" \
+#     --base_model_name="/home/prasann/Projects/tfr-decoding/llama/llama" \
+#     --output_name="/home/prasann/Projects/rlhf-exploration/rlcd-llama/models/rlcdlenbal"
+
+# APFarm new style base model for warm starting 
 python merge_peft_adapter.py \
-    --adapter_model_name="/home/prasann/Projects/rlhf-exploration/trl-general/checkpoints/rlcdlenbal/checkpoint-7000" \
+    --adapter_model_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/checkpoints/alpsftllama/checkpoint-1000" \
     --base_model_name="/home/prasann/Projects/tfr-decoding/llama/llama" \
-    --output_name="/home/prasann/Projects/rlhf-exploration/rlcd-llama/models/rlcdlenbal"
+    --output_name="/home/prasann/Projects/rlhf-exploration/apf/models/sft"

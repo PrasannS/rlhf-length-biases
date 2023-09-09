@@ -16,16 +16,108 @@
 #     "wgptpporda" \
 #     0 200
 
-export CUDA_VISIBLE_DEVICES=2,3
+# export CUDA_VISIBLE_DEVICES=0
 
-# generate normal set for webGPT
+export CUDA_VISIBLE_DEVICES=1
+# generate for rlcd orig sft
 python -u generate_outs.py \
     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
-    "webgpt" \
-    "/home/prasann/Projects/rlhf-exploration/webgpt-llama/checkpoints/lenconstrppo/step_200" \
-    "wgptlencons" \
+    "rlcd" \
+    "orig" \
+    "rlcdsftmulti" \
     0 800  \
-    1
+    8
+
+# # generate for rlcd orig
+# python -u generate_outs.py \
+#     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "rlcd" \
+#     "/home/prasann/Projects/rlhf-exploration/ppochecks/rlcd/rlcdfixed/step_100" \
+#     "rlcdorig_early" \
+#     0 400  \
+#     1
+
+# # generate for rlcd orig
+# python -u generate_outs.py \
+#     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "rlcd" \
+#     "/home/prasann/Projects/rlhf-exploration/ppochecks/webgpt/fixedmixppo/step_225" \
+#     "rlcdorig_lkl" \
+#     0 400  \
+#     1
+
+# # TODO may need a long run for rlcd
+# # generate for rlcd da
+# python -u generate_outs.py \
+#     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "rlcd" \
+#     "/home/prasann/Projects/rlhf-exploration/ppochecks/rlcd/rlcddarmppo/step_75" \
+#     "rlcddashort" \
+#     0 400  \
+#     1
+
+# generate for rlcd orig
+python -u generate_outs.py \
+    "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+    "apf" \
+    "orig" \
+    "apfsftmulti" \
+    0 800  \
+    8
+
+# # generate for rlcd orig
+# python -u generate_outs.py \
+#     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "apf" \
+#     "/home/prasann/Projects/rlhf-exploration/ppochecks/apfgpt/apfgptppo/step_100" \
+#     "apforig_early" \
+#     0 400  \
+#     1
+
+# # generate for rlcd orig
+# python -u generate_outs.py \
+#     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "apf" \
+#     "/home/prasann/Projects/rlhf-exploration/ppochecks/apfgpt/apfgptppo/step_200" \
+#     "apforig_conv" \
+#     0 400  \
+#     1
+
+# # generate for webgpt len balanced
+# python -u generate_outs.py \
+#     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "webgpt" \
+#     "/home/prasann/Projects/rlhf-exploration/ppochecks/webgpt/webgptlenbal/step_200" \
+#     "wgptlenbal" \
+#     0 400  \
+#     1
+
+# # generate for webgpt mix 50%
+# python -u generate_outs.py \
+#     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "webgpt" \
+#     "/home/prasann/Projects/rlhf-exploration/ppochecks/webgpt/fixedmixppo/step_250" \
+#     "wgptmix50_end" \
+#     0 400  \
+#     1
+
+# # generate for webgpt mix 50%
+# python -u generate_outs.py \
+#     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "webgpt" \
+#     "/home/prasann/Projects/rlhf-exploration/ppochecks/webgpt/fixedmixppo/step_100" \
+#     "wgptmix50_highkl" \
+#     0 400  \
+#     1
+
+# # generate normal set for webGPT
+# python -u generate_outs.py \
+#     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "webgpt" \
+#     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/checkpoints/lenconstrppo/step_200" \
+#     "wgptlencons" \
+#     0 800  \
+#     1
 
 # To generate from the bigdata stack RM
 # python -u generate_outs.py \

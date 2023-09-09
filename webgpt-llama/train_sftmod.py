@@ -10,11 +10,9 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments,
 from trl import SFTTrainer
 from trl.trainer import ConstantLengthDataset
 
-
 """
 Fine-Tune Llama-7b on SE paired dataset
 """
-
 
 def get_args():
     parser = argparse.ArgumentParser()
