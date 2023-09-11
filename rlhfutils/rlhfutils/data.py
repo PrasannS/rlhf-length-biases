@@ -114,7 +114,6 @@ def modify_dataset(functions: List[Callable], dataset: Dataset, props: List[floa
     # Concatenate all parts of the dataset back together
     return concatenate_datasets(modified_datasets)
 
-
 def augment_data(train_dset, script_args):
     # we can sub in initial dataset for 2 types of DA 
     if script_args.rand_ratio > 0:
@@ -349,7 +348,7 @@ def build_rlcd_promptdata(tokenizer):
             aind = question.index("Assistant:")+len("Assistant:")
             qstr = question[hind:aind-len("Assistant:")]
             
-            query = webgpt_template(qstr)
+            query = webgpt_template(qstr.strip())
             
             tokenized_question = tokenizer(query, truncation=True)
             new_examples["query"].append(query)
