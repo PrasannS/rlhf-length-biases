@@ -82,14 +82,14 @@ torchrun --nnodes 1  --nproc_per_node 2 --master_port=12333 train_rm.py \
 
 
 # # # dataset can be [wgpt, rlcd, stack, apfarm]
-# torchrun --nnodes 1  --nproc_per_node 2 --master_port=12347 train_rm.py \
-#     --model_name=/u/prasanns/research/rlhf-exploration/models/stack/sft \
-#     --output_dir=./checkpoints/stack_carto/ \
-#     --dataset="stack" \
-#     --mix_ratio=0 \
-#     --rand_ratio=0.0 \
-#     --balance_len=0 \
-#     --num_train_epochs=5
+torchrun --nnodes 1  --nproc_per_node 2 --master_port=12347 train_rm.py \
+    --model_name=/u/prasanns/research/rlhf-exploration/models/stack/sft \
+    --output_dir=./checkpoints/stack_carto_big/ \
+    --dataset="stack" \
+    --mix_ratio=0 \
+    --rand_ratio=0.0 \
+    --balance_len=0 \
+    --num_train_epochs=5
 
 # # dataset can be [wgpt, rlcd, stack, apfarm]
 # torchrun --nnodes 1  --nproc_per_node 2 --master_port=12347 train_rm.py \

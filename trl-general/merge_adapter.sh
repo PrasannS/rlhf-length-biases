@@ -153,6 +153,6 @@ export CUDA_VISIBLE_DEVICES=0,1
 
 # APFarm with data carto truncation
 python merge_peft_adapter.py \
-    --adapter_model_name="/home/prasann/Projects/rlhf-exploration/trl-general/checkpoints/apftruncbothrm/checkpoint-5000" \
-    --base_model_name="/home/prasann/Projects/rlhf-exploration/apf/models/sft" \
-    --output_name="/home/prasann/Projects/rlhf-exploration/apf/models/rmtruncboth"
+    --adapter_model_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/checkpoints/alpsftllama/checkpoint-1000" \
+    --base_model_name="/home/prasann/Projects/tfr-decoding/llama/llama" \
+    --output_name="/home/prasann/Projects/rlhf-exploration/apf/models/sft"
