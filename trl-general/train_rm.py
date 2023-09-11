@@ -24,6 +24,7 @@ from rlhfutils.data import (
     augment_data
 )
 from accelerate import Accelerator
+import pandas as pd
 
 # parse args and load data
 parser = HfArgumentParser(ScriptArguments)
@@ -40,15 +41,32 @@ elif "stack" in script_args.dataset:
     train_dataset, eval_dataset = load_stack()
 elif "apfarm" in script_args.dataset:
     train_dataset, eval_dataset = load_apfarm(script_args.dataset)
-    
+
 if Accelerator().local_process_index == 0:
     print(train_dataset[0]['question'])
     print(train_dataset[0]['response_j'])
+
+def add_row_index(example, idx):
+    example['row_index'] = idx
+    return example
+
+if script_args.carto_file:
+    print("Using carto file")
+    sellist = list(pd.read_json(script_args.carto_file, lines=True, orient='records')[0])
+    print("max of sellist is, make sure that this makes sense ", max(sellist))
+    train_dataset = train_dataset.select(sellist)
     
-# apply different kinds of data augmentation
+# apply different kinds of data augmentation, NOTE that this does a shuffle as well, even if no DA done
 train_dataset = augment_data(train_dataset, script_args)
 
+# add indices for carto debugging
+train_dataset = train_dataset.map(add_row_index, with_indices=True)
+eval_dataset = eval_dataset.map(add_row_index, with_indices=True)
+
+
 tokenizer, model = load_rmodel_standard(script_args)
+
+print("new size of dataset", len(train_dataset))
 
 # NOTE future RLCD models will be using standard template, TODO adjust PPO accordingly
 # tokenize the dataset
@@ -66,8 +84,6 @@ trainer = RewardTrainer(
     compute_metrics=compute_metrics,
     data_collator=RewardDataCollatorWithPadding(tokenizer=tokenizer, max_length=script_args.max_length),
 )
-
-
 
 if script_args.eval_first_step:
     class EvaluateFirstStepCallback(TrainerCallback):

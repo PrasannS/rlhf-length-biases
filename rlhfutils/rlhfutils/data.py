@@ -53,8 +53,9 @@ def preprocess_function_rm(examples, tokenizer):
         "attention_mask_j": [],
         "input_ids_k": [],
         "attention_mask_k": [],
+        "ids": [], # used for data carto
     }
-    for question, response_j, response_k in zip(examples["question"], examples["response_j"], examples["response_k"]):
+    for question, response_j, response_k, rowid in zip(examples["question"], examples["response_j"], examples["response_k"], examples['row_index']):
         tokenized_j = tokenizer("Question: " + question + "\n\nAnswer: " + response_j, truncation=True)
         tokenized_k = tokenizer("Question: " + question + "\n\nAnswer: " + response_k, truncation=True)
 
@@ -62,6 +63,10 @@ def preprocess_function_rm(examples, tokenizer):
         new_examples["attention_mask_j"].append(tokenized_j["attention_mask"])
         new_examples["input_ids_k"].append(tokenized_k["input_ids"])
         new_examples["attention_mask_k"].append(tokenized_k["attention_mask"])
+        # get hash-based id for data carto, this will allow for selection of examples later on
+        # TODO do without hashing
+        # new_examples['ids'].append(str(hash(response_j))+"_"+str(hash(response_k)))
+        new_examples['ids'].append(rowid)
 
     return new_examples
 
@@ -87,7 +92,7 @@ def modify_dataset(functions: List[Callable], dataset: Dataset, props: List[floa
     # convert ratios into actual counts of data
     counts = [int(p*len(dataset)) for p in props]
     # Shuffle dataset
-    dataset = dataset.shuffle(seed=0)
+    # dataset = dataset.shuffle(seed=0)
 
     # Keep track of modified parts of the dataset
     modified_datasets = []
@@ -118,13 +123,23 @@ def augment_data(train_dset, script_args):
     # we can sub in initial dataset for 2 types of DA 
     if script_args.rand_ratio > 0:
         print("mixing in random data")
-        re_add = train_dset.select(range(int(len(train_dset))*script_args.rand_ratio))
+        re_add = train_dset.select(range(int(len(train_dset)*script_args.rand_ratio)))
         train_dset = modify_dataset([augment_random], train_dset, [script_args.rand_ratio])
+        
         # add back in data that was randomized
         train_dset = concatenate_datasets([train_dset, re_add])
+        train_dset = train_dset.to_pandas()
+        train_dset['isrand'] = 0
+        train_dset['isrand'].iloc[:int(len(re_add))] = 1
+        train_dset = Dataset.from_pandas(train_dset)
     if script_args.mix_ratio > 0:
         print("mixing in HH data")
-        train_dset = concatenate_datasets([train_dset, mix_hh(train_dset, script_args.mix_ratio)])
+        mixdset = mix_hh(train_dset, script_args.mix_ratio)
+        train_dset = concatenate_datasets([train_dset, mixdset])
+        train_dset = train_dset.to_pandas()
+        train_dset['ismix'] = 0
+        train_dset['ismix'].iloc[:-int(len(mixdset))] = 1
+        train_dset = Dataset.from_pandas(train_dset)
     return train_dset.shuffle(seed=100)
     
 def len_balance(indataset):
@@ -159,7 +174,7 @@ def len_balance(indataset):
 
 def tokenize_dset(train_dataset, eval_dataset, script_args, tokenizer):
     
-    train_dataset = train_dataset.select_columns(['question', 'response_j', 'response_k'])
+    train_dataset = train_dataset.select_columns(['question', 'response_j', 'response_k', 'row_index'])
     num_proc = 24  # Can adjust to be higher if you have more processors.
     original_columns = train_dataset.column_names
     
@@ -229,7 +244,7 @@ def preproc_rlcd(example):
     return ex
 
 # HACK assume all RM training is happening on Fuji
-BASE="/home/prasann/Projects/rlhf-exploration/"
+BASE="//u/prasanns/research/rlhf-exploration/"
 def load_rlcd():
     train_dataset = load_dataset("csv", data_files=BASE+"rlcd-llama/simulated_data/simulated_preference_data_consolidated_helpful7b.csv")['train']
     
@@ -250,13 +265,14 @@ def load_rlcd():
     return train_dataset, eval_dataset
 
 def load_stack():
-    train_dataset = load_dataset("lvwerra/stack-exchange-paired", data_dir="data/reward", split="train")
-    print("initial size ", len(train_dataset))
+    orig_dataset = load_dataset("lvwerra/stack-exchange-paired", data_dir="data/reward", split="train")
+    print("initial size ", len(orig_dataset))
 
     # HACK hardcoded and there's some inconsistency here to be careful of
-    train_dataset = train_dataset.select(range(100000))
+    train_dataset = orig_dataset.select(range(100000))
     train_dataset = train_dataset.shuffle(seed=0)
-
+    # add in 150K more examples for dcarto
+    train_dataset = concatenate_datasets([train_dataset, orig_dataset.select(range(100000,250000))])
     print("new size ", len(train_dataset))
 
     eval_dataset = load_dataset("lvwerra/stack-exchange-paired", data_dir="data/evaluation", split="train")
@@ -348,7 +364,8 @@ def build_rlcd_promptdata(tokenizer):
             aind = question.index("Assistant:")+len("Assistant:")
             qstr = question[hind:aind-len("Assistant:")]
             
-            query = webgpt_template(qstr.strip())
+            # NOTE this only works for new RLCD models, prompt matters 
+            query = "Question: " + qstr + "\n\nAnswer: "
             
             tokenized_question = tokenizer(query, truncation=True)
             new_examples["query"].append(query)

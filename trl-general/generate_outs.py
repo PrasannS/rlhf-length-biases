@@ -6,6 +6,7 @@ from datasets import load_dataset
 from peft import PeftModel
 from tqdm import tqdm
 from transformers import  AutoTokenizer, AutoModelForCausalLM
+from rlhfutils.data import load_rlcd, load_apfarm
 
 import pandas as pd
 import copy
@@ -46,7 +47,9 @@ def preproc_wgpt(example):
         ex['response_j'] = example['answer_1']
     return ex
 
-def adjust_input(strval):
+def adjust_input(strval, apf=True):
+    if "Input: " in strval:
+        strval = strval.replace("Input: ", "### Input:\n")
     return "Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\n"+strval+"\n\n### Response:"
 
 def load_webgpt(topval, bottom=0):
@@ -68,12 +71,31 @@ def load_webgpt(topval, bottom=0):
         })
     return results
 
+# wrapper for loading rlcd
+def lrlcd(topval, bottom=0):
+    _, eval_dset = load_rlcd()
+    # NOTE this is very hacky as I'm just slamming things in
+    res = [{'query':adjust_input(q['question'], False)} for q in eval_dset]
+    return res[bottom:topval]
     
+# wrapper for  loading apf
+def lapf(topval, bottom=0):
+    _, eval_dset = load_apfarm("gpt4")
+    # NOTE need to get the prompt data in the right way, not the RM way
+    res = [{'query':adjust_input(q['question'], True)} for q in eval_dset]
+    return res[bottom:topval]
+
+# TODO maybe clean this up for easier runs later on
 def load_dset(dset, topval, bottom=0):
     if 'stack' in dset:
         return load_stack(topval, bottom)
     elif 'webgpt' in dset:
         return load_webgpt(topval, bottom)
+    # TODO not yet certain if prompts, etc. are matching up 
+    elif "apf" in dset:
+        return lapf(topval, bottom)
+    elif "rlcd" in dset:
+        return lrlcd(topval, bottom)
 
 def generate_outs(model, results, generation_kwargs, qsize=1, savefile="tmp.jsonl"):
     generation_kwargs['num_return_sequences']=1
@@ -185,7 +207,7 @@ def main(args):
     }
     
     results = load_dset(args.dset, args.top, args.bottom)
-
+    print(results[0]['query'])
     # ckpts = ["/mnt/data1/prasann/rlhf-exploration/stack-llama/checkpoints/advmseppo/step_125", "orig", "/mnt/data1/prasann/rlhf-exploration/stack-llama/checkpoints/2gpumix"]
     # fnames = ["advmse", "orig", "mix"]
     ckpts = [args.ckname]
