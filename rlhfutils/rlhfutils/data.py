@@ -369,7 +369,7 @@ def build_rlcd_promptdata(tokenizer):
             qstr = question[hind:aind-len("Assistant:")]
             
             # NOTE this only works for new RLCD models, prompt matters, this was off, rerun wgpt accordingly
-            query = webgpt_template(qstr.strip())
+            query = webgpt_template("Continue the conversation:\n\n"+qstr.strip()+"\n\nAssistant: ")
             
             tokenized_question = tokenizer(query, truncation=True)
             # HACK RM gets the webgpt format

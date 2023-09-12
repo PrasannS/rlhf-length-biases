@@ -12,7 +12,7 @@ accelerate launch --multi_gpu --config_file=default_config.yaml --main_process_p
     --output_max_length=156 --batch_size=32 \
     --gradient_accumulation_steps=1 \
     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
-    --early_stopping=False --output_dir=checkpoints/rlcdgoodtruncppo/ \
+    --early_stopping=False --output_dir=checkpoints/rlcdgoodtruncvv3/ \
     --init_kl_coef=0.04 --steps=1000
     #--reward_baseline=1.5
 
