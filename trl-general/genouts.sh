@@ -1,4 +1,105 @@
 # export CUDA_VISIBLE_DEVICES=2
+# # WebGPT Bad
+# python -u generate_outs.py \
+#     "/home/prasann/Projects/rlhf-exploration/apf/models/sft" \
+#     "webgpt" \
+#     "/home/prasann/Projects/rlhf-exploration/ppochecks/truncppo/wgpttruncbadppo/step_150" \
+#     "wgpttruncbad" \
+#     0 400 \
+#     1
+
+# # WebGPT Bad
+# python -u generate_outs.py \
+#     "/home/prasann/Projects/rlhf-exploration/apf/models/sft" \
+#     "webgpt" \
+#     "/home/prasann/Projects/rlhf-exploration/ppochecks/truncppo/wgpttruncbothppo/step_150" \
+#     "wgpttruncbothearly" \
+#     0 400 \
+#     1
+
+# # WebGPT Bad
+# python -u generate_outs.py \
+#     "/home/prasann/Projects/rlhf-exploration/apf/models/sft" \
+#     "webgpt" \
+#     "/home/prasann/Projects/rlhf-exploration/ppochecks/truncppo/wgpttruncbothppo/step_300" \
+#     "wgpttruncboth" \
+#     0 400 \
+#     1
+
+# # WebGPT Bad
+# python -u generate_outs.py \
+#     "/home/prasann/Projects/rlhf-exploration/apf/models/sft" \
+#     "webgpt" \
+#     "orig" \
+#     "wgptonew" \
+#     0 400 \
+#     1
+
+export CUDA_VISIBLE_DEVICES=2
+# WebGPT Norm
+python -u generate_outs.py \
+    "/home/prasann/Projects/rlhf-exploration/apf/models/sft" \
+    "webgpt" \
+    "/home/prasann/Projects/rlhf-exploration/ppochecks/webgpt/wgptpponorm/step_125" \
+    "wgptnewppo" \
+    0 400 \
+    1
+
+# # APF Normal PPO new base
+# python -u generate_outs.py \
+#     "/home/prasann/Projects/rlhf-exploration/apf/models/sft" \
+#     "rlcd" \
+#     "/home/prasann/Projects/rlhf-exploration/ppochecks/rlcd/rlcdpponorm/step_150" \
+#     "rlcdnewppo" \
+#     0 400 \
+#     1
+
+# # APF Normal PPO new base
+# python -u generate_outs.py \
+#     "/home/prasann/Projects/rlhf-exploration/apf/models/sft" \
+#     "apf" \
+#     "/home/prasann/Projects/rlhf-exploration/ppochecks/apfgpt/apfpponorm/step_150" \
+#     "apfnewppo" \
+#     0 400 \
+#     1
+
+# # RLCD Trunc bad
+# python -u generate_outs.py \
+#     "/home/prasann/Projects/rlhf-exploration/apf/models/sft" \
+#     "rlcd" \
+#     "orig" \
+#     "rlcdornew" \
+#     0 400 \
+#     1
+
+# # RLCD Trunc Both
+# python -u generate_outs.py \
+#     "/home/prasann/Projects/rlhf-exploration/apf/models/sft" \
+#     "rlcd" \
+#     "/home/prasann/Projects/rlhf-exploration/ppochecks/truncppo/rlcdbothppofix/step_150" \
+#     "rlcdtruncboth" \
+#     0 400 \
+#     1
+
+# # APF Truncate Both
+# python -u generate_outs.py \
+#     "/home/prasann/Projects/rlhf-exploration/apf/models/sft" \
+#     "apf" \
+#     "/home/prasann/Projects/rlhf-exploration/ppochecks/truncppo/apftruncbothppo/step_250" \
+#     "apftruncboth" \
+#     0 400 \
+#     1
+
+# # APF Truncate Both
+# python -u generate_outs.py \
+#     "/home/prasann/Projects/rlhf-exploration/apf/models/sft" \
+#     "apf" \
+#     "orig" \
+#     "apfornew" \
+#     0 400 \
+#     1
+
+# export CUDA_VISIBLE_DEVICES=2
 
 # # # For WebGPT new model
 # # python -u generate_outs.py \
@@ -18,15 +119,15 @@
 
 # export CUDA_VISIBLE_DEVICES=0
 
-export CUDA_VISIBLE_DEVICES=1
-# generate for rlcd orig sft
-python -u generate_outs.py \
-    "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
-    "rlcd" \
-    "orig" \
-    "rlcdsftmulti" \
-    0 800  \
-    8
+# export CUDA_VISIBLE_DEVICES=1
+# # generate for rlcd orig sft
+# python -u generate_outs.py \
+#     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "rlcd" \
+#     "orig" \
+#     "rlcdsftmulti" \
+#     0 800  \
+#     8
 
 # # generate for rlcd orig
 # python -u generate_outs.py \
@@ -56,14 +157,14 @@ python -u generate_outs.py \
 #     0 400  \
 #     1
 
-# generate for rlcd orig
-python -u generate_outs.py \
-    "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
-    "apf" \
-    "orig" \
-    "apfsftmulti" \
-    0 800  \
-    8
+# # generate for rlcd orig
+# python -u generate_outs.py \
+#     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "apf" \
+#     "orig" \
+#     "apfsftmulti" \
+#     0 800  \
+#     8
 
 # # generate for rlcd orig
 # python -u generate_outs.py \

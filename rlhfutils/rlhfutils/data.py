@@ -244,10 +244,13 @@ def preproc_rlcd(example):
     return ex
 
 # HACK assume all RM training is happening on Fuji
-BASE="//u/prasanns/research/rlhf-exploration/"
+BASE="/u/prasanns/research/rlhf-exploration/"
+otherbase="/data/users/prasann/Projects/rlhf-exploration/"
 def load_rlcd():
-    train_dataset = load_dataset("csv", data_files=BASE+"rlcd-llama/simulated_data/simulated_preference_data_consolidated_helpful7b.csv")['train']
-    
+    try:
+        train_dataset = load_dataset("csv", data_files=BASE+"rlcd-llama/simulated_data/simulated_preference_data_consolidated_helpful7b.csv")['train']
+    except:
+        train_dataset = load_dataset("csv", data_files=otherbase+"rlcd-llama/simulated_data/simulated_preference_data_consolidated_helpful7b.csv")['train']
     # HACK against 2 weird NaN outputs
     train_dataset = train_dataset.filter(
         lambda x: x['output_1'] and x['output_2']

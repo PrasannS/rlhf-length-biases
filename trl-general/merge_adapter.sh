@@ -151,8 +151,15 @@ export CUDA_VISIBLE_DEVICES=0,1
 #     --base_model_name="/home/prasann/Projects/tfr-decoding/llama/llama" \
 #     --output_name="/home/prasann/Projects/rlhf-exploration/apf/models/sft"
 
-# APFarm with data carto truncation
+# # APFarm with data carto truncation
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/home/prasann/Projects/rlhf-exploration/trl-general/checkpoints/apftruncbothrm/checkpoint-5000" \
+#     --base_model_name="/home/prasann/Projects/rlhf-exploration/apf/models/sft" \
+#     --output_name="/home/prasann/Projects/rlhf-exploration/apf/models/rmtruncboth"
+
+# APF with data carto both only
 python merge_peft_adapter.py \
-    --adapter_model_name="/home/prasann/Projects/rlhf-exploration/trl-general/checkpoints/apftruncbothrm/checkpoint-5000" \
+    --adapter_model_name="/home/prasann/Projects/rlhf-exploration/trl-general/checkpoints/apftruncbadrm/checkpoint-8000" \
     --base_model_name="/home/prasann/Projects/rlhf-exploration/apf/models/sft" \
-    --output_name="/home/prasann/Projects/rlhf-exploration/apf/models/rmtruncboth"
+    --output_name="/home/prasann/Projects/rlhf-exploration/apf/models/rmtruncbad"
+
