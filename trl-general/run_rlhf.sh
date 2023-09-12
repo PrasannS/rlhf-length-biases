@@ -4,7 +4,7 @@ accelerate launch --multi_gpu --config_file=default_config.yaml --main_process_p
     --num_machines 1  \
     --num_processes 2 \
     train_rlhf.py --log_with=wandb \
-    --model_name=/mnt/data1/prasann/rlhf-exploration/webgpt-llama/models/sft10k \
+    --model_name=/u/prasanns/research/rlhf-exploration/models/sft10k \
     --dataset_name="rlcd" \
     --reward_model_name=/mnt/data1/prasann/rlhf-exploration/rlcd-llama/models/rlcdgoodtrunc \
     --adafactor=False \

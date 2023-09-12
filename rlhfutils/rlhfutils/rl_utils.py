@@ -165,7 +165,12 @@ def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
             break
 
         question_tensors = batch["input_ids"]
-
+        
+        if epoch == 0:
+            # SANITY CHECKING
+            print("PPO input")
+            print(tokenizer.batch_decode(question_tensors, skip_special_tokens=True))
+            
         response_tensors = ppo_trainer.generate(
             question_tensors,
             return_prompt=False,
@@ -173,6 +178,12 @@ def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
             **generation_kwargs,
         )
         batch["response"] = tokenizer.batch_decode(response_tensors, skip_special_tokens=True)
+
+    
+        if epoch == 0:
+            # SANITY CHECKING
+            print("QAForm Input Example:")
+            print(qaform(batch['query'][0], batch['response'][0]))
 
         # Get RM score, NOTE that the input formatting is reward model specific
         texts = [qaform(q, r) for q, r in zip(batch["query"], batch["response"])]
