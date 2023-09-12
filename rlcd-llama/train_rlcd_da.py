@@ -338,10 +338,8 @@ class RewardDataCollatorWithPadding:
         }
         return batch
 
-
 # Define the metric that we'll use for validation.
 accuracy = evaluate.load("accuracy")
-
 
 def compute_metrics(eval_pred):
     predictions, _ = eval_pred
@@ -350,7 +348,6 @@ def compute_metrics(eval_pred):
     predictions = np.argmax(predictions, axis=0)
     labels = np.zeros(predictions.shape)
     return accuracy.compute(predictions=predictions, references=labels)
-
 
 class RewardTrainer(Trainer):
     # Define how to compute the reward loss. We use the InstructGPT pairwise logloss: https://arxiv.org/abs/2203.02155

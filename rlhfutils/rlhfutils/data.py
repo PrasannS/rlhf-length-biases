@@ -268,13 +268,14 @@ def load_rlcd():
     return train_dataset, eval_dataset
 
 def load_stack():
-    train_dataset = load_dataset("lvwerra/stack-exchange-paired", data_dir="data/reward", split="train")
-    print("initial size ", len(train_dataset))
+    orig_dataset = load_dataset("lvwerra/stack-exchange-paired", data_dir="data/reward", split="train")
+    print("initial size ", len(orig_dataset))
 
     # HACK hardcoded and there's some inconsistency here to be careful of
-    train_dataset = train_dataset.select(range(100000))
+    train_dataset = orig_dataset.select(range(100000))
     train_dataset = train_dataset.shuffle(seed=0)
-
+    # add in 150K more examples for dcarto
+    train_dataset = concatenate_datasets([train_dataset, orig_dataset.select(range(100000,250000))])
     print("new size ", len(train_dataset))
 
     eval_dataset = load_dataset("lvwerra/stack-exchange-paired", data_dir="data/evaluation", split="train")
@@ -363,13 +364,16 @@ def build_rlcd_promptdata(tokenizer):
             
             # NOTE that HHRLHF, rlcd are multi-turn, which means there's turn context (setting is a bit different as a result)
             hind = question.index("Human:")+6
-            aind = question.index("Assistant:")+len("Assistant:")
+            # NOTE this maybe makes things weird? TODO should I rerun things without doing this
+            aind = question.rindex("Assistant:")+len("Assistant:")
             qstr = question[hind:aind-len("Assistant:")]
             
-            query = webgpt_template(qstr)
+            # NOTE this only works for new RLCD models, prompt matters, this was off, rerun wgpt accordingly
+            query = webgpt_template(qstr.strip())
             
             tokenized_question = tokenizer(query, truncation=True)
-            new_examples["query"].append(query)
+            # HACK RM gets the webgpt format
+            new_examples["query"].append("Question: " + qstr.strip() + "\n\nAnswer: ")
             new_examples["input_ids"].append(tokenized_question["input_ids"])
 
         return new_examples
@@ -411,7 +415,7 @@ def inp_origformat(instr, inp):
 def build_apf_promptdata(tokenizer):
 
     ds = load_dataset("tatsu-lab/alpaca_farm", 'alpaca_instructions')['unlabeled']
- 
+
     def apftok(sample):
         new_examples = {
             "query": [],

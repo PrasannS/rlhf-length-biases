@@ -1,4 +1,3 @@
-export CUDA_VISIBLE_DEVICES=2,3
 
 accelerate launch --multi_gpu --config_file=default_config.yaml --main_process_port=29516 \
     --num_machines 1  \

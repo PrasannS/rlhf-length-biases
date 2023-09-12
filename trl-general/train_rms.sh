@@ -11,7 +11,7 @@
 #     --balance_len=0 \
 #     --num_train_epochs=5
 
-export CUDA_VISIBLE_DEVICES=0,1
+# export CUDA_VISIBLE_DEVICES=0,1
 
 # WebGPT normal model with new base
 # torchrun --nnodes 1  --nproc_per_node 2 --master_port=12333 train_rm.py \
@@ -24,15 +24,15 @@ export CUDA_VISIBLE_DEVICES=0,1
 #     --num_train_epochs=4
 
 # # dataset can be [wgpt, rlcd, stack, apfarm]
-torchrun --nnodes 1  --nproc_per_node 2 --master_port=12333 train_rm.py \
-    --model_name=/home/prasann/Projects/rlhf-exploration/apf/models/sft \
-    --output_dir=./checkpoints/apftruncbadrm/ \
-    --dataset="apfarmgpt" \
-    --mix_ratio=0 \
-    --rand_ratio=0 \
-    --balance_len=0 \
-    --num_train_epochs=4 \
-    --carto_file="truncvals/apfbad.json"
+# torchrun --nnodes 1  --nproc_per_node 2 --master_port=12333 train_rm.py \
+#     --model_name=/u/prasanns/research/rlhf-exploration/models/sft \
+#     --output_dir=./checkpoints/apftruncgoodrm/ \
+#     --dataset="apfarmgpt" \
+#     --mix_ratio=0 \
+#     --rand_ratio=0 \
+#     --balance_len=0 \
+#     --num_train_epochs=4 \
+#     --carto_file="truncvals/apfgood.json"
 
 # export CUDA_VISIBLE_DEVICES=0,1
 # # dataset can be [wgpt, rlcd, stack, apfarm]
@@ -46,45 +46,66 @@ torchrun --nnodes 1  --nproc_per_node 2 --master_port=12333 train_rm.py \
 #     --num_train_epochs=4 \
 #     --carto_file="truncvals/webgptboth.json"
 
-# export CUDA_VISIBLE_DEVICES=2,3
+# export CUDA_VISIBLE_DEVICES=4,5
 # torchrun --nnodes 1  --nproc_per_node 2 --master_port=12335 train_rm.py \
 #     --model_name=/u/prasanns/research/rlhf-exploration/models/sft \
-#     --output_dir=./checkpoints/rlcdtruncbad/ \
+#     --output_dir=./checkpoints/wgpttruncgood/ \
 #     --dataset="wgpt" \
 #     --mix_ratio=0 \
 #     --rand_ratio=0 \
 #     --balance_len=0 \
 #     --num_train_epochs=4 \
-#     --carto_file="truncvals/webgptbad.json"
+#     --carto_file="truncvals/webgptgood.json"
 
-# export CUDA_VISIBLE_DEVICES=4,5
-# torchrun --nnodes 1  --nproc_per_node 2 --master_port=12349 train_rm.py \
+# export CUDA_VISIBLE_DEVICES=0,1
+# torchrun --nnodes 1  --nproc_per_node 2 --master_port=12348 train_rm.py \
 #     --model_name=/u/prasanns/research/rlhf-exploration/models/sft \
-#     --output_dir=./checkpoints/rlcdtruncboth/ \
+#     --output_dir=./checkpoints/rlcddiagboth/ \
 #     --dataset="rlcd" \
 #     --mix_ratio=0 \
 #     --rand_ratio=0 \
 #     --balance_len=0 \
-#     --num_train_epochs=3 \
-#     --carto_file="truncvals/rlcdboth.json"
+#     --num_train_epochs=4 \
+#     --carto_file="truncvals/diagboth.json"
+
+# export CUDA_VISIBLE_DEVICES=2,3
+# torchrun --nnodes 1  --nproc_per_node 2 --master_port=12349 train_rm.py \
+#     --model_name=/u/prasanns/research/rlhf-exploration/models/sft \
+#     --output_dir=./checkpoints/rlcdleftonly/ \
+#     --dataset="rlcd" \
+#     --mix_ratio=0 \
+#     --rand_ratio=0 \
+#     --balance_len=0 \
+#     --num_train_epochs=4 \
+#     --carto_file="truncvals/leftonly.json"
+
+export CUDA_VISIBLE_DEVICES=4,5
+torchrun --nnodes 1  --nproc_per_node 2 --master_port=12350 train_rm.py \
+    --model_name=/u/prasanns/research/rlhf-exploration/models/sft \
+    --output_dir=./checkpoints/rlcdrightonly/ \
+    --dataset="rlcd" \
+    --mix_ratio=0 \
+    --rand_ratio=0 \
+    --balance_len=0 \
+    --num_train_epochs=4 \
+    --carto_file="truncvals/rightonly.json"
+
 
 # export CUDA_VISIBLE_DEVICES=6,7
 # torchrun --nnodes 1  --nproc_per_node 2 --master_port=12350 train_rm.py \
 #     --model_name=/u/prasanns/research/rlhf-exploration/models/sft \
-#     --output_dir=./checkpoints/rlcdtruncbad/ \
+#     --output_dir=./checkpoints/rlcdtruncgood/ \
 #     --dataset="rlcd" \
 #     --mix_ratio=0 \
 #     --rand_ratio=0 \
 #     --balance_len=0 \
-#     --num_train_epochs=3 \
-#     --carto_file="truncvals/rlcdbad.json"
+#     --num_train_epochs=4 \
+#     --carto_file="truncvals/rlcdgood.json"
 
-
-
-# # # dataset can be [wgpt, rlcd, stack, apfarm]
+# # # # dataset can be [wgpt, rlcd, stack, apfarm]
 # torchrun --nnodes 1  --nproc_per_node 2 --master_port=12347 train_rm.py \
 #     --model_name=/u/prasanns/research/rlhf-exploration/models/stack/sft \
-#     --output_dir=./checkpoints/stack_carto/ \
+#     --output_dir=./checkpoints/stack_carto_big/ \
 #     --dataset="stack" \
 #     --mix_ratio=0 \
 #     --rand_ratio=0.0 \
