@@ -152,7 +152,55 @@ export CUDA_VISIBLE_DEVICES=0,1
 #     --output_name="/home/prasann/Projects/rlhf-exploration/apf/models/sft"
 
 # APFarm with data carto truncation
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/checkpoints/alpsftllama/checkpoint-1000" \
+#     --base_model_name="/home/prasann/Projects/tfr-decoding/llama/llama" \
+#     --output_name="/home/prasann/Projects/rlhf-exploration/apf/models/sft"
+
+# # APFarm normal
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/checkpoints/alpsftllama/checkpoint-1000" \
+#     --base_model_name="/home/prasann/Projects/tfr-decoding/llama/llama" \
+#     --output_name="/home/prasann/Projects/rlhf-exploration/apf/models/sft"
+
+# # APF normal 
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/orig_carto/apf_carto/checkpoint-11500" \
+#     --base_model_name="/u/prasanns/research/rlhf-exploration/models/sft" \
+#     --output_name="/u/prasanns/research/rlhf-exploration/models/rewards/apfnormal"
+
+# # RLCD Normal 
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/orig_carto/rlcd_carto/checkpoint-23500" \
+#     --base_model_name="/u/prasanns/research/rlhf-exploration/models/sft" \
+#     --output_name="/u/prasanns/research/rlhf-exploration/models/rewards/rlcdnormal"
+
+# # WebGPT Normal
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/orig_carto/webgpt_carto/checkpoint-11000" \
+#     --base_model_name="/u/prasanns/research/rlhf-exploration/models/sft" \
+#     --output_name="/u/prasanns/research/rlhf-exploration/models/rewards/wpgtnormal"
+
+# # APF goodtrunc 
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/apftruncgoodrm/checkpoint-6000" \
+#     --base_model_name="/u/prasanns/research/rlhf-exploration/models/sft" \
+#     --output_name="/u/prasanns/research/rlhf-exploration/models/rewards/apfgoodtrunc"
+
+# # RLCD goodtrunc 
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/rlcdtruncgood/checkpoint-10500" \
+#     --base_model_name="/u/prasanns/research/rlhf-exploration/models/sft" \
+#     --output_name="/u/prasanns/research/rlhf-exploration/models/rewards/rlcdgoodtrunc"
+
+# # WebGPT goodtrunc
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/wgpttruncgood/checkpoint-7000" \
+#     --base_model_name="/u/prasanns/research/rlhf-exploration/models/sft" \
+#     --output_name="/u/prasanns/research/rlhf-exploration/models/rewards/wpgtgoodtrunc"
+
+# RLCD MidTrunc
 python merge_peft_adapter.py \
-    --adapter_model_name="/home/prasann/Projects/rlhf-exploration/webgpt-llama/checkpoints/alpsftllama/checkpoint-1000" \
-    --base_model_name="/home/prasann/Projects/tfr-decoding/llama/llama" \
-    --output_name="/home/prasann/Projects/rlhf-exploration/apf/models/sft"
+    --adapter_model_name="/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/rlcdtruncmiddle/checkpoint-7000" \
+    --base_model_name="/u/prasanns/research/rlhf-exploration/models/sft" \
+    --output_name="/u/prasanns/research/rlhf-exploration/models/rewards/rlcdmidtrunc"

@@ -361,14 +361,16 @@ def build_rlcd_promptdata(tokenizer):
             
             # NOTE that HHRLHF, rlcd are multi-turn, which means there's turn context (setting is a bit different as a result)
             hind = question.index("Human:")+6
-            aind = question.index("Assistant:")+len("Assistant:")
+            # NOTE this maybe makes things weird? TODO should I rerun things without doing this
+            aind = question.rindex("Assistant:")+len("Assistant:")
             qstr = question[hind:aind-len("Assistant:")]
             
-            # NOTE this only works for new RLCD models, prompt matters 
-            query = "Question: " + qstr + "\n\nAnswer: "
+            # NOTE this only works for new RLCD models, prompt matters, this was off, rerun wgpt accordingly
+            query = webgpt_template(qstr.strip())
             
             tokenized_question = tokenizer(query, truncation=True)
-            new_examples["query"].append(query)
+            # HACK RM gets the webgpt format
+            new_examples["query"].append("Question: " + qstr.strip() + "\n\nAnswer: ")
             new_examples["input_ids"].append(tokenized_question["input_ids"])
 
         return new_examples
@@ -410,7 +412,7 @@ def inp_origformat(instr, inp):
 def build_apf_promptdata(tokenizer):
 
     ds = load_dataset("tatsu-lab/alpaca_farm", 'alpaca_instructions')['unlabeled']
- 
+
     def apftok(sample):
         new_examples = {
             "query": [],
