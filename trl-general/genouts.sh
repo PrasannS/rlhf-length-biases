@@ -1,10 +1,30 @@
-export CUDA_VISIBLE_DEVICES=0
+# export CUDA_VISIBLE_DEVICES=0
+# # WebGPT Bad
+# python -u generate_outs.py \
+#     "/u/prasanns/research/rlhf-exploration/models/sft10k" \
+#     "rlcd" \
+#     "/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/rlcdleftonlyppo/step_150" \
+#     "rlcdleftonly" \
+#     0 400 \
+#     1
+
+# export CUDA_VISIBLE_DEVICES=1
+# # WebGPT Bad
+# python -u generate_outs.py \
+#     "/u/prasanns/research/rlhf-exploration/models/sft10k" \
+#     "rlcd" \
+#     "/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/rlcdrightonlyppo/step_150" \
+#     "rlcdrightonly" \
+#     0 400 \
+#     1
+
+export CUDA_VISIBLE_DEVICES=2
 # WebGPT Bad
 python -u generate_outs.py \
-    "/mnt/data1/prasann/rlhf-exploration/webgpt-llama/models/sft10k" \
+    "/u/prasanns/research/rlhf-exploration/models/sft10k" \
     "rlcd" \
-    "/mnt/data1/prasann/rlhf-exploration/trl-general/checkpoints/rlcdgoodtruncvv3/step_200" \
-    "rlcdtruncgoodfix" \
+    "/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/rlcdorigv4/step_225" \
+    "rlcdsftv3" \
     0 400 \
     1
 

@@ -163,18 +163,18 @@ export CUDA_VISIBLE_DEVICES=0,1
 #     --base_model_name="/home/prasann/Projects/rlhf-exploration/apf/models/sft" \
 #     --output_name="/home/prasann/Projects/rlhf-exploration/apf/models/rmtruncbad"
 
-python merge_peft_adapter.py \
-    --adapter_model_name="/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/rlcdrightonly/checkpoint-6500" \
-    --base_model_name="/u/prasanns/research/rlhf-exploration/models/sft" \
-    --output_name="/u/prasanns/research/rlhf-exploration/models/rewards/rmtruncrightrlcd"
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/rlcdrightonly/checkpoint-6500" \
+#     --base_model_name="/u/prasanns/research/rlhf-exploration/models/sft" \
+#     --output_name="/u/prasanns/research/rlhf-exploration/models/rewards/rmtruncrightrlcd"
 
-python merge_peft_adapter.py \
-    --adapter_model_name="/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/rlcdleftonly/checkpoint-11000" \
-    --base_model_name="/u/prasanns/research/rlhf-exploration/models/sft" \
-    --output_name="/u/prasanns/research/rlhf-exploration/models/rewards/rmtruncleftrlcd"
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/rlcdleftonly/checkpoint-11000" \
+#     --base_model_name="/u/prasanns/research/rlhf-exploration/models/sft" \
+#     --output_name="/u/prasanns/research/rlhf-exploration/models/rewards/rmtruncleftrlcd"
 
-python merge_peft_adapter.py \
-    --adapter_model_name="/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/rlcddiagboth/checkpoint-9500" \
-    --base_model_name="/u/prasanns/research/rlhf-exploration/models/sft" \
-    --output_name="/u/prasanns/research/rlhf-exploration/models/rewards/rmtruncdiag"
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/rlcddiagboth/checkpoint-9500" \
+#     --base_model_name="/u/prasanns/research/rlhf-exploration/models/sft" \
+#     --output_name="/u/prasanns/research/rlhf-exploration/models/rewards/rmtruncdiag"
 
