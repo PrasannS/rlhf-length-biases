@@ -50,19 +50,19 @@ def add_row_index(example, idx):
     example['row_index'] = idx
     return example
 
+# apply different kinds of data augmentation, NOTE that this does a shuffle as well, even if no DA done
+train_dataset = augment_data(train_dataset, script_args)
+
+# NOTE ACKCA:EFIOHAE:FOIHA:EFLIHEDSA:LKFH: I messed up...
 if script_args.carto_file:
     print("Using carto file")
     sellist = list(pd.read_json(script_args.carto_file, lines=True, orient='records')[0])
     print("max of sellist is, make sure that this makes sense ", max(sellist))
     train_dataset = train_dataset.select(sellist)
-    
-# apply different kinds of data augmentation, NOTE that this does a shuffle as well, even if no DA done
-train_dataset = augment_data(train_dataset, script_args)
 
 # add indices for carto debugging
 train_dataset = train_dataset.map(add_row_index, with_indices=True)
 eval_dataset = eval_dataset.map(add_row_index, with_indices=True)
-
 
 tokenizer, model = load_rmodel_standard(script_args)
 
