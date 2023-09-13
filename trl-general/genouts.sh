@@ -1,10 +1,19 @@
-# export CUDA_VISIBLE_DEVICES=2
-# # WebGPT Bad
+export CUDA_VISIBLE_DEVICES=0
+# WebGPT Bad
+python -u generate_outs.py \
+    "/mnt/data1/prasann/rlhf-exploration/webgpt-llama/models/sft10k" \
+    "rlcd" \
+    "/mnt/data1/prasann/rlhf-exploration/trl-general/checkpoints/rlcdgoodtruncvv3/step_200" \
+    "rlcdtruncgoodfix" \
+    0 400 \
+    1
+
+# export CUDA_VISIBLE_DEVICES=1
 # python -u generate_outs.py \
-#     "/home/prasann/Projects/rlhf-exploration/apf/models/sft" \
-#     "webgpt" \
-#     "/home/prasann/Projects/rlhf-exploration/ppochecks/truncppo/wgpttruncbadppo/step_150" \
-#     "wgpttruncbad" \
+#     "/mnt/data1/prasann/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "rlcd" \
+#     "orig" \
+#     "rlcdsftv3" \
 #     0 400 \
 #     1
 
@@ -35,15 +44,15 @@
 #     0 400 \
 #     1
 
-export CUDA_VISIBLE_DEVICES=2
-# WebGPT Norm
-python -u generate_outs.py \
-    "/home/prasann/Projects/rlhf-exploration/apf/models/sft" \
-    "webgpt" \
-    "/home/prasann/Projects/rlhf-exploration/ppochecks/webgpt/wgptpponorm/step_125" \
-    "wgptnewppo" \
-    0 400 \
-    1
+# export CUDA_VISIBLE_DEVICES=2
+# # WebGPT Norm
+# python -u generate_outs.py \
+#     "/home/prasann/Projects/rlhf-exploration/apf/models/sft" \
+#     "webgpt" \
+#     "/home/prasann/Projects/rlhf-exploration/ppochecks/webgpt/wgptpponorm/step_125" \
+#     "wgptnewppo" \
+#     0 400 \
+#     1
 
 # # APF Normal PPO new base
 # python -u generate_outs.py \
