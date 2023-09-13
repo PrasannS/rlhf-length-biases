@@ -6,8 +6,7 @@ from datasets import load_dataset
 from peft import PeftModel
 from tqdm import tqdm
 from transformers import  AutoTokenizer, AutoModelForCausalLM
-from rlhfutils.data import load_rlcd, load_apfarm
-
+from rlhfutils.data import load_rlcd, load_apfarm, webgpt_template
 import pandas as pd
 import copy
 import argparse
@@ -71,11 +70,15 @@ def load_webgpt(topval, bottom=0):
         })
     return results
 
+def adjust_rlcd(question):
+    # NOTE this only works for new RLCD models, prompt matters, this was off, rerun wgpt accordingly
+    return webgpt_template("Continue the conversation:\n\n"+question.strip()+"\n\nAssistant: ")
 # wrapper for loading rlcd
 def lrlcd(topval, bottom=0):
     _, eval_dset = load_rlcd()
+    
     # NOTE this is very hacky as I'm just slamming things in
-    res = [{'query':adjust_input(q['question'], False)} for q in eval_dset]
+    res = [{'query':adjust_rlcd(q['question'])} for q in eval_dset]
     return res[bottom:topval]
     
 # wrapper for  loading apf
@@ -83,6 +86,8 @@ def lapf(topval, bottom=0):
     _, eval_dset = load_apfarm("gpt4")
     # NOTE need to get the prompt data in the right way, not the RM way
     res = [{'query':adjust_input(q['question'], True)} for q in eval_dset]
+    
+    print("SANITY CHECK\n"+res[0]['query'])
     return res[bottom:topval]
 
 # TODO maybe clean this up for easier runs later on
