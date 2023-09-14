@@ -112,26 +112,27 @@
 #     --num_train_epochs=4 \
 #     --carto_file="truncvals/rlcdmidcut.json"
 
-export CUDA_VISIBLE_DEVICES=6,7
-torchrun --nnodes 1  --nproc_per_node 2 --master_port=12343 train_rm.py \
-    --model_name=/u/prasanns/research/rlhf-exploration/models/sft \
-    --output_dir=./checkpoints/bothcutsanity/ \
-    --dataset="rlcd" \
-    --mix_ratio=0 \
-    --rand_ratio=0 \
-    --balance_len=0 \
-    --num_train_epochs=5 \
-    --carto_file="truncvals/rlcdbothcutminisanity.json"
+# export CUDA_VISIBLE_DEVICES=6,7
+# torchrun --nnodes 1  --nproc_per_node 2 --master_port=12343 train_rm.py \
+#     --model_name=/u/prasanns/research/rlhf-exploration/models/sft \
+#     --output_dir=./checkpoints/bothcutsanity/ \
+#     --dataset="rlcd" \
+#     --mix_ratio=0 \
+#     --rand_ratio=0 \
+#     --balance_len=0 \
+#     --num_train_epochs=5 \
+#     --carto_file="truncvals/rlcdbothcutminisanity.json"
 
-export CUDA_VISIBLE_DEVICES=6,7
+export CUDA_VISIBLE_DEVICES=0,1
 torchrun --nnodes 1  --nproc_per_node 2 --master_port=12343 train_rm.py \
-    --model_name=/u/prasanns/research/rlhf-exploration/models/sft \
-    --output_dir=./checkpoints/rlcdbothcutv3/ \
+    --model_name=/mnt/data1/prasann/rlhf-exploration/webgpt-llama/models/sft10k \
+    --output_dir=./checkpoints/rlcdcartotest/ \
     --dataset="rlcd" \
     --mix_ratio=0 \
     --rand_ratio=0 \
     --balance_len=0 \
     --num_train_epochs=4 \
+    --bf16=false \
     --carto_file="truncvals/rlcdboth.json"
 
 # export CUDA_VISIBLE_DEVICES=0,1

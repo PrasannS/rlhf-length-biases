@@ -50,6 +50,13 @@ def add_row_index(example, idx):
     example['row_index'] = idx
     return example
 
+def lh_sanity(tk, ds):
+    rat = 0
+    for d in ds:
+        if len(tk(d['response_j']).input_ids)>len(tk(d['response_k']).input_ids):
+            rat = rat + 1
+    print("RATIO IS ", rat/len(ds))
+
 # apply different kinds of data augmentation, NOTE that this does a shuffle as well, even if no DA done
 train_dataset = augment_data(train_dataset, script_args)
 
@@ -65,6 +72,7 @@ train_dataset = train_dataset.map(add_row_index, with_indices=True)
 eval_dataset = eval_dataset.map(add_row_index, with_indices=True)
 
 tokenizer, model = load_rmodel_standard(script_args)
+lh_sanity(tokenizer, train_dataset)
 
 print("new size of dataset", len(train_dataset))
 
