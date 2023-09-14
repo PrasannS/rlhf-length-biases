@@ -18,7 +18,6 @@ python -u generate_outs.py \
     0 400 \
     1
 
-
 # export CUDA_VISIBLE_DEVICES=1
 # python -u generate_outs.py \
 #     "/mnt/data1/prasann/rlhf-exploration/webgpt-llama/models/sft10k" \
