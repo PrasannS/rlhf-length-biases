@@ -69,6 +69,94 @@
 #     --carto_file="truncvals/diagboth.json"
 
 # export CUDA_VISIBLE_DEVICES=2,3
+# torchrun --nnodes 1  --nproc_per_node 2 --master_port=12341 train_rm.py \
+#     --model_name=/u/prasanns/research/rlhf-exploration/models/sft \
+#     --output_dir=./checkpoints/leftonlysanitycheck/ \
+#     --dataset="rlcd" \
+#     --mix_ratio=0 \
+#     --rand_ratio=0 \
+#     --balance_len=0 \
+#     --num_train_epochs=5 \
+#     --carto_file="truncvals/leftonlyminisanity.json"
+
+# export CUDA_VISIBLE_DEVICES=2,3
+# torchrun --nnodes 1  --nproc_per_node 2 --master_port=12341 train_rm.py \
+#     --model_name=/u/prasanns/research/rlhf-exploration/models/sft \
+#     --output_dir=./checkpoints/leftonlyv3rm/ \
+#     --dataset="rlcd" \
+#     --mix_ratio=0 \
+#     --rand_ratio=0 \
+#     --balance_len=0 \
+#     --num_train_epochs=4 \
+#     --carto_file="truncvals/leftonly.json"
+
+# export CUDA_VISIBLE_DEVICES=4,5
+# torchrun --nnodes 1  --nproc_per_node 2 --master_port=12342 train_rm.py \
+#     --model_name=/u/prasanns/research/rlhf-exploration/models/sft \
+#     --output_dir=./checkpoints/midcutsanity/ \
+#     --dataset="rlcd" \
+#     --mix_ratio=0 \
+#     --rand_ratio=0 \
+#     --balance_len=0 \
+#     --num_train_epochs=5 \
+#     --carto_file="truncvals/rlcdmidcutminisanity.json"
+
+# export CUDA_VISIBLE_DEVICES=4,5
+# torchrun --nnodes 1  --nproc_per_node 2 --master_port=12342 train_rm.py \
+#     --model_name=/u/prasanns/research/rlhf-exploration/models/sft \
+#     --output_dir=./checkpoints/midcutv3/ \
+#     --dataset="rlcd" \
+#     --mix_ratio=0 \
+#     --rand_ratio=0 \
+#     --balance_len=0 \
+#     --num_train_epochs=4 \
+#     --carto_file="truncvals/rlcdmidcut.json"
+
+export CUDA_VISIBLE_DEVICES=6,7
+torchrun --nnodes 1  --nproc_per_node 2 --master_port=12343 train_rm.py \
+    --model_name=/u/prasanns/research/rlhf-exploration/models/sft \
+    --output_dir=./checkpoints/bothcutsanity/ \
+    --dataset="rlcd" \
+    --mix_ratio=0 \
+    --rand_ratio=0 \
+    --balance_len=0 \
+    --num_train_epochs=5 \
+    --carto_file="truncvals/rlcdbothcutminisanity.json"
+
+export CUDA_VISIBLE_DEVICES=6,7
+torchrun --nnodes 1  --nproc_per_node 2 --master_port=12343 train_rm.py \
+    --model_name=/u/prasanns/research/rlhf-exploration/models/sft \
+    --output_dir=./checkpoints/rlcdbothcutv3/ \
+    --dataset="rlcd" \
+    --mix_ratio=0 \
+    --rand_ratio=0 \
+    --balance_len=0 \
+    --num_train_epochs=4 \
+    --carto_file="truncvals/rlcdboth.json"
+
+# export CUDA_VISIBLE_DEVICES=0,1
+# torchrun --nnodes 1  --nproc_per_node 2 --master_port=12349 train_rm.py \
+#     --model_name=/u/prasanns/research/rlhf-exploration/models/sft \
+#     --output_dir=./checkpoints/rightonlysanitycheck/ \
+#     --dataset="rlcd" \
+#     --mix_ratio=0 \
+#     --rand_ratio=0 \
+#     --balance_len=0 \
+#     --num_train_epochs=5 \
+#     --carto_file="truncvals/rightonlyminisanity.json"
+
+# export CUDA_VISIBLE_DEVICES=0,1
+# torchrun --nnodes 1  --nproc_per_node 2 --master_port=12349 train_rm.py \
+#     --model_name=/u/prasanns/research/rlhf-exploration/models/sft \
+#     --output_dir=./checkpoints/rightonlyv3rm/ \
+#     --dataset="rlcd" \
+#     --mix_ratio=0 \
+#     --rand_ratio=0 \
+#     --balance_len=0 \
+#     --num_train_epochs=4 \
+#     --carto_file="truncvals/rightonly.json"
+
+# export CUDA_VISIBLE_DEVICES=2,3
 # torchrun --nnodes 1  --nproc_per_node 2 --master_port=12349 train_rm.py \
 #     --model_name=/u/prasanns/research/rlhf-exploration/models/sft \
 #     --output_dir=./checkpoints/rlcdleftonly/ \
@@ -79,17 +167,27 @@
 #     --num_train_epochs=4 \
 #     --carto_file="truncvals/leftonly.json"
 
-export CUDA_VISIBLE_DEVICES=4,5
-torchrun --nnodes 1  --nproc_per_node 2 --master_port=12350 train_rm.py \
-    --model_name=/u/prasanns/research/rlhf-exploration/models/sft \
-    --output_dir=./checkpoints/rlcdrightonly/ \
-    --dataset="rlcd" \
-    --mix_ratio=0 \
-    --rand_ratio=0 \
-    --balance_len=0 \
-    --num_train_epochs=4 \
-    --carto_file="truncvals/rightonly.json"
+# export CUDA_VISIBLE_DEVICES=4,5
+# torchrun --nnodes 1  --nproc_per_node 2 --master_port=12350 train_rm.py \
+#     --model_name=/u/prasanns/research/rlhf-exploration/models/sft \
+#     --output_dir=./checkpoints/rlcdrightonly/ \
+#     --dataset="rlcd" \
+#     --mix_ratio=0 \
+#     --rand_ratio=0 \
+#     --balance_len=0 \
+#     --num_train_epochs=3 \
+#     --carto_file="truncvals/rightonly.json"
 
+# export CUDA_VISIBLE_DEVICES=6,7
+# torchrun --nnodes 1  --nproc_per_node 2 --master_port=12350 train_rm.py \
+#     --model_name=/u/prasanns/research/rlhf-exploration/models/sft \
+#     --output_dir=./checkpoints/rlcdrightonly/ \
+#     --dataset="rlcd" \
+#     --mix_ratio=0 \
+#     --rand_ratio=0 \
+#     --balance_len=0 \
+#     --num_train_epochs=3 \
+#     --carto_file="truncvals/rightonly.json"
 
 # export CUDA_VISIBLE_DEVICES=6,7
 # torchrun --nnodes 1  --nproc_per_node 2 --master_port=12350 train_rm.py \
