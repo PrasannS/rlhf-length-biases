@@ -70,7 +70,7 @@ if script_args.carto_file:
     print("max of sellist is, make sure that this makes sense ", max(sellist))
     train_dataset = train_dataset.select(sellist)
 
-augdata = augment_data(train_dataset, script_args,  True)
+augdata = augment_data(train_dataset, script_args, True)
 if augdata:
     print("Actual DA happening")
     print("Initial len ", len(train_dataset))
@@ -95,8 +95,8 @@ train_dataset, eval_dataset = tokenize_dset(train_dataset, eval_dataset, script_
 
 if Accelerator().local_process_index == 0:
     print(tokenizer.decode(train_dataset[0]['input_ids_j']))
-    
-# Train the model, woohoo.
+
+# Train the model, woohoo
 trainer = RewardTrainer(
     model=model,
     args=training_args,

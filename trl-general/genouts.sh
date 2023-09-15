@@ -1,22 +1,59 @@
 # export CUDA_VISIBLE_DEVICES=1
 # # WebGPT Bad
 # python -u generate_outs.py \
-#     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "/u/prasanns/research/rlhf-exploration/models/sft10k" \
 #     "rlcd" \
 #     "/home/prasann/Projects/rlhf-exploration/trl-general/checkpoints/rlcdbothppov3/step_225" \
 #     "rlcdbothgen" \
 #     0 400 \
 #     1
 
-# export CUDA_VISIBLE_DEVICES=0
+#export CUDA_VISIBLE_DEVICES=4
 # # WebGPT Bad
 # python -u generate_outs.py \
-#     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "/u/prasanns/research/rlhf-exploration/models/sft10k" \
 #     "rlcd" \
 #     "/home/prasann/Projects/rlhf-exploration/trl-general/checkpoints/rlcdmidtruncv3/step_225" \
 #     "rlcdmidcutgen" \
 #     0 400 \
 #     1
+# export CUDA_VISIBLE_DEVICES=4
+# python -u generate_outs.py \
+#     "/u/prasanns/research/rlhf-exploration/models/sft10k" \
+#     "webgpt" \
+#     "/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/wgptbothppo2/step_150" \
+#     "wgptboth" \
+#     0 400 \
+#     1
+
+# export CUDA_VISIBLE_DEVICES=5
+# python -u generate_outs.py \
+#     "/u/prasanns/research/rlhf-exploration/models/sft10k" \
+#     "rlcd" \
+#     "/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/rlcdmidcutppov2/step_125" \
+#     "rlcdmidcutfix" \
+#     0 400 \
+#     1
+
+export CUDA_VISIBLE_DEVICES=6
+python -u generate_outs.py \
+    "/u/prasanns/research/rlhf-exploration/models/sft10k" \
+    "rlcd" \
+    "/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/rlcdleftonlyppov2/step_125" \
+    "rlcdleftonly" \
+    0 400 \
+    1
+
+# export CUDA_VISIBLE_DEVICES=7
+# python -u generate_outs.py \
+#     "/u/prasanns/research/rlhf-exploration/models/sft10k" \
+#     "apfarmgpt4" \
+#     "/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/apfgoodppo2/step_150" \
+#     "apf" \
+#     0 400 \
+#     1
+
+    
 
 # export CUDA_VISIBLE_DEVICES=1
 # python -u generate_outs.py \
@@ -141,7 +178,7 @@
 # export CUDA_VISIBLE_DEVICES=1
 # # generate for rlcd orig sft
 # python -u generate_outs.py \
-#     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "/u/prasanns/research/rlhf-exploration/models/sft10k" \
 #     "rlcd" \
 #     "orig" \
 #     "rlcdsftmulti" \
@@ -150,7 +187,7 @@
 
 # # generate for rlcd orig
 # python -u generate_outs.py \
-#     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "/u/prasanns/research/rlhf-exploration/models/sft10k" \
 #     "rlcd" \
 #     "/home/prasann/Projects/rlhf-exploration/ppochecks/rlcd/rlcdfixed/step_100" \
 #     "rlcdorig_early" \
@@ -159,7 +196,7 @@
 
 # # generate for rlcd orig
 # python -u generate_outs.py \
-#     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "/u/prasanns/research/rlhf-exploration/models/sft10k" \
 #     "rlcd" \
 #     "/home/prasann/Projects/rlhf-exploration/ppochecks/webgpt/fixedmixppo/step_225" \
 #     "rlcdorig_lkl" \
@@ -169,7 +206,7 @@
 # # TODO may need a long run for rlcd
 # # generate for rlcd da
 # python -u generate_outs.py \
-#     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "/u/prasanns/research/rlhf-exploration/models/sft10k" \
 #     "rlcd" \
 #     "/home/prasann/Projects/rlhf-exploration/ppochecks/rlcd/rlcddarmppo/step_75" \
 #     "rlcddashort" \
@@ -178,7 +215,7 @@
 
 # # generate for rlcd orig
 # python -u generate_outs.py \
-#     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "/u/prasanns/research/rlhf-exploration/models/sft10k" \
 #     "apf" \
 #     "orig" \
 #     "apfsftmulti" \
@@ -187,7 +224,7 @@
 
 # # generate for rlcd orig
 # python -u generate_outs.py \
-#     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "/u/prasanns/research/rlhf-exploration/models/sft10k" \
 #     "apf" \
 #     "/home/prasann/Projects/rlhf-exploration/ppochecks/apfgpt/apfgptppo/step_100" \
 #     "apforig_early" \
@@ -196,7 +233,7 @@
 
 # # generate for rlcd orig
 # python -u generate_outs.py \
-#     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "/u/prasanns/research/rlhf-exploration/models/sft10k" \
 #     "apf" \
 #     "/home/prasann/Projects/rlhf-exploration/ppochecks/apfgpt/apfgptppo/step_200" \
 #     "apforig_conv" \
@@ -205,7 +242,7 @@
 
 # # generate for webgpt len balanced
 # python -u generate_outs.py \
-#     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "/u/prasanns/research/rlhf-exploration/models/sft10k" \
 #     "webgpt" \
 #     "/home/prasann/Projects/rlhf-exploration/ppochecks/webgpt/webgptlenbal/step_200" \
 #     "wgptlenbal" \
@@ -214,7 +251,7 @@
 
 # # generate for webgpt mix 50%
 # python -u generate_outs.py \
-#     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "/u/prasanns/research/rlhf-exploration/models/sft10k" \
 #     "webgpt" \
 #     "/home/prasann/Projects/rlhf-exploration/ppochecks/webgpt/fixedmixppo/step_250" \
 #     "wgptmix50_end" \
@@ -223,7 +260,7 @@
 
 # # generate for webgpt mix 50%
 # python -u generate_outs.py \
-#     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "/u/prasanns/research/rlhf-exploration/models/sft10k" \
 #     "webgpt" \
 #     "/home/prasann/Projects/rlhf-exploration/ppochecks/webgpt/fixedmixppo/step_100" \
 #     "wgptmix50_highkl" \
@@ -232,7 +269,7 @@
 
 # # generate normal set for webGPT
 # python -u generate_outs.py \
-#     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "/u/prasanns/research/rlhf-exploration/models/sft10k" \
 #     "webgpt" \
 #     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/checkpoints/lenconstrppo/step_200" \
 #     "wgptlencons" \

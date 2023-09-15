@@ -44,15 +44,15 @@ torchrun --nnodes 1  --nproc_per_node 2 --master_port=12335 train_rm.py \
     --num_train_epochs=4 \
     --carto_file="truncvals/webgptgood.json"
 
-torchrun --nnodes 1  --nproc_per_node 2 --master_port=12335 train_rm.py \
-    --model_name=/home/prasann/Projects/rlhf-exploration/apf/models/sft \
-    --output_dir=./checkpoints/rlcdgoodandrandda2/ \
-    --dataset="rlcd" \
-    --mix_ratio=0 \
-    --rand_ratio=0.5 \
-    --balance_len=0 \
-    --num_train_epochs=4 \
-    --carto_file="truncvals/rlcdgood.json"
+# torchrun --nnodes 1  --nproc_per_node 2 --master_port=12335 train_rm.py \
+#     --model_name=/home/prasann/Projects/rlhf-exploration/apf/models/sft \
+#     --output_dir=./checkpoints/rlcdgoodandrandda2/ \
+#     --dataset="rlcd" \
+#     --mix_ratio=0 \
+#     --rand_ratio=0.5 \
+#     --balance_len=0 \
+#     --num_train_epochs=4 \
+#     --carto_file="truncvals/rlcdgood.json"
 
 # export CUDA_VISIBLE_DEVICES=0,1
 # # dataset can be [wgpt, rlcd, stack, apfarm]
