@@ -104,21 +104,21 @@ export CUDA_VISIBLE_DEVICES=0,1
 #     --early_stopping=False --output_dir=checkpoints/wgptbothppo2/ \
 #     --init_kl_coef=0.04 --steps=151
 
-export CUDA_VISIBLE_DEVICES=6,7
+export CUDA_VISIBLE_DEVICES=0,1
 accelerate launch --multi_gpu --config_file=default_config.yaml --main_process_port=29520 \
     --num_machines 1  \
     --num_processes 2 \
     train_rlhf.py --log_with=wandb \
-    --model_name=/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k \
+    --model_name=/mnt/data1/prasann/rlhf-exploration/webgpt-llama/models/sft10k \
     --dataset_name="wgpt" \
-    --reward_model_name=/home/prasann/Projects/rlhf-exploration/apf/models/wgptrandcarto \
+    --reward_model_name=/mnt/data1/prasann/rlhf-exploration/webgpt-llama/models/rewardmodel \
     --adafactor=False \
     --save_freq=25 \
     --output_max_length=156 --batch_size=32 \
     --gradient_accumulation_steps=1 \
     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
-    --early_stopping=False --output_dir=checkpoints/wgptrandcartoppo/ \
-    --init_kl_coef=0.04 --steps=151
+    --early_stopping=False --output_dir=checkpoints/wgpthkltrain/ \
+    --init_kl_coef=0.2 --steps=1000
 
 # export CUDA_VISIBLE_DEVICES=2,3
 

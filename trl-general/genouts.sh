@@ -8,15 +8,15 @@
 #     0 400 \
 #     1
 
-export CUDA_VISIBLE_DEVICES=0
-# WebGPT Bad
-python -u generate_outs.py \
-    "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
-    "rlcd" \
-    "/home/prasann/Projects/rlhf-exploration/trl-general/checkpoints/rlcdmidtruncv3/step_225" \
-    "rlcdmidcutgen" \
-    0 400 \
-    1
+# export CUDA_VISIBLE_DEVICES=0
+# # WebGPT Bad
+# python -u generate_outs.py \
+#     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "rlcd" \
+#     "/home/prasann/Projects/rlhf-exploration/trl-general/checkpoints/rlcdmidtruncv3/step_225" \
+#     "rlcdmidcutgen" \
+#     0 400 \
+#     1
 
 # export CUDA_VISIBLE_DEVICES=1
 # python -u generate_outs.py \
@@ -326,7 +326,7 @@ python -u generate_outs.py \
 #     0 800  \
 #     8 
 
-# multi-sample set generation for stack
+#multi-sample set generation for stack
 # python -u generate_outs.py \
 #     "/mnt/data1/prasann/rlhf-exploration/stack-llama/models/sft" \
 #     "stack" \
@@ -334,3 +334,38 @@ python -u generate_outs.py \
 #     "stackmultisampset" \
 #     0 800 \
 #     8
+export CUDA_VISIBLE_DEVICES=1
+
+# python -u generate_outs.py \
+#     "/mnt/data1/prasann/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "rlcd" \
+#     "/mnt/data1/prasann/rlhf-exploration/ppochecks/newppos/rlcdgoodppov2/step_150" \
+#     "rlcdgoodcut" \
+#     0 400  \
+#     1 
+
+# python -u generate_outs.py \
+#     "/mnt/data1/prasann/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "webgpt" \
+#     "/mnt/data1/prasann/rlhf-exploration/ppochecks/newppos/wgptgoodppov2/step_150" \
+#     "wgptgoodcut" \
+#     0 400  \
+#     1 
+
+export CUDA_VISIBLE_DEVICES=0
+python -u generate_outs.py \
+    "/mnt/data1/prasann/rlhf-exploration/webgpt-llama/models/sft10k" \
+    "apfarmgpt4" \
+    "/mnt/data1/prasann/rlhf-exploration/ppochecks/highratrandda/apfrandcartoppo/step_150" \
+    "apfveryrand" \
+    0 400  \
+    1 
+
+# export CUDA_VISIBLE_DEVICES=1
+# python -u generate_outs.py \
+#     "/mnt/data1/prasann/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "webgpt" \
+#     "/mnt/data1/prasann/rlhf-exploration/ppochecks/highratrandda/wgptrandcartoppo/step_150" \
+#     "wgptveryrand" \
+#     0 400  \
+#     1 

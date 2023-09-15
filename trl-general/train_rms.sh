@@ -54,9 +54,6 @@ torchrun --nnodes 1  --nproc_per_node 2 --master_port=12335 train_rm.py \
     --num_train_epochs=4 \
     --carto_file="truncvals/rlcdgood.json"
 
-
-
-
 # export CUDA_VISIBLE_DEVICES=0,1
 # # dataset can be [wgpt, rlcd, stack, apfarm]
 # torchrun --nnodes 1  --nproc_per_node 2 --master_port=12336 train_rm.py \
