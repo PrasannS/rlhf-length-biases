@@ -178,3 +178,42 @@ export CUDA_VISIBLE_DEVICES=0,1
 #     --base_model_name="/u/prasanns/research/rlhf-exploration/models/sft" \
 #     --output_name="/u/prasanns/research/rlhf-exploration/models/rewards/rmtruncdiag"
 
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/rightonlyv3rm/checkpoint-7000" \
+#     --base_model_name="/u/prasanns/research/rlhf-exploration/models/sft" \
+#     --output_name="/u/prasanns/research/rlhf-exploration/models/rewards/rlcdrightonly2"
+
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/rlcdgoodcutv3/checkpoint-11000" \
+#     --base_model_name="/u/prasanns/research/rlhf-exploration/models/sft" \
+#     --output_name="/u/prasanns/research/rlhf-exploration/models/rewards/rlcdgoodcut2"
+
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/rlcdbothcutv3/checkpoint-10000" \
+#     --base_model_name="/u/prasanns/research/rlhf-exploration/models/sft" \
+#     --output_name="/u/prasanns/research/rlhf-exploration/models/rewards/rlcdbothcut2"
+
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/leftonlyv3rm/checkpoint-11500" \
+#     --base_model_name="/u/prasanns/research/rlhf-exploration/models/sft" \
+#     --output_name="/u/prasanns/research/rlhf-exploration/models/rewards/rlcdleftonly2"
+
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/midcutv3/checkpoint-10000" \
+#     --base_model_name="/u/prasanns/research/rlhf-exploration/models/sft" \
+#     --output_name="/u/prasanns/research/rlhf-exploration/models/rewards/rlcdmidcut2"
+
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/wgptbothcutv3/checkpoint-5000" \
+#     --base_model_name="/u/prasanns/research/rlhf-exploration/models/sft" \
+#     --output_name="/u/prasanns/research/rlhf-exploration/models/rewards/wgptbothcut2"
+
+python merge_peft_adapter.py \
+    --adapter_model_name="/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/wgptgoodcutv3/checkpoint-7000" \
+    --base_model_name="/u/prasanns/research/rlhf-exploration/models/sft" \
+    --output_name="/u/prasanns/research/rlhf-exploration/models/rewards/wgptgoodcut2"
+
+python merge_peft_adapter.py \
+    --adapter_model_name="/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/apfgoodv3/checkpoint-6000" \
+    --base_model_name="/u/prasanns/research/rlhf-exploration/models/sft" \
+    --output_name="/u/prasanns/research/rlhf-exploration/models/rewards/apffgoodcut2"
