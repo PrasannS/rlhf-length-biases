@@ -46,16 +46,108 @@
 #     --lim 800 \
 #     --shuffle 10
 
-python -u rmsco_outs.py \
-    --rmname="/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/lenbalance" \
-    --inpf="../trl-general/genouts/generated_wgptmultisampset.jsonl" \
-    --device 1 \
-    --lim 800 \
-    --shuffle 0
+# python -u rmsco_outs.py \
+#     --rmname="/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/lenbalance" \
+#     --inpf="../trl-general/genouts/generated_wgptmultisampset.jsonl" \
+#     --device 1 \
+#     --lim 800 \
+#     --shuffle 0
+
+# python -u rmsco_outs.py \
+#     --rmname="/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/rewardmixwgpt" \
+#     --inpf="../trl-general/genouts/generated_wgptmultisampset.jsonl" \
+#     --device 1 \
+#     --lim 800 \
+#     --shuffle 0
+
+# python -u rmsco_outs.py \
+#     --rmname="/home/prasann/Projects/rlhf-exploration/models/rewards/apfgoodcut2" \
+#     --inpf="/home/prasann/Projects/rlhf-exploration/trl-general/genouts/generated_apfsftmulti.jsonl" \
+#     --device 2 \
+#     --lim 600 \
+#     --shuffle 0
+
+# python -u rmsco_outs.py \
+#     --rmname="/home/prasann/Projects/rlhf-exploration/models/rewards/apfnormal" \
+#     --inpf="/home/prasann/Projects/rlhf-exploration/trl-general/genouts/generated_apfsftmulti.jsonl" \
+#     --device 2 \
+#     --lim 600 \
+#     --shuffle 0
+
+# python -u rmsco_outs.py \
+#     --rmname="/home/prasann/Projects/rlhf-exploration/models/rewards/wgptgoodcut2" \
+#     --inpf="../trl-general/genouts/generated_wgptmultisampset.jsonl" \
+#     --device 2 \
+#     --lim 600 \
+#     --shuffle 0
+
+# python -u rmsco_outs.py \
+#     --rmname="/home/prasann/Projects/rlhf-exploration/models/rewards/wgptbothcut2" \
+#     --inpf="../trl-general/genouts/generated_wgptmultisampset.jsonl" \
+#     --device 2 \
+#     --lim 600 \
+#     --shuffle 0
+
+# python -u rmsco_outs.py \
+#     --rmname="/home/prasann/Projects/rlhf-exploration/models/rewards/wgptnormal" \
+#     --inpf="../trl-general/genouts/generated_wgptmultisampset.jsonl" \
+#     --device 2 \
+#     --lim 600 \
+#     --shuffle 0
+
+# python -u rmsco_outs.py \
+#     --rmname="/home/prasann/Projects/rlhf-exploration/models/rewards/rlcdbothcut2" \
+#     --inpf="/home/prasann/Projects/rlhf-exploration/trl-general/genouts/generated_rlcdsftmulti.jsonl" \
+#     --device 3 \
+#     --lim 600 \
+#     --shuffle 0
+
+# python -u rmsco_outs.py \
+#     --rmname="/home/prasann/Projects/rlhf-exploration/models/rewards/rlcdgoodcut2" \
+#     --inpf="/home/prasann/Projects/rlhf-exploration/trl-general/genouts/generated_rlcdsftmulti.jsonl" \
+#     --device 3 \
+#     --lim 600 \
+#     --shuffle 0
+
+# python -u rmsco_outs.py \
+#     --rmname="/home/prasann/Projects/rlhf-exploration/models/rewards/rlcdleftonly2" \
+#     --inpf="/home/prasann/Projects/rlhf-exploration/trl-general/genouts/generated_rlcdsftmulti.jsonl" \
+#     --device 3 \
+#     --lim 600 \
+#     --shuffle 0
+
+# python -u rmsco_outs.py \
+#     --rmname="/home/prasann/Projects/rlhf-exploration/models/rewards/rlcdmidcut2" \
+#     --inpf="/home/prasann/Projects/rlhf-exploration/trl-general/genouts/generated_rlcdsftmulti.jsonl" \
+#     --device 3 \
+#     --lim 600 \
+#     --shuffle 0
+
+# python -u rmsco_outs.py \
+#     --rmname="/home/prasann/Projects/rlhf-exploration/models/rewards/rlcdnormal" \
+#     --inpf="/home/prasann/Projects/rlhf-exploration/trl-general/genouts/generated_rlcdsftmulti.jsonl" \
+#     --device 3 \
+#     --lim 600 \
+#     --shuffle 0
+
+# python -u rmsco_outs.py \
+#     --rmname="/home/prasann/Projects/rlhf-exploration/apf/models/apfrandcarto" \
+#     --inpf="/home/prasann/Projects/rlhf-exploration/trl-general/genouts/generated_apfsftmulti.jsonl" \
+#     --device 0 \
+#     --lim 600 \
+#     --shuffle 0
+
+# python -u rmsco_outs.py \
+#     --rmname="/home/prasann/Projects/rlhf-exploration/apf/models/wgptrandcarto" \
+#     --inpf="/home/prasann/Projects/rlhf-exploration/trl-general/genouts/generated_wgptmultisampset.jsonl" \
+#     --device 1 \
+#     --lim 600 \
+#     --shuffle 0
 
 python -u rmsco_outs.py \
-    --rmname="/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/rewardmixwgpt" \
-    --inpf="../trl-general/genouts/generated_wgptmultisampset.jsonl" \
-    --device 1 \
-    --lim 800 \
+    --rmname="/home/prasann/Projects/rlhf-exploration/models/rewards/rlcdrightonly2" \
+    --inpf="/home/prasann/Projects/rlhf-exploration/trl-general/genouts/generated_rlcdsftmulti.jsonl" \
+    --device 2 \
+    --lim 600 \
     --shuffle 0
+

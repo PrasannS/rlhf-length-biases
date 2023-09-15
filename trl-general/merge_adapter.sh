@@ -178,3 +178,17 @@ export CUDA_VISIBLE_DEVICES=0,1
 #     --base_model_name="/u/prasanns/research/rlhf-exploration/models/sft" \
 #     --output_name="/u/prasanns/research/rlhf-exploration/models/rewards/rmtruncdiag"
 
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/home/prasann/Projects/rlhf-exploration/trl-general/checkpoints/apfranddav3/checkpoint-20500" \
+#     --base_model_name="/home/prasann/Projects/rlhf-exploration/apf/models/sft" \
+#     --output_name="/home/prasann/Projects/rlhf-exploration/apf/models/apfrda"
+
+python merge_peft_adapter.py \
+    --adapter_model_name="/home/prasann/Projects/rlhf-exploration/trl-general/checkpoints/apfgoodandrandda/checkpoint-9000" \
+    --base_model_name="/home/prasann/Projects/rlhf-exploration/apf/models/sft" \
+    --output_name="/home/prasann/Projects/rlhf-exploration/apf/models/apfrandcarto/"
+
+python merge_peft_adapter.py \
+    --adapter_model_name="/home/prasann/Projects/rlhf-exploration/trl-general/checkpoints/wgptgoodandrandda/checkpoint-10500" \
+    --base_model_name="/home/prasann/Projects/rlhf-exploration/apf/models/sft" \
+    --output_name="/home/prasann/Projects/rlhf-exploration/apf/models/wgptrandcarto"

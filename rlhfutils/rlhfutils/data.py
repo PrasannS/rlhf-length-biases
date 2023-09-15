@@ -4,12 +4,13 @@ from datasets import load_dataset, concatenate_datasets, Dataset
 import pandas as pd
 import random
 from typing import List, Callable
+from dataclasses import dataclass
 
 # NOTE process anthro hh data for mixture with se data
 def preproc_hh(example):
     j = example['chosen']
     hind = j.index("Human:")+6
-    aind = j.index("Assistant:")+len("Assistant:")
+    aind = j.rindex("Assistant:")+len("Assistant:")
     ex = {}
     ex['question'] = j[hind:aind-len("Assistant:")]
     ex['response_j'] = example['chosen'][aind:]
@@ -119,27 +120,44 @@ def modify_dataset(functions: List[Callable], dataset: Dataset, props: List[floa
     # Concatenate all parts of the dataset back together
     return concatenate_datasets(modified_datasets)
 
-def augment_data(train_dset, script_args):
+@dataclass
+class tmpdata: 
+    mix_ratio: str
+    rand_ratio:  str
+    
+def augment_data(train_dset, script_args, justaugdata=False):
+    augdata = []
     # we can sub in initial dataset for 2 types of DA 
     if script_args.rand_ratio > 0:
-        print("mixing in random data")
-        re_add = train_dset.select(range(int(len(train_dset)*script_args.rand_ratio)))
-        train_dset = modify_dataset([augment_random], train_dset, [script_args.rand_ratio])
-        
-        # add back in data that was randomized
-        train_dset = concatenate_datasets([train_dset, re_add])
-        train_dset = train_dset.to_pandas()
-        train_dset['isrand'] = 0
-        train_dset['isrand'].iloc[:int(len(re_add))] = 1
-        train_dset = Dataset.from_pandas(train_dset)
+        if justaugdata:
+            augdata.append(modify_dataset([augment_random], train_dset.select(range(int(len(train_dset)*script_args.rand_ratio))), [1.0]))
+        else:
+            print("mixing in random data")
+            re_add = train_dset.select(range(int(len(train_dset)*script_args.rand_ratio)))
+            train_dset = modify_dataset([augment_random], train_dset, [script_args.rand_ratio])
+                
+            # add back in data that was randomized
+            train_dset = concatenate_datasets([train_dset, re_add])
+            train_dset = train_dset.to_pandas()
+            train_dset['isrand'] = 0
+            train_dset['isrand'].iloc[:int(len(re_add))] = 1
+            train_dset = Dataset.from_pandas(train_dset)
     if script_args.mix_ratio > 0:
-        print("mixing in HH data")
-        mixdset = mix_hh(train_dset, script_args.mix_ratio)
-        train_dset = concatenate_datasets([train_dset, mixdset])
-        train_dset = train_dset.to_pandas()
-        train_dset['ismix'] = 0
-        train_dset['ismix'].iloc[:-int(len(mixdset))] = 1
-        train_dset = Dataset.from_pandas(train_dset)
+        if justaugdata:
+            augdata.append(mix_hh(train_dset, script_args.mix_ratio))
+        else:
+            print("mixing in HH data")
+            mixdset = mix_hh(train_dset, script_args.mix_ratio)
+            train_dset = concatenate_datasets([train_dset, mixdset])
+            train_dset = train_dset.to_pandas()
+            train_dset['ismix'] = 0
+            train_dset['ismix'].iloc[:-int(len(mixdset))] = 1
+            train_dset = Dataset.from_pandas(train_dset)
+    if justaugdata:
+        if len(augdata)==0:
+            return None
+        # HACK can do concat / shuffle later if necessary
+        return concatenate_datasets(augdata)
     return train_dset.shuffle(seed=100)
     
 def len_balance(indataset):

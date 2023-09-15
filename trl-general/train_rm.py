@@ -21,10 +21,12 @@ from rlhfutils.data import (
     load_stack,
     load_apfarm,
     tokenize_dset,
-    augment_data
+    augment_data,
+    tmpdata
 )
 from accelerate import Accelerator
 import pandas as pd
+from datasets import concatenate_datasets
 
 # parse args and load data
 parser = HfArgumentParser(ScriptArguments)
@@ -51,7 +53,8 @@ def add_row_index(example, idx):
     return example
 
 # apply different kinds of data augmentation, NOTE that this does a shuffle as well, even if no DA done
-train_dataset = augment_data(train_dataset, script_args)
+# HACK just using this for the shuffle
+train_dataset = train_dataset.shuffle(seed=100) #augment_data(train_dataset, )
 
 # NOTE ACKCA:EFIOHAE:FOIHA:EFLIHEDSA:LKFH: I messed up...
 if script_args.carto_file:
@@ -60,6 +63,15 @@ if script_args.carto_file:
     print("max of sellist is, make sure that this makes sense ", max(sellist))
     train_dataset = train_dataset.select(sellist)
 
+augdata = augment_data(train_dataset, script_args,  True)
+if augdata:
+    print("Actual DA happening")
+    print("Initial len ", len(train_dataset))
+    # Do a final shuffle if we're actually doing DA
+    train_dataset = concatenate_datasets([train_dataset,  augdata])
+    train_dataset = train_dataset.shuffle(seed=100)
+    print("Final len ", len(train_dataset))
+    
 # add indices for carto debugging
 train_dataset = train_dataset.map(add_row_index, with_indices=True)
 eval_dataset = eval_dataset.map(add_row_index, with_indices=True)
@@ -70,6 +82,7 @@ print("new size of dataset", len(train_dataset))
 
 # NOTE future RLCD models will be using standard template, TODO adjust PPO accordingly
 # tokenize the dataset
+# HACK just leave this hardcoded in as a shuffle operation, bring in DA separately
 train_dataset, eval_dataset = tokenize_dset(train_dataset, eval_dataset, script_args, tokenizer)
 
 if Accelerator().local_process_index == 0:
