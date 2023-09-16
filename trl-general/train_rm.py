@@ -95,8 +95,8 @@ train_dataset, eval_dataset = tokenize_dset(train_dataset, eval_dataset, script_
 
 if Accelerator().local_process_index == 0:
     print(tokenizer.decode(train_dataset[0]['input_ids_j']))
-    
-# Train the model, woohoo.
+
+# Train the model, woohoo
 trainer = RewardTrainer(
     model=model,
     args=training_args,
