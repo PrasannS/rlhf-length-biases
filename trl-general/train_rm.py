@@ -70,7 +70,7 @@ if script_args.carto_file:
     print("max of sellist is, make sure that this makes sense ", max(sellist))
     train_dataset = train_dataset.select(sellist)
 
-augdata = augment_data(train_dataset, script_args,  True)
+augdata = augment_data(train_dataset, script_args, True)
 if augdata:
     print("Actual DA happening")
     print("Initial len ", len(train_dataset))
