@@ -159,34 +159,80 @@ def augment_data(train_dset, script_args, justaugdata=False):
         # HACK can do concat / shuffle later if necessary
         return concatenate_datasets(augdata)
     return train_dset.shuffle(seed=100)
+
+def baldf(indf):
+    df = indf.copy()
+    # Create bins of 10
+    bins = range(-200, 201, 10)
+    df['bin'] = pd.cut(df['diffv'], bins=bins)
+    
+    # Initialize an empty DataFrame to store balanced data
+    balanced_df = pd.DataFrame()
+    
+    # Get unique bin labels from the DataFrame
+    unique_bins = df['bin'].dropna().unique()
+    
+    # Iterate through each pair of negative and positive bins
+    for bin_label in unique_bins:
+        if bin_label.left >= 0:
+            continue
+    
+        # Find the positive counterpart of the current negative bin
+        positive_bin = pd.Interval(-bin_label.right, -bin_label.left)
+    
+        # If the positive counterpart is not in unique_bins, skip this iteration
+        if positive_bin not in unique_bins:
+            continue
+    
+        # Find the counts for the negative and positive bins
+        neg_count = df[df['bin'] == bin_label].shape[0]
+        pos_count = df[df['bin'] == positive_bin].shape[0]
+    
+        # Find the minimum count to balance the data
+        min_count = min(neg_count, pos_count)
+    
+        # Randomly sample min_count rows from each bin and append to balanced_df
+        sampled_neg = df[df['bin'] == bin_label].sample(min_count, random_state=0)
+        sampled_pos = df[df['bin'] == positive_bin].sample(min_count, random_state=0)
+    
+        balanced_df = pd.concat([balanced_df, sampled_neg, sampled_pos])
+    
+    # Reset index of the balanced DataFrame
+    balanced_df.reset_index(drop=True, inplace=True)
+    
+    # Now balanced_df contains the balanced data
+    return balanced_df
     
 def len_balance(indataset):
     # Convert the Hugging Face dataset to a pandas DataFrame
     dataset_df = pd.DataFrame(indataset)
+    lj = [len(ts) for ts in dataset_df['input_ids_j']]
+    lk = [len(ts) for ts in dataset_df['input_ids_k']]
+    dataset_df['diffv'] = lj - lk
+    balanced_df = baldf(dataset_df)
+    # # Create a new column to identify which row has longer input_ids_j
+    # dataset_df['j_is_longer'] = dataset_df.apply(lambda row: len(row['input_ids_j']) > len(row['input_ids_k']), axis=1)
 
-    # Create a new column to identify which row has longer input_ids_j
-    dataset_df['j_is_longer'] = dataset_df.apply(lambda row: len(row['input_ids_j']) > len(row['input_ids_k']), axis=1)
+    # # Count how many examples are in each class
+    # count_j_is_longer = len(dataset_df[dataset_df['j_is_longer'] == True])
+    # count_k_is_longer = len(dataset_df) - count_j_is_longer
 
-    # Count how many examples are in each class
-    count_j_is_longer = len(dataset_df[dataset_df['j_is_longer'] == True])
-    count_k_is_longer = len(dataset_df) - count_j_is_longer
+    # # Determine which class has fewer examples
+    # min_count = min(count_j_is_longer, count_k_is_longer)
 
-    # Determine which class has fewer examples
-    min_count = min(count_j_is_longer, count_k_is_longer)
+    # # Downsample the class with more examples to have as many as the class with fewer examples
+    # if count_j_is_longer > min_count:
+    #     df_j_is_longer = dataset_df[dataset_df['j_is_longer'] == True].sample(n=min_count)
+    #     df_k_is_longer = dataset_df[dataset_df['j_is_longer'] == False]
+    # else:
+    #     df_k_is_longer = dataset_df[dataset_df['j_is_longer'] == False].sample(n=min_count)
+    #     df_j_is_longer = dataset_df[dataset_df['j_is_longer'] == True]
 
-    # Downsample the class with more examples to have as many as the class with fewer examples
-    if count_j_is_longer > min_count:
-        df_j_is_longer = dataset_df[dataset_df['j_is_longer'] == True].sample(n=min_count)
-        df_k_is_longer = dataset_df[dataset_df['j_is_longer'] == False]
-    else:
-        df_k_is_longer = dataset_df[dataset_df['j_is_longer'] == False].sample(n=min_count)
-        df_j_is_longer = dataset_df[dataset_df['j_is_longer'] == True]
+    # # Concatenate the two downsampled classes to create a balanced DataFrame
+    # balanced_df = pd.concat([df_j_is_longer, df_k_is_longer])
 
-    # Concatenate the two downsampled classes to create a balanced DataFrame
-    balanced_df = pd.concat([df_j_is_longer, df_k_is_longer])
-
-    # Optionally, shuffle the rows
-    balanced_df = balanced_df.sample(frac=1).reset_index(drop=True)
+    # # Optionally, shuffle the rows
+    # balanced_df = balanced_df.sample(frac=1).reset_index(drop=True)
     
     return  Dataset.from_pandas(balanced_df)
 
@@ -297,7 +343,7 @@ def load_stack():
     train_dataset = orig_dataset.select(range(100000))
     train_dataset = train_dataset.shuffle(seed=0)
     # add in 150K more examples for dcarto
-    train_dataset = concatenate_datasets([train_dataset, orig_dataset.select(range(100000,250000))])
+    # train_dataset = concatenate_datasets([train_dataset, orig_dataset.select(range(100000,250000))])
     print("new size ", len(train_dataset))
 
     eval_dataset = load_dataset("lvwerra/stack-exchange-paired", data_dir="data/evaluation", split="train")
