@@ -199,7 +199,7 @@ def baldf(indf):
     
     # Reset index of the balanced DataFrame
     balanced_df.reset_index(drop=True, inplace=True)
-    
+    balanced_df = balanced_df.drop(columns=['bin'])
     # Now balanced_df contains the balanced data
     return balanced_df
     
@@ -208,8 +208,10 @@ def len_balance(indataset):
     dataset_df = pd.DataFrame(indataset)
     lj = [len(ts) for ts in dataset_df['input_ids_j']]
     lk = [len(ts) for ts in dataset_df['input_ids_k']]
-    dataset_df['diffv'] = lj - lk
+    dataset_df['diffv'] =[lj[i] - lk[i] for i in range(len(lj))]
     balanced_df = baldf(dataset_df)
+    
+    print(balanced_df)
     # # Create a new column to identify which row has longer input_ids_j
     # dataset_df['j_is_longer'] = dataset_df.apply(lambda row: len(row['input_ids_j']) > len(row['input_ids_k']), axis=1)
 
