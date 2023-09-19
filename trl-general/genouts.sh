@@ -420,14 +420,14 @@
 #     0 400  \
 #     1 
 
-export CUDA_VISIBLE_DEVICES=1
-python -u generate_outs.py \
-    "/u/prasanns/research/rlhf-exploration/models/sft10k" \
-    "rlcd" \
-    "/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/rlcddiagfixppo/step_150" \
-    "rlcdmix" \
-    0 400  \
-    1 
+# export CUDA_VISIBLE_DEVICES=1
+# python -u generate_outs.py \
+#     "/u/prasanns/research/rlhf-exploration/models/sft10k" \
+#     "rlcd" \
+#     "/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/rlcddiagfixppo/step_150" \
+#     "rlcdmix" \
+#     0 400  \
+#     1 
 
 
 # python -u generate_outs.py \
@@ -465,11 +465,22 @@ python -u generate_outs.py \
 #     0 400  \
 #     1 
 
+# export CUDA_VISIBLE_DEVICES=1
+# python -u generate_outs.py \
+#     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "webgpt" \
+#     "/home/prasann/Projects/rlhf-exploration/trl-general/checkpoints/wgptomitlong/step_75" \
+#     "wgptthrowlong75" \
+#     0 400  \
+#     1 
+
 export CUDA_VISIBLE_DEVICES=1
 python -u generate_outs.py \
     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
     "webgpt" \
-    "/home/prasann/Projects/rlhf-exploration/trl-general/checkpoints/wgptomitlong/step_75" \
-    "wgptthrowlong75" \
+    "/home/prasann/Projects/rlhf-exploration/trl-general/checkpoints/wgptrewardscaleppo/step_150" \
+    "wgptrwscale" \
     0 400  \
     1 
+
+    
