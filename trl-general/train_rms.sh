@@ -22,27 +22,44 @@
 #     --balance_len=0 \
 #     --num_train_epochs=4
 
-export CUDA_VISIBLE_DEVICES=2,3
-# dataset can be [wgpt, rlcd, stack, apfarm]
-torchrun --nnodes 1  --nproc_per_node 2 --master_port=12335 train_rm.py \
-    --model_name=/home/prasann/Projects/rlhf-exploration/apf/models/sft \
-    --output_dir=./checkpoints/apfgoodandrandda/ \
-    --dataset="apfarmgpt4" \
-    --mix_ratio=0 \
-    --rand_ratio=0.5 \
-    --balance_len=0 \
-    --num_train_epochs=4 \
-    --carto_file="truncvals/apfgood.json"
+export CUDA_VISIBLE_DEVICES=0,1
 
 torchrun --nnodes 1  --nproc_per_node 2 --master_port=12335 train_rm.py \
-    --model_name=/home/prasann/Projects/rlhf-exploration/apf/models/sft \
-    --output_dir=./checkpoints/wgptgoodandrandda/ \
+    --model_name=/u/prasanns/research/rlhf-exploration/models/sft \
+    --output_dir=./checkpoints/wgptlenbalproper/ \
     --dataset="wgpt" \
     --mix_ratio=0 \
-    --rand_ratio=0.5 \
-    --balance_len=0 \
-    --num_train_epochs=4 \
-    --carto_file="truncvals/webgptgood.json"
+    --rand_ratio=0 \
+    --balance_len=1 \
+    --num_train_epochs=2 
+
+torchrun --nnodes 1  --nproc_per_node 2 --master_port=12335 train_rm.py \
+    --model_name=/u/prasanns/research/rlhf-exploration/models/sft \
+    --output_dir=./checkpoints/rlcdlenbalproper/ \
+    --dataset="rlcd" \
+    --mix_ratio=0 \
+    --rand_ratio=0 \
+    --balance_len=1 \
+    --num_train_epochs=2 
+
+torchrun --nnodes 1  --nproc_per_node 2 --master_port=12335 train_rm.py \
+    --model_name=/u/prasanns/research/rlhf-exploration/models/sftv \
+    --output_dir=./checkpoints/stacklenbalproper/ \
+    --dataset="stack" \
+    --mix_ratio=0 \
+    --rand_ratio=0 \
+    --balance_len=1 \
+    --num_train_epochs=2 
+
+# dataset can be [wgpt, rlcd, stack, apfarm]
+torchrun --nnodes 1  --nproc_per_node 2 --master_port=12335 train_rm.py \
+    --model_name=/u/prasanns/research/rlhf-exploration/models/sft \
+    --output_dir=./checkpoints/apflenbalproper/ \
+    --dataset="apfarmgpt4" \
+    --mix_ratio=0 \
+    --rand_ratio=0 \
+    --balance_len=1 \
+    --num_train_epochs=2
 
 # torchrun --nnodes 1  --nproc_per_node 2 --master_port=12335 train_rm.py \
 #     --model_name=/home/prasann/Projects/rlhf-exploration/apf/models/sft \
