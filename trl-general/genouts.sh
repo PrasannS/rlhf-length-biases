@@ -35,14 +35,14 @@
 #     0 400 \
 #     1
 
-export CUDA_VISIBLE_DEVICES=6
-python -u generate_outs.py \
-    "/u/prasanns/research/rlhf-exploration/models/sft10k" \
-    "rlcd" \
-    "/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/rlcdleftonlyppov2/step_125" \
-    "rlcdleftonly" \
-    0 400 \
-    1
+# export CUDA_VISIBLE_DEVICES=6
+# python -u generate_outs.py \
+#     "/u/prasanns/research/rlhf-exploration/models/sft10k" \
+#     "rlcd" \
+#     "/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/rlcdleftonlyppov2/step_125" \
+#     "rlcdleftonly" \
+#     0 400 \
+#     1
 
 # export CUDA_VISIBLE_DEVICES=7
 # python -u generate_outs.py \
@@ -371,7 +371,7 @@ python -u generate_outs.py \
 #     "stackmultisampset" \
 #     0 800 \
 #     8
-export CUDA_VISIBLE_DEVICES=1
+# export CUDA_VISIBLE_DEVICES=1
 
 # python -u generate_outs.py \
 #     "/mnt/data1/prasann/rlhf-exploration/webgpt-llama/models/sft10k" \
@@ -389,20 +389,29 @@ export CUDA_VISIBLE_DEVICES=1
 #     0 400  \
 #     1 
 
-export CUDA_VISIBLE_DEVICES=0
-python -u generate_outs.py \
-    "/mnt/data1/prasann/rlhf-exploration/webgpt-llama/models/sft10k" \
-    "apfarmgpt4" \
-    "/mnt/data1/prasann/rlhf-exploration/ppochecks/highratrandda/apfrandcartoppo/step_150" \
-    "apfveryrand" \
-    0 400  \
-    1 
-
-# export CUDA_VISIBLE_DEVICES=1
+# export CUDA_VISIBLE_DEVICES=0
 # python -u generate_outs.py \
 #     "/mnt/data1/prasann/rlhf-exploration/webgpt-llama/models/sft10k" \
-#     "webgpt" \
-#     "/mnt/data1/prasann/rlhf-exploration/ppochecks/highratrandda/wgptrandcartoppo/step_150" \
-#     "wgptveryrand" \
+#     "apfarmgpt4" \
+#     "/mnt/data1/prasann/rlhf-exploration/ppochecks/highratrandda/apfrandcartoppo/step_150" \
+#     "apfveryrand" \
 #     0 400  \
 #     1 
+
+# export CUDA_VISIBLE_DEVICES=0
+# python -u generate_outs.py \
+#     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "webgpt" \
+#     "/home/prasann/Projects/rlhf-exploration/trl-general/checkpoints/wgptomitlong/step_250" \
+#     "wgptthrowlong" \
+#     0 400  \
+#     1 
+
+export CUDA_VISIBLE_DEVICES=1
+python -u generate_outs.py \
+    "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+    "webgpt" \
+    "/home/prasann/Projects/rlhf-exploration/trl-general/checkpoints/wgptomitlong/step_75" \
+    "wgptthrowlong75" \
+    0 400  \
+    1 
