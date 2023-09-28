@@ -476,10 +476,11 @@ python -u generate_outs.py \
 
 export CUDA_VISIBLE_DEVICES=1
 python -u generate_outs.py \
-    "/mnt/data1/prasann/rlhf-exploration/webgpt-llama/models/sft10k" \
-    "rlcd" \
-    "/mnt/data1/prasann/rlhf-exploration/trl-general/checkpoints/rlcdrewardscale/step_200" \
-    "rlcdrwscale" \
+    "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+    "webgpt" \
+    "/home/prasann/Projects/rlhf-exploration/trl-general/checkpoints/wgptrewardscaleppo/step_150" \
+    "wgptrwscale" \
     0 400  \
     1 
 
+    

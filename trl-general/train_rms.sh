@@ -25,7 +25,7 @@
 export CUDA_VISIBLE_DEVICES=0,1
 
 torchrun --nnodes 1  --nproc_per_node 2 --master_port=12335 train_rm.py \
-    --model_name=/home/prasann/Projects/rlhf-exploration/apf/models/sft \
+    --model_name=/u/prasanns/research/rlhf-exploration/models/sft \
     --output_dir=./checkpoints/wgptlenbalproper/ \
     --dataset="wgpt" \
     --mix_ratio=0 \
@@ -34,7 +34,7 @@ torchrun --nnodes 1  --nproc_per_node 2 --master_port=12335 train_rm.py \
     --num_train_epochs=2 
 
 torchrun --nnodes 1  --nproc_per_node 2 --master_port=12335 train_rm.py \
-    --model_name=/home/prasann/Projects/rlhf-exploration/apf/models/sft \
+    --model_name=/u/prasanns/research/rlhf-exploration/models/sft \
     --output_dir=./checkpoints/rlcdlenbalproper/ \
     --dataset="rlcd" \
     --mix_ratio=0 \
@@ -43,7 +43,7 @@ torchrun --nnodes 1  --nproc_per_node 2 --master_port=12335 train_rm.py \
     --num_train_epochs=2 
 
 torchrun --nnodes 1  --nproc_per_node 2 --master_port=12335 train_rm.py \
-    --model_name=/home/prasann/Projects/rlhf-exploration/apf/models/sft \
+    --model_name=/u/prasanns/research/rlhf-exploration/models/sftv \
     --output_dir=./checkpoints/stacklenbalproper/ \
     --dataset="stack" \
     --mix_ratio=0 \
@@ -53,7 +53,7 @@ torchrun --nnodes 1  --nproc_per_node 2 --master_port=12335 train_rm.py \
 
 # dataset can be [wgpt, rlcd, stack, apfarm]
 torchrun --nnodes 1  --nproc_per_node 2 --master_port=12335 train_rm.py \
-    --model_name=/home/prasann/Projects/rlhf-exploration/apf/models/sft \
+    --model_name=/u/prasanns/research/rlhf-exploration/models/sft \
     --output_dir=./checkpoints/apflenbalproper/ \
     --dataset="apfarmgpt4" \
     --mix_ratio=0 \
