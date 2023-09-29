@@ -185,15 +185,16 @@
 #     0 400 \
 #     1
 
-# export CUDA_VISIBLE_DEVICES=2
+export CUDA_VISIBLE_DEVICES=3
 
 # # # For WebGPT new model
-# # python -u generate_outs.py \
-# #     "/home/prasann/Projects/tfr-decoding/apfarm_models/sft10k" \
-# #     "webgpt" \
-# #     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/checkpoints/wgptapsft/step_125" \
-# #     "wgptppoorig" \
-# #     0 200
+# python -u generate_outs.py \
+#     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "webgpt" \
+#     "orig" \
+#     "wgptsftlong" \
+#     0 700 \
+#     1
 
 # # # For WebGPT DA model
 # python -u generate_outs.py \
@@ -474,13 +475,37 @@
 #     0 400  \
 #     1 
 
-export CUDA_VISIBLE_DEVICES=1
-python -u generate_outs.py \
-    "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
-    "webgpt" \
-    "/home/prasann/Projects/rlhf-exploration/trl-general/checkpoints/wgptrewardscaleppo/step_150" \
-    "wgptrwscale" \
-    0 400  \
-    1 
+# export CUDA_VISIBLE_DEVICES=3
+# python -u generate_outs.py \
+#     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "webgpt" \
+#     "/home/prasann/Projects/rlhf-exploration/trl-general/checkpoints/wgptrewardscaleppo/step_150" \
+#     "wgptrwscale2" \
+#     0 700  \
+#     1 
 
-    
+# To generate from the bigdata stack RM
+# python -u generate_outs.py \
+#     "/home/prasann/Projects/rlhf-exploration/stack-llama/models/stacksft" \
+#     "stack" \
+#     "/home/prasann/Projects/rlhf-exploration/stack-llama/checkpoints/bigrmppo/step_150" \
+#     "stackbig150" \
+#     0 200
+
+export CUDA_VISIBLE_DEVICES=3
+python -u generate_outs.py \
+    "/home/prasann/Projects/rlhf-exploration/stack-llama/models/stacksft" \
+    "stack" \
+    "/home/prasann/Projects/rlhf-exploration/trl-general/checkpoints/stackbalancedppofinalv3/step_300" \
+    "stackbalance2" \
+    0 510 \
+    1
+
+# export CUDA_VISIBLE_DEVICES=1
+# python -u generate_outs.py \
+#     "/home/prasann/Projects/rlhf-exploration/stack-llama/models/stacksft" \
+#     "stack" \
+#     "/home/prasann/Projects/rlhf-exploration/trl-general/checkpoints/stackomitlongv3/step_200" \
+#     "stackthrowlong" \
+#     0 200 \
+#     1

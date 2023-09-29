@@ -20,6 +20,7 @@ from transformers import (
     T5Tokenizer,
     T5ForConditionalGeneration
 )
+import math
 from statistics import mean, stdev
 import random
 
@@ -76,6 +77,10 @@ class ScriptArguments:
     init_kl_coef: Optional[float] = field(
         default=0.2, #HACK used to be 0.2, make sure to switch back at some point
         metadata={"help": "Initial KL penalty coefficient (used for adaptive and linear control)"},
+    )
+    len_only: Optional[float] = field(
+       default=0,
+       metadata={"help": "whether to omit outputs that don't fit in length context or not"},
     )
 
 DEFAULT_PAD_TOKEN = "[PAD]"
@@ -168,6 +173,10 @@ sent_kwargs = {"return_all_scores": True, "function_to_apply": "none", "batch_si
 generation_kwargs = { 
     "min_length": -1, "top_k": 0.0,"top_p": 1, "do_sample": True, #"pad_token_id": tokenizer.pad_token_id, # "eos_token_id": 100_000,
 }
+
+def lensco(lval):
+    return -1*abs(lval-1)+1
+    
 def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
     current_device = Accelerator().local_process_index
 
@@ -229,9 +238,11 @@ def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
         # Get RM score, NOTE that the input formatting is reward model specific
         texts = [qaform(q, r) for q, r in zip(batch["query"], batch["response"])]
         pipe_outputs = reward_model(texts, **sent_kwargs)
-        
-        # TODO length constraints, other fancy stuff gets added in here
-        rewards = [torch.tensor(output[0]["score"]-script_args.reward_baseline).to(current_device) for output in pipe_outputs]
+        if script_args.len_only:
+            rewards = [torch.tensor(len(response)/100).to(current_device) for response in response_tensors]
+        else:
+            # TODO length constraints, other fancy stuff gets added in here
+            rewards = [torch.tensor(output[0]["score"]-script_args.reward_baseline).to(current_device) for output in pipe_outputs]
         # use this for logging
         logrewards = [r for r in rewards]
         # using running mean and running stdev to do stuff if needed

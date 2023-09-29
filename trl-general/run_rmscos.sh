@@ -143,10 +143,24 @@
 #     --device 1 \
 #     --lim 600 \
 #     --shuffle 0
+# python -u rmsco_outs.py \
+#     --rmname="/home/prasann/Projects/rlhf-exploration/rlcd-llama/models/rlcdlenbal" \
+#     --inpf="/home/prasann/Projects/rlhf-exploration/trl-general/genouts/generated_rlcdsftmulti.jsonl" \
+#     --device 1 \
+#     --lim 600 \
+#     --shuffle 0
 
+# python -u rmsco_outs.py \
+#     --rmname="/home/prasann/Projects/rlhf-exploration/rlcd-llama/models/rlcddarm" \
+#     --inpf="/home/prasann/Projects/rlhf-exploration/trl-general/genouts/generated_rlcdsftmulti.jsonl" \
+#     --device 0 \
+#     --lim 600 \
+#     --shuffle 0
+
+# # For stack random only
 python -u rmsco_outs.py \
-    --rmname="/home/prasann/Projects/rlhf-exploration/models/rewards/rlcdrightonly2" \
-    --inpf="/home/prasann/Projects/rlhf-exploration/trl-general/genouts/generated_rlcdsftmulti.jsonl" \
+    --rmname="/home/prasann/Projects/rlhf-exploration/apf/models/stackbalance" \
+    --inpf="../trl-general/genouts/generated_stackmultisampset.jsonl" \
     --device 2 \
     --lim 600 \
     --shuffle 0

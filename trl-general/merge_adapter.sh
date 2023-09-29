@@ -183,12 +183,18 @@ export CUDA_VISIBLE_DEVICES=0,1
 #     --base_model_name="/home/prasann/Projects/rlhf-exploration/apf/models/sft" \
 #     --output_name="/home/prasann/Projects/rlhf-exploration/apf/models/apfrda"
 
-python merge_peft_adapter.py \
-    --adapter_model_name="/home/prasann/Projects/rlhf-exploration/trl-general/checkpoints/apfgoodandrandda/checkpoint-9000" \
-    --base_model_name="/home/prasann/Projects/rlhf-exploration/apf/models/sft" \
-    --output_name="/home/prasann/Projects/rlhf-exploration/apf/models/apfrandcarto/"
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/home/prasann/Projects/rlhf-exploration/trl-general/checkpoints/apfgoodandrandda/checkpoint-9000" \
+#     --base_model_name="/home/prasann/Projects/rlhf-exploration/apf/models/sft" \
+#     --output_name="/home/prasann/Projects/rlhf-exploration/apf/models/apfrandcarto/"
+
+# python merge_peft_adapter.py \
+#     --adapter_model_name="/home/prasann/Projects/rlhf-exploration/trl-general/checkpoints/wgptgoodandrandda/checkpoint-10500" \
+#     --base_model_name="/home/prasann/Projects/rlhf-exploration/apf/models/sft" \
+#     --output_name="/home/prasann/Projects/rlhf-exploration/apf/models/wgptrandcarto"
 
 python merge_peft_adapter.py \
-    --adapter_model_name="/home/prasann/Projects/rlhf-exploration/trl-general/checkpoints/wgptgoodandrandda/checkpoint-10500" \
-    --base_model_name="/home/prasann/Projects/rlhf-exploration/apf/models/sft" \
-    --output_name="/home/prasann/Projects/rlhf-exploration/apf/models/wgptrandcarto"
+    --adapter_model_name="/home/prasann/Projects/rlhf-exploration/trl-general/checkpoints/stacklenbalproper/checkpoint-7500" \
+    --base_model_name="/home/prasann/Projects/rlhf-exploration/stack-llama/models/stacksft" \
+    --output_name="/home/prasann/Projects/rlhf-exploration/apf/models/stackbalance"
+

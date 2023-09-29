@@ -78,7 +78,7 @@ def main(args):
     if args.lim > 0:
         outdf = outdf.iloc[:args.lim]
     if stack:
-        tok = AutoTokenizer.from_pretrained("../stack-llama/models/sft/")
+        tok = AutoTokenizer.from_pretrained("../stack-llama/models/stacksft/")
         outdf = procall(outdf, tok, False)
     else:
         tok = AutoTokenizer.from_pretrained("../webgpt-llama/models/sft10k/")

@@ -11,7 +11,7 @@ from datasets import load_dataset
 from datasets import load_dataset
 
 
-toker = AutoTokenizer.from_pretrained("../stack-llama/models/sft")
+toker = AutoTokenizer.from_pretrained("../stack-llama/models/stacksft")
 toker.pad_token_id = toker.eos_token_id
 
 # get openai key from file
