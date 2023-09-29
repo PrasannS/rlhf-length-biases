@@ -57,25 +57,36 @@ def getapfsft(inp, tostack=False):
     if tostack:
         return "Question: " + instruction + "\n\nAnswer: " + response
     return instruction, response
+
+def proctmp(tmp):
+    if "<s>" in tmp['response'][0]:
+        tmp['response'] = [reconvert(r) for r in tmp['response']]
+        tmp['question'] = [reconvert(r) for r in tmp['question']]
+    if "### Instruction" in tmp['response'][0]:
+        resps = [getapfsft(r)[1] for r in tmp['response']]
+        qs = [getapfsft(r)[0] for r in tmp['response']]
+        tmp['response'] = resps
+        tmp['question'] = qs
+    elif "### Instruction" in tmp['question'][0]: 
+        tmp['question'] = [getapfsft(r)[0] for r in tmp['question']]
+        
+    if "Question:" in tmp['response'][0]:
+        tmp['response'] = [r[len(q):] for r, q in zip(tmp['response'], tmp['question'])]
+    if "Question:" in tmp['question'][0]:
+        tmp['question'] = [s[len("Question: "):-1*len("\n\nAnswer: ")] for s in tmp['question']]
+        
+    if "Continue the conversation:\n\n" in tmp['question'][0]:
+        tmp['question'] = [s.replace("Continue the conversation:\n\n", "") for s in tmp['question']]
+
+    return tmp
     
-def load_alldfs(base="use_outs/"):
+def load_alldfs(base="use_outs/", limit=100, matching=True):
     alldfs = {}
     for f in os.listdir(base):
         print(f)
         if ".jsonl" in f:
             tmp = pd.read_json(base+f, lines=True, orient='records')
-            if "<s>" in tmp['response'][0]:
-                tmp['response'] = [reconvert(r) for r in tmp['response']]
-                tmp['question'] = [reconvert(r) for r in tmp['question']]
-            if "### Instruction" in tmp['response'][0]:
-                resps = [getapfsft(r)[1] for r in tmp['response']]
-                qs = [getapfsft(r)[0] for r in tmp['response']]
-                tmp['response'] = resps
-                tmp['question'] = qs
-            if "Question:" in tmp['response'][0]:
-                tmp['response'] = [r[len(q):] for r, q in zip(tmp['response'], tmp['question'])]
-            if "Question:" in tmp['question'][0]:
-                tmp['question'] = [s[len("Question: "):-1*len("\n\nAnswer: ")] for s in tmp['question']]
+            tmp = proctmp(tmp)
             # constrain to only 200 examples for everything
             #tmp = tmp.loc[:199]
             tmp = tmp.dropna()
@@ -86,24 +97,24 @@ def load_alldfs(base="use_outs/"):
             alldfs[f.replace("generated_", "").replace(".jsonl", "")] = tmp
     
     valid_indices_sets = []
-
-    for df_key in alldfs:
-        if df_key=="davinciwebgpt":
-            continue
-        df = alldfs[df_key]
-        valid_indices_for_df = set(df[(df['wcnt'] < 1000) & (df['rcnt'] < 1000)].index)
-        valid_indices_sets.append(valid_indices_for_df)
-    
-    # Step 2: Find intersection of all sets to get indices valid across all dataframes
-    common_valid_indices = set.intersection(*valid_indices_sets)
-    
-    # Step 3: Filter each dataframe using the common valid indices
-    for df_key in alldfs:
-        if df_key=="davinciwebgpt":
-            continue
-        alldfs[df_key] = alldfs[df_key].loc[list(common_valid_indices)].reset_index(drop=True)
-        alldfs[df_key] = alldfs[df_key].sort_values(by='question').reset_index(drop=True)
-        alldfs[df_key] = alldfs[df_key].loc[:99]
+    if matching:
+        for df_key in alldfs:
+            if df_key=="davinciwebgpt":
+                continue
+            df = alldfs[df_key]
+            valid_indices_for_df = set(df[(df['wcnt'] < 1000) & (df['rcnt'] < 1000)].index)
+            valid_indices_sets.append(valid_indices_for_df)
+        
+        # Step 2: Find intersection of all sets to get indices valid across all dataframes
+        common_valid_indices = set.intersection(*valid_indices_sets)
+        
+        # Step 3: Filter each dataframe using the common valid indices
+        for df_key in alldfs:
+            if df_key=="davinciwebgpt":
+                continue
+            alldfs[df_key] = alldfs[df_key].loc[list(common_valid_indices)].reset_index(drop=True)
+            alldfs[df_key] = alldfs[df_key].sort_values(by='question').reset_index(drop=True)
+            alldfs[df_key] = alldfs[df_key].loc[:limit]
     #alldfs['davinci']=pd.read_json("../outputs/ckpt_generations/generated_davinci.jsonother", lines=True, orient='records')
     #alldfs['davinci'] = alldfs['davinci'].sort_values(by='question').reset_index(drop=True)
     return alldfs
@@ -125,12 +136,24 @@ def annotate_apfarm(alldfs, baseline, test, start, end, dec_kwargs):
     test_outs = apf_format(alldfs[test])
     assert end>0
     assert end>start
-    base_outs = base_outs[start:end]
-    test_outs = test_outs[start:end]
-    assert len(base_outs)==len(test_outs)
-    annotated = ann.annotate_head2head(outputs_1=base_outs, outputs_2=test_outs)
-    dftmp = pd.DataFrame(annotated)
-    dftmp.to_json("../outputs/apeval/"+baseline+"_"+test+".jsonl", orient='records', lines=True)
+    print("sanity check")
+    for i in range(start, end, 100):
+        print(i)
+    for i in range(start, end, 100):
+        print(i, baseline)
+        if os.path.exists("../outputs/apeval/"+baseline+"_"+test+"_"+str(i)+".jsonl"): 
+            print('already exists')
+            continue
+        tmp_base_outs = base_outs[i:i+100]
+        tmp_test_outs = test_outs[i:i+100]
+        assert len(base_outs)==len(test_outs)
+        annotated = ann.annotate_head2head(outputs_1=tmp_base_outs, outputs_2=tmp_test_outs)
+        dftmp = pd.DataFrame(annotated)
+        try:
+            print(dftmp.preference.mean())
+        except:
+            ""
+        dftmp.to_json("../outputs/apeval/"+baseline+"_"+test+"_"+str(i)+".jsonl", orient='records', lines=True)
     #pd.DataFrame(annotated).to_json("../outputs/apeval/"+baseline+"_"+test+".jsonl")
     return annotated
 

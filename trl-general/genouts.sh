@@ -316,12 +316,12 @@ export CUDA_VISIBLE_DEVICES=3
 #     0 200
 
 # # To regen stack DA 125 (remember it has a different, old SFT model)
-# python -u generate_outs.py \
-#     "/home/prasann/Projects/tfr-decoding/trlx_train/trl-stack/models/sft" \
-#     "stack" \
-#     "/home/prasann/Projects/tfr-decoding/trlx_train/trl-stack/usemodels/da/step_125" \
-#     "stackda125" \
-#     0 200
+python -u generate_outs.py \
+    "/home/prasann/Projects/tfr-decoding/trlx_train/trl-stack/models/sft" \
+    "stack" \
+    "/home/prasann/Projects/tfr-decoding/trlx_train/trl-stack/usemodels/da/step_125" \
+    "stackda125" \
+    0 510
 
 # # Regen original SFT 
 # python -u generate_outs.py \
