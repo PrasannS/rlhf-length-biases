@@ -78,10 +78,10 @@ def main(args):
     if args.lim > 0:
         outdf = outdf.iloc[:args.lim]
     if stack:
-        tok = AutoTokenizer.from_pretrained("../models/stack/sft/")
+        tok = AutoTokenizer.from_pretrained(args.rmname)
         outdf = procall(outdf, tok, False)
     else:
-        tok = AutoTokenizer.from_pretrained("/u/prasanns/research/rlhf-exploration/models/sft10k/")
+        tok = AutoTokenizer.from_pretrained(args.rmname)
         outdf = procall(outdf, tok, True)
         
     # if we want, we can score perturbed data (shuffle sentences via nltk)

@@ -8,16 +8,19 @@ from datasets import load_dataset
 import openai
 from rlhfutils.data import qaform
 
-toker = AutoTokenizer.from_pretrained("../webgpt-llama/models/sft10k")
-adfs = load_alldfs("../trl-general/genouts/lastevalsstack/",  400)
+SFT_MODEL_PATH = ""
+GENERATED_OUTPUT_FOLDER = "generated_outs/"
+toker = AutoTokenizer.from_pretrained(SFT_MODEL_PATH)
+adfs = load_alldfs(GENERATED_OUTPUT_FOLDER,  500)
 
 print(adfs.keys())
 
-# trykeys = [ 'stackrwscale', 'stackbalance2', 'stackrda2']
-# trykeys = [ 'stackhkl', 'stackbothcut']
+# original thing to compare with simulated preferences
+ORIGNAME = "stackorigrerun"
+# list of keys to compare against ORIGNAME with APFarmEval  
 trykeys = [ 'stacklenonlyppo3']
-#trykeys = ['rlcdlenonly', 'rlcdbalancerm', 'rlcdbothcut', 'rlcdhkl', 'rlcdlenpen']
-assert len(adfs[trykeys[0]])>350
+
+assert len(adfs[trykeys[0]])>400
 
 for t in trykeys:
     assert t in adfs.keys()
@@ -25,4 +28,4 @@ for t in trykeys:
 for k in trykeys:
     print(len(adfs[k]))
     # match everything against original PPO
-    lenannot = annotate_apfarm(adfs, k, "stackorigrerun", 100, len(adfs[k]), oai_kwargs())
+    lenannot = annotate_apfarm(adfs, k, ORIGNAME, 100, len(adfs[k]), oai_kwargs())

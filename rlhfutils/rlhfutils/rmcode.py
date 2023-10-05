@@ -252,6 +252,15 @@ class RewardDataCollatorWithPadding:
         }
         return batch
     
+import os
+
+def make_folder_if_not_exists(folder_path):
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+        print(f"Folder '{folder_path}' created.")
+    else:
+        print(f"Folder '{folder_path}' already exists.")
+
 class RewardTrainer(Trainer):
     def save_carto(self, inps, rewards_j, rewards_k):
         fname = self.args.output_dir.strip().split("/")
@@ -259,6 +268,7 @@ class RewardTrainer(Trainer):
             fname = fname[-2]
         else:
             fname = fname[-1]
+        make_folder_if_not_exists("carto_outs/")
         savef = open("carto_outs/"+fname+".jsonl", "a")  # append mode
         #print(rewards_j.shape)
         for i in range(len(inps['ids'])):

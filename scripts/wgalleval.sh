@@ -1,1 +1,0 @@
-python -u wgptalleval.py > wgalleval.out
