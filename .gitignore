@@ -23,3 +23,5 @@ models/
 *.pdf
 *.pkl
 oldcode/
+*.vscode
+*.ipynb_checkpoints/
