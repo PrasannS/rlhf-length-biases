@@ -168,8 +168,9 @@ def fancyscatter(names, title, dfs, ax):
             lx.append(x_scatter[i]+6)
             lints.append((scv[i]+lcv[i]))
     #plt.figure(figsize=(10, 6))
+    if k2!=k3:
+        overlap_vis(nx, nppo, nsft, ints, 'red', ax)
     
-    overlap_vis(nx, nppo, nsft, ints, 'red', ax)
     overlap_vis(lx, lppo, lsft, lints, 'black', ax)
     ax.set_title(title)
     ax.set_xlabel("Length")
