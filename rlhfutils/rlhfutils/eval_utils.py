@@ -11,7 +11,7 @@ from datasets import load_dataset
 from datasets import load_dataset
 
 
-toker = AutoTokenizer.from_pretrained("../stack-llama/models/sft")
+toker = AutoTokenizer.from_pretrained("../stack-llama/models/stacksft")
 toker.pad_token_id = toker.eos_token_id
 
 # get openai key from file
@@ -87,6 +87,22 @@ def load_alldfs(base="use_outs/", limit=100, matching=True):
         if ".jsonl" in f:
             tmp = pd.read_json(base+f, lines=True, orient='records')
             tmp = proctmp(tmp)
+            if "<s>" in tmp['response'][0]:
+                tmp['response'] = [reconvert(r) for r in tmp['response']]
+                tmp['question'] = [reconvert(r) for r in tmp['question']]
+            if "### Instruction" in tmp['response'][0]:
+                resps = [getapfsft(r)[1] for r in tmp['response']]
+                qs = [getapfsft(r)[0] for r in tmp['response']]
+                tmp['response'] = resps
+                tmp['question'] = qs
+                
+            if "Continue the conversation:\n\n" in tmp['question'][0]:
+                print('here')
+                tmp['question'] = [s.replace("Continue the conversation:\n\n", "") for s in tmp['question']]
+            if "Question:" in tmp['response'][0]:
+                tmp['response'] = [r[len(q):] for r, q in zip(tmp['response'], tmp['question'])]
+            if "Question:" in tmp['question'][0]:
+                tmp['question'] = [s[len("Question: "):-1*len("\n\nAnswer: ")] for s in tmp['question']]
             # constrain to only 200 examples for everything
             #tmp = tmp.loc[:199]
             tmp = tmp.dropna()

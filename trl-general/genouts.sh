@@ -14,8 +14,8 @@
 #     "/u/prasanns/research/rlhf-exploration/models/sft10k" \
 #     "webgpt" \
 #     "/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/wgpthighklppo12/step_200" \
-#     "wgpthkllate" \
-#     0 400 \
+#     "wgpthkllate2" \
+#     0 700 \
 #     1
 
 # export CUDA_VISIBLE_DEVICES=3
@@ -185,15 +185,16 @@
 #     0 400 \
 #     1
 
-# export CUDA_VISIBLE_DEVICES=2
+export CUDA_VISIBLE_DEVICES=3
 
 # # # For WebGPT new model
-# # python -u generate_outs.py \
-# #     "/home/prasann/Projects/tfr-decoding/apfarm_models/sft10k" \
-# #     "webgpt" \
-# #     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/checkpoints/wgptapsft/step_125" \
-# #     "wgptppoorig" \
-# #     0 200
+# python -u generate_outs.py \
+#     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "webgpt" \
+#     "orig" \
+#     "wgptsftlong" \
+#     0 700 \
+#     1
 
 # # # For WebGPT DA model
 # python -u generate_outs.py \
@@ -232,6 +233,17 @@
 #     "rlcdorig_lkl" \
 #     0 400  \
 #     1
+
+# export CUDA_VISIBLE_DEVICES=0
+# # # generate for rlcd orig
+# python -u generate_outs.py \
+#     "/u/prasanns/research/rlhf-exploration/models/sft10k" \
+#     "rlcd" \
+#     "/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/rlcdorigv4/step_175" \
+#     "rlcdorig" \
+#     0 600  \
+#     1
+
 
 # # TODO may need a long run for rlcd
 # # generate for rlcd da
@@ -279,6 +291,25 @@
 #     0 400  \
 #     1
 
+# export CUDA_VISIBLE_DEVICES=0
+# python -u generate_outs.py \
+#     "/u/prasanns/research/rlhf-exploration/models/sft10k" \
+#     "webgpt" \
+#     "/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/wgptapsft/step_125" \
+#     "wgptsft2" \
+#     0 700  \
+#     1
+
+# export CUDA_VISIBLE_DEVICES=0
+# python -u generate_outs.py \
+#     "/u/prasanns/research/rlhf-exploration/models/sft10k" \
+#     "webgpt" \
+#     "orig" \
+#     "wgptsft2" \
+#     0 700  \
+#     1
+
+# /home/prasann/Projects/rlhf-exploration/webgpt-llama/checkpoints/wgptapsft/step_125
 # # generate for webgpt mix 50%
 # python -u generate_outs.py \
 #     "/u/prasanns/research/rlhf-exploration/models/sft10k" \
@@ -428,7 +459,117 @@ python -u generate_outs.py \
 #     "rlcdmix" \
 #     0 400  \
 #     1 
+####
+# export CUDA_VISIBLE_DEVICES=0
+# python -u generate_outs.py \
+#     "/u/prasanns/research/rlhf-exploration/models/sft10k" \
+#     "rlcd" \
+#     "/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/rlcdhighklppo12/step_175" \
+#     "rlcdhkl" \
+#     0 400  \
+#     1
 
+# export CUDA_VISIBLE_DEVICES=1
+# python -u generate_outs.py \
+#     "/u/prasanns/research/rlhf-exploration/models/sft10k" \
+#     "rlcd" \
+#     "/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/rlcdlenpenalty/step_250" \
+#     "rlcdlenpen" \
+#     0 400  \
+#     1
+
+# export CUDA_VISIBLE_DEVICES=2
+# python -u generate_outs.py \
+#     "/u/prasanns/research/rlhf-exploration/models/sft10k" \
+#     "rlcd" \
+#     "/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/rlcdfinalbalanceppo/step_250" \
+#     "rlcdbalancerm" \
+#     0 400  \
+#     1
+
+# export CUDA_VISIBLE_DEVICES=1
+# python -u generate_outs.py \
+#     "/u/prasanns/research/rlhf-exploration/models/stack/sft" \
+#     "stack" \
+#     "/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/stackrwscale/step_150" \
+#     "stackrwscale2" \
+#     0 510  \
+#     1
+
+# export CUDA_VISIBLE_DEVICES=0
+# python -u generate_outs.py \
+#     "/u/prasanns/research/rlhf-exploration/models/stack/sft" \
+#     "stack" \
+#     "/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/stackorigrerun/step_225" \
+#     "stackorigrerun" \
+#     0 510  \
+#     1
+
+# export CUDA_VISIBLE_DEVICES=4
+# python -u generate_outs.py \
+#     "/u/prasanns/research/rlhf-exploration/models/stack/sft" \
+#     "stack" \
+#     "/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/stackbothcutppo/step_100" \
+#     "stackbothcut" \
+#     0 400  \
+#     1
+
+export CUDA_VISIBLE_DEVICES=0
+python -u generate_outs.py \
+    "/u/prasanns/research/rlhf-exploration/models/stack/sft" \
+    "stack" \
+    "/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/stacklenonlyppo/step_250" \
+    "stacklenonlyppo3" \
+    0 510  \
+    1
+
+# export CUDA_VISIBLE_DEVICES=3
+# python -u generate_outs.py \
+#     "/u/prasanns/research/rlhf-exploration/models/stack/old/sft" \
+#     "stack" \
+#     "/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/randomdastack/step_125" \
+#     "stackrda2" \
+#     0 510  \
+#     1
+
+
+# export CUDA_VISIBLE_DEVICES=1
+# python -u generate_outs.py \
+#     "/u/prasanns/research/rlhf-exploration/models/sft10k" \
+#     "rlcd" \
+#     "/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/rlcdlenonlypponokl/step_75" \
+#     "rlcdnokl" \
+#     0 400  \
+#     1 
+
+# export CUDA_VISIBLE_DEVICES=2
+# python -u generate_outs.py \
+#     "/u/prasanns/research/rlhf-exploration/models/sft10k" \
+#     "rlcd" \
+#     "/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/rlcdlenonlyppo/step_100" \
+#     "rlcdlenonly" \
+#     0 400  \
+#     1 
+
+# export CUDA_VISIBLE_DEVICES=6
+# python -u generate_outs.py \
+#     "/u/prasanns/research/rlhf-exploration/models/sft10k" \
+#     "webgpt" \
+#     "/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/wgptlenonlyppo/step_100" \
+#     "wgptlenonly2" \
+#     0 700  \
+#     1
+
+# export CUDA_VISIBLE_DEVICES=5
+# python -u generate_outs.py \
+#     "/u/prasanns/research/rlhf-exploration/models/sft10k" \
+#     "webgpt" \
+#     "/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/wgptlenonlynokl/step_75" \
+#     "wgptnokl2" \
+#     0 700  \
+#     1
+
+####
 
 # python -u generate_outs.py \
 #     "/mnt/data1/prasann/rlhf-exploration/webgpt-llama/models/sft10k" \
@@ -456,13 +597,22 @@ python -u generate_outs.py \
 #     0 400  \
 #     1 
 
-# export CUDA_VISIBLE_DEVICES=0
+# export CUDA_VISIBLE_DEVICES=2
 # python -u generate_outs.py \
-#     "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
+#     "/u/prasanns/research/rlhf-exploration/models/sft10k" \
 #     "webgpt" \
-#     "/home/prasann/Projects/rlhf-exploration/trl-general/checkpoints/wgptomitlong/step_250" \
-#     "wgptthrowlong" \
-#     0 400  \
+#     "/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/wgptomitlong/step_250" \
+#     "wgptthrowlong2" \
+#     0 700  \
+#     1 
+
+# export CUDA_VISIBLE_DEVICES=3
+# python -u generate_outs.py \
+#     "/u/prasanns/research/rlhf-exploration/models/sft10k" \
+#     "webgpt" \
+#     "/u/prasanns/research/rlhf-exploration/trl-general/checkpoints/wgptrdappov2/step_250" \
+#     "wgptrandda2" \
+#     0 700  \
 #     1 
 
 # export CUDA_VISIBLE_DEVICES=1
@@ -473,14 +623,3 @@ python -u generate_outs.py \
 #     "wgptthrowlong75" \
 #     0 400  \
 #     1 
-
-export CUDA_VISIBLE_DEVICES=1
-python -u generate_outs.py \
-    "/home/prasann/Projects/rlhf-exploration/webgpt-llama/models/sft10k" \
-    "webgpt" \
-    "/home/prasann/Projects/rlhf-exploration/trl-general/checkpoints/wgptrewardscaleppo/step_150" \
-    "wgptrwscale" \
-    0 400  \
-    1 
-
-    

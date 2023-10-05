@@ -104,22 +104,69 @@ export CUDA_VISIBLE_DEVICES=0,1
 #     --early_stopping=False --output_dir=checkpoints/wgptbothppo2/ \
 #     --init_kl_coef=0.04 --steps=151
 
+# export CUDA_VISIBLE_DEVICES=6,7
+# accelerate launch --multi_gpu --config_file=default_config.yaml --main_process_port=29524 \
+#     --num_machines 1  \
+#     --num_processes 2 \
+#     train_rlhf.py --log_with=wandb \
+#     --model_name=/u/prasanns/research/rlhf-exploration/models/stack/sft \
+#     --dataset_name="stack" \
+#     --reward_model_name=/u/prasanns/research/rlhf-exploration/models/stack/stackrewardsanity \
+#     --adafactor=False \
+#     --save_freq=25 \
+#     --output_max_length=156 --batch_size=32 \
+#     --gradient_accumulation_steps=1 \
+#     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
+#     --early_stopping=False --output_dir=checkpoints/stackrwscale/ \
+#     --init_kl_coef=0.04 --scale_reward=1 --steps=1000
 
-export CUDA_VISIBLE_DEVICES=6,7
-accelerate launch --multi_gpu --config_file=default_config.yaml --main_process_port=29524 \
+# export CUDA_VISIBLE_DEVICES=6,7
+# accelerate launch --multi_gpu --config_file=default_config.yaml --main_process_port=29524 \
+#     --num_machines 1  \
+#     --num_processes 2 \
+#     train_rlhf.py --log_with=wandb \
+#     --model_name=/u/prasanns/research/rlhf-exploration/models/stack/sft \
+#     --dataset_name="stack" \
+#     --reward_model_name=/u/prasanns/research/rlhf-exploration/models/stack/stackrewardsanity \
+#     --adafactor=False \
+#     --save_freq=25 \
+#     --output_max_length=156 --batch_size=32 \
+#     --gradient_accumulation_steps=1 \
+#     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
+#     --early_stopping=False --output_dir=checkpoints/stackrwscale/ \
+#     --init_kl_coef=0.04 --scale_reward=1 --steps=1000
+
+# export CUDA_VISIBLE_DEVICES=0,1
+# accelerate launch --multi_gpu --config_file=default_config.yaml --main_process_port=29524 \
+#     --num_machines 1  \
+#     --num_processes 2 \
+#     train_rlhf.py --log_with=wandb \
+#     --model_name=/home/prasann/Projects/rlhf-exploration/stack-llama/models/stacksft \
+#     --dataset_name="stack" \
+#     --reward_model_name=/home/prasann/Projects/rlhf-exploration/apf/models/stackbalance \
+#     --adafactor=False \
+#     --save_freq=25 \
+#     --output_max_length=156 --batch_size=32 \
+#     --gradient_accumulation_steps=1 \
+#     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
+#     --early_stopping=False --output_dir=checkpoints/stackbalancedppofinalv3/ \
+#     --init_kl_coef=0.04 --steps=1000
+
+export CUDA_VISIBLE_DEVICES=2,3
+accelerate launch --multi_gpu --config_file=default_config.yaml --main_process_port=29526 \
     --num_machines 1  \
-    --num_processes 2 \
+    --num_processes 8 \
     train_rlhf.py --log_with=wandb \
-    --model_name=/u/prasanns/research/rlhf-exploration/models/stack/sft \
+    --model_name=/home/prasann/Projects/rlhf-exploration/stack-llama/models/stacksft \
     --dataset_name="stack" \
-    --reward_model_name=/u/prasanns/research/rlhf-exploration/models/stack/stackrewardsanity \
+    --reward_model_name=/home/prasann/Projects/rlhf-exploration/stack-llama/models/stackrewardsanity \
     --adafactor=False \
     --save_freq=25 \
-    --output_max_length=156 --batch_size=32 \
+    --output_max_length=200 --batch_size=32 \
     --gradient_accumulation_steps=1 \
     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
-    --early_stopping=False --output_dir=checkpoints/stackrwscale/ \
-    --init_kl_coef=0.04 --scale_reward=1 --steps=1000
+    --early_stopping=False --output_dir=checkpoints/stackomitlongv3/ \
+    --init_kl_coef=0.04 --steps=1000 --omit_long=1
 
 # export CUDA_VISIBLE_DEVICES=4,5
 # accelerate launch --multi_gpu --config_file=default_config.yaml --main_process_port=29522 \
@@ -153,6 +200,23 @@ accelerate launch --multi_gpu --config_file=default_config.yaml --main_process_p
 #     --early_stopping=False --output_dir=checkpoints/rlcdhighklppo12/ \
 #     --init_kl_coef=0.12 --steps=1000
 
+# export CUDA_VISIBLE_DEVICES=0,1
+# accelerate launch --multi_gpu --config_file=default_config.yaml --main_process_port=29520 \
+#     --num_machines 1  \
+#     --num_processes 2 \
+#     train_rlhf.py --log_with=wandb \
+#     --model_name=/u/prasanns/research/rlhf-exploration/models/sft10k \
+#     --dataset_name="wgpt" \
+#     --reward_model_name=/u/prasanns/research/rlhf-exploration/models/rewards/wgptrewardmodel \
+#     --adafactor=False \
+#     --save_freq=25 \
+#     --output_max_length=180 --batch_size=32 \
+#     --gradient_accumulation_steps=1 \
+#     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
+#     --early_stopping=False --output_dir=checkpoints/wgptlenonlyppo/ \
+#     --init_kl_coef=0.04 --steps=1000 --len_only=156
+
+# export CUDA_VISIBLE_DEVICES=0,1
 # accelerate launch --multi_gpu --config_file=default_config.yaml --main_process_port=29520 \
 #     --num_machines 1  \
 #     --num_processes 2 \
@@ -165,8 +229,24 @@ accelerate launch --multi_gpu --config_file=default_config.yaml --main_process_p
 #     --output_max_length=156 --batch_size=32 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
-#     --early_stopping=False --output_dir=checkpoints/wgpthighklppo12/ \
-#     --init_kl_coef=0.12 --steps=1000
+#     --early_stopping=False --output_dir=checkpoints/wgpttrlweird/ \
+#     --init_kl_coef=0.04 --steps=1000 --trl_weird=1
+
+# export CUDA_VISIBLE_DEVICES=0,1
+# accelerate launch --multi_gpu --config_file=default_config.yaml --main_process_port=29520 \
+#     --num_machines 1  \
+#     --num_processes 2 \
+#     train_rlhf.py --log_with=wandb \
+#     --model_name=/u/prasanns/research/rlhf-exploration/models/sft10k \
+#     --dataset_name="wgpt" \
+#     --reward_model_name=/u/prasanns/research/rlhf-exploration/models/rewards/wgptrewardmodel \
+#     --adafactor=False \
+#     --save_freq=25 \
+#     --output_max_length=180 --batch_size=32 \
+#     --gradient_accumulation_steps=1 \
+#     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
+#     --early_stopping=False --output_dir=checkpoints/wgptlenonlynokl/ \
+#     --init_kl_coef=0.0 --steps=1000 --len_only=156
 
 # export CUDA_VISIBLE_DEVICES=2,3,4,5
 # accelerate launch --multi_gpu --config_file=default_config.yaml --main_process_port=29521 \
@@ -217,23 +297,22 @@ accelerate launch --multi_gpu --config_file=default_config.yaml --main_process_p
     --init_kl_coef=0.04 --scale_reward=1 --steps=1000
     #--reward_baseline=1.5
 
-# export CUDA_VISIBLE_DEVICES=0,1
-
+# export CUDA_VISIBLE_DEVICES=4,5
 # accelerate launch --multi_gpu --config_file=default_config.yaml --main_process_port=29501 \
 #     --num_machines 1  \
 #     --num_processes 2 \
 #     train_rlhf.py --log_with=wandb \
 #     --model_name=/u/prasanns/research/rlhf-exploration/models/sft10k \
 #     --dataset_name="rlcd" \
-#     --reward_model_name=/u/prasanns/research/rlhf-exploration/models/rewards/rmtruncleftrlcd \
+#     --reward_model_name=/u/prasanns/research/rlhf-exploration/models/rewards/rlcdnormal \
 #     --adafactor=False \
 #     --save_freq=25 \
 #     --output_max_length=156 --batch_size=32 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
-#     --early_stopping=False --output_dir=checkpoints/rlcdleftonlyppo/ \
-#     --init_kl_coef=0.04 --steps=1000
-#     #--reward_baseline=1.5
+#     --early_stopping=False --output_dir=checkpoints/rlcdlenpenalty/ \
+#     --init_kl_coef=0.04 --steps=1000 --len_penalty=1
+    #--reward_baseline=1.5
 
 # accelerate launch --multi_gpu --config_file=default_config.yaml --main_process_port=29516 \
 #     --num_machines 1  \
