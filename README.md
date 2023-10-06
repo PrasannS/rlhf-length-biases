@@ -120,6 +120,6 @@ Which you can then use to reproduce correlation numbers and reward numbers (see 
 
 ## Coming Soon!
 
-We plan on releasing trained models, as well as more scripts to make things easier to run. 
-
-
+- We plan on releasing trained models, as well as more scripts to make things easier to run. 
+- Additional Follow-Up Experiments
+- Blog Post with more analysis on the paper
