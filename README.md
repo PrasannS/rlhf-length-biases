@@ -46,7 +46,8 @@ This code will generate a carto_outs folder with a file containing training dyna
 for the data you want to keep (see eval/examine_dcarto.ipynb for how to set up truncation), you can do the confidence-based truncation. 
 
 You can adjust nproc_per_node and CUDA_VISIBLE_DEVICES to run with more or less GPUs. You'll need to change master_port to run 
-multiple jobs at once. It's recommended to run jobs using nohup and in a screen session to prevent timeout issues. 
+multiple jobs at once. It's recommended to run jobs using nohup and in a screen session to prevent timeout issues.
+(more hyperparams in rlhf_utils/rlhf_utils/rmcode.py). 
 
 Once training is done, select the checkpoint with highest eval accuracy shown in logs before it stops growing, and do the 
 following to merge the peft adapter. 
@@ -58,5 +59,29 @@ python scripts/merge_peft_adapter.py \
 ```
     
 ## Training with RLHF 
+
+Once you have a reward model, you can then do PPO training with the following script: 
+
+```
+export CUDA_VISIBLE_DEVICES=0,1
+accelerate launch --multi_gpu --config_file=default_config.yaml --main_process_port=29518 \
+    --num_machines 1  \
+    --num_processes 2 \
+    train_rlhf.py --log_with=wandb \
+    --model_name={PATH_TO_SFT_MODEL} \
+    --dataset_name={"wgpt", "stack", "rlcd"} \
+    --reward_model_name={PATH_TO_MERGED_REWARD_MODEL} \
+    --adafactor=False \
+    --save_freq=25 \
+    --output_max_length=156 --batch_size=32 \
+    --gradient_accumulation_steps=1 \
+    --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
+    --early_stopping=False --output_dir={PATH_TO_SAVE_CHECKPOINTS} \
+    --init_kl_coef=0.04 --steps=1000 
+```
+
+For reward scaling, you can set ```--scale_reward=1```, for length omission do ```--omit_long=1```, for length penalty do ```--len_penalty=1```. 
+
+For doing length-only optimization ```--len_only={N}```. Usually this will take 200 steps (~16 hours to converge) on 2 GPUs. More hyperparams in rlhfutils/rlhfutils/rl_utils.py. 
 
 ## Evaluation
