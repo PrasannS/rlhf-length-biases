@@ -70,6 +70,10 @@ class ScriptArguments:
        default=0,
        metadata={"help": "whether to omit outputs that don't fit in length context or not"},
     )
+    trl_weird: Optional[float] = field(
+       default=0,
+       metadata={"help": "whether to omit outputs that don't fit in length context or not"},
+    )
     save_freq: Optional[int] = field(default=None, metadata={"help": "n steps to save the model"})
     output_dir: Optional[str] = field(default="runs/", metadata={"help": "n steps to save the model"})
     seed: Optional[int] = field(default=1, metadata={"help": "the seed"})
@@ -168,20 +172,28 @@ def load_models(script_args):
     )
     return config, tokenizer, model, optimizer, reward_model
 
-sent_kwargs = {"return_all_scores": True, "function_to_apply": "none", "batch_size": 8, "truncation": True}
-# the `generate` function of the trained model.
-generation_kwargs = { 
-    "min_length": -1, "top_k": 0.0,"top_p": 1, "do_sample": True, #"pad_token_id": tokenizer.pad_token_id, # "eos_token_id": 100_000,
-}
+
 
 def lensco(lval):
     return -1*abs(lval-1)+1
-    
+
 def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
+    sent_kwargs = {"return_all_scores": True, "function_to_apply": "none", "batch_size": 8, "truncation": True}
+    # the `generate` function of the trained model.
+    generation_kwargs = { 
+        "min_length": -1, "top_k": 0.0,"top_p": 1, "do_sample": True, #"pad_token_id": tokenizer.pad_token_id, # "eos_token_id": 100_000,
+    }
     current_device = Accelerator().local_process_index
 
+    min_len = script_args.output_max_length-2
+    if script_args.trl_weird==1:
+        generation_kwargs = {
+            "top_k": 0.0,"top_p": 1, "do_sample": True, "pad_token_id": tokenizer.pad_token_id, "eos_token_id": 100_000,
+        }
+        min_len = 32
+        
     # HACK since I don't like how they set up RL code length stuff
-    output_length_sampler = LengthSampler(script_args.output_max_length-2, script_args.output_max_length)
+    output_length_sampler = LengthSampler(min_len, script_args.output_max_length)
 
     # compute moving averages over last 10 steps
     run_hist = 10
@@ -238,8 +250,9 @@ def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
         # Get RM score, NOTE that the input formatting is reward model specific
         texts = [qaform(q, r) for q, r in zip(batch["query"], batch["response"])]
         pipe_outputs = reward_model(texts, **sent_kwargs)
-        if script_args.len_only:
-            rewards = [torch.tensor(len(response)/100).to(current_device) for response in response_tensors]
+        if script_args.len_only>0:
+            # the reward is just a weird function thing, you set the max
+            rewards = [torch.tensor(lensco(len(response)/script_args.len_only)).to(current_device) for response in response_tensors]
         else:
             # TODO length constraints, other fancy stuff gets added in here
             rewards = [torch.tensor(output[0]["score"]-script_args.reward_baseline).to(current_device) for output in pipe_outputs]

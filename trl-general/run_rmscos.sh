@@ -151,17 +151,15 @@
 #     --shuffle 0
 
 # python -u rmsco_outs.py \
-#     --rmname="/home/prasann/Projects/rlhf-exploration/rlcd-llama/models/rlcddarm" \
-#     --inpf="/home/prasann/Projects/rlhf-exploration/trl-general/genouts/generated_rlcdsftmulti.jsonl" \
-#     --device 0 \
+#     --rmname="/u/prasanns/research/rlhf-exploration/models/rewards/stackbothcut" \
+#     --inpf="/u/prasanns/research/rlhf-exploration/trl-general/genouts/generated_stackmultisampset.jsonl" \
+#     --device 2 \
 #     --lim 600 \
 #     --shuffle 0
 
-# # For stack random only
 python -u rmsco_outs.py \
-    --rmname="/home/prasann/Projects/rlhf-exploration/apf/models/stackbalance" \
-    --inpf="../trl-general/genouts/generated_stackmultisampset.jsonl" \
-    --device 2 \
+    --rmname="/u/prasanns/research/rlhf-exploration/models/rewards/wgptbalancecorrect" \
+    --inpf="/u/prasanns/research/rlhf-exploration/trl-general/genouts/generated_wgptmultisampset.jsonl" \
+    --device 3 \
     --lim 600 \
     --shuffle 0
-

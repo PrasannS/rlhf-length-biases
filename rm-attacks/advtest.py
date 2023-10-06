@@ -115,7 +115,7 @@ if __name__=="__main__":
     
     # add in sft model for extra weight
     sftmodel = AutoModelForCausalLM.from_pretrained(
-        "../stack-llama/models/sft/",
+        "../models/stack/sft/",
         load_in_8bit=True, # re-enable for llama model
         device_map={"": 1},
     )
