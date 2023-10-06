@@ -18,7 +18,7 @@ cd ..
 ## Setting up Data
 
 For the Stack and WebGPT comparisons setting, code should work off the shelf based on loading data from huggingface (note that Stack will take a while). 
-For RLCD, download simulated_data.zip from the RLCD repo (https://github.com/facebookresearch/rlcd), and put the path in: [TODO make file with path] 
+For RLCD, download simulated_data.zip from the RLCD repo (https://github.com/facebookresearch/rlcd), and put the resulting simulated_data folder in the same directory that you run scripts from. 
 
 ## SFT Models
 
