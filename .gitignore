@@ -21,3 +21,4 @@ apfpath.txt
 models/
 *rmchecks/
 *.pdf
+*.pkl
