@@ -123,3 +123,14 @@ Which you can then use to reproduce correlation numbers and reward numbers (see 
 - We plan on releasing trained models, as well as more scripts to make things easier to run. 
 - Additional Follow-Up Experiments
 - Blog Post with more analysis on the paper
+- 
+## Citation 
+
+```
+@article{rlhflengthbiases,
+  title = {A Long Way to Go: Investigating Length Correlations in RLHF},
+  author = {Prasann Singhal, Tanya Goyal, Jiacheng Xu and Greg Durrett},
+  journal = {arXiv},
+  year = {2023},
+}
+```
