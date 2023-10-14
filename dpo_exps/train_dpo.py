@@ -25,7 +25,7 @@ class ScriptArguments:
 
     # training parameters
     model_name_or_path: Optional[str] = field(
-        default="../sft/results/final_checkpoint",
+        default=None,
         metadata={"help": "the location of the SFT model name or path"},
     )
     dataset: Optional[str] = field(
