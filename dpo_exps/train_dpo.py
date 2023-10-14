@@ -2,11 +2,12 @@
 import os
 from dataclasses import dataclass, field
 from typing import Dict, Optional
+from accelerate import Accelerator
 
 import torch
 from datasets import Dataset, load_dataset
-from peft import AutoPeftModelForCausalLM, LoraConfig
-from transformers import AutoTokenizer, HfArgumentParser, TrainingArguments
+from peft import LoraConfig
+from transformers import AutoTokenizer, HfArgumentParser, TrainingArguments, AutoModelForCausalLM
 
 from trl import DPOTrainer
 from rlhfutils.data import load_rlcd, load_wgpt, load_stack, inp_origformat, adjust_apf
@@ -83,7 +84,7 @@ class ScriptArguments:
 def load_dpo_data(
     script_args,
     dataset: str = None,
-    num_proc=24,
+    num_proc=12,
 ) -> Dataset:   
     # Load in data from the right datasets
     if dataset == 'wgpt':
@@ -103,7 +104,7 @@ def load_dpo_data(
     def return_prompt_and_responses(samples) -> Dict[str, str]:
         return {
             # PFUNCT is variable based on the base model (question: answer: for stack, ##instruction when using apf base model)
-            "prompt": [pfunct(question) for question in samples["question"]],
+            "prompt": [pfunct(question, "") for question in samples["question"]],
             "chosen": samples["response_j"],
             "rejected": samples["response_k"],
         }
@@ -169,13 +170,13 @@ if __name__ == "__main__":
     parser = HfArgumentParser(ScriptArguments)
     script_args = parser.parse_args_into_dataclasses()[0]
 
-    # 1. load a pretrained model
-    model = AutoPeftModelForCausalLM.from_pretrained(
+    model = AutoModelForCausalLM.from_pretrained(
         script_args.model_name_or_path,
+        device_map={"": Accelerator().local_process_index},
         low_cpu_mem_usage=True,
-        torch_dtype=torch.float16,
-        load_in_4bit=True,
+        load_in_8bit=True
     )
+    
     model.config.use_cache = False
 
     if script_args.ignore_bias_buffers:
@@ -184,11 +185,11 @@ if __name__ == "__main__":
             name for name, buffer in model.named_buffers() if buffer.dtype == torch.bool
         ]
 
-    model_ref = AutoPeftModelForCausalLM.from_pretrained(
+    model_ref = AutoModelForCausalLM.from_pretrained(
         script_args.model_name_or_path,
+        device_map={"": Accelerator().local_process_index},
         low_cpu_mem_usage=True,
-        torch_dtype=torch.float16,
-        load_in_4bit=True,
+        load_in_8bit=True
     )
     # NOTE changed tokenizer path hardcoding
     tokenizer = AutoTokenizer.from_pretrained(script_args.model_name_or_path)
@@ -205,7 +206,7 @@ if __name__ == "__main__":
     )
     
     print("MAKE SURE TO LOOK AT THIS DATA AND MAKE SURE IT MAKES SENSE")
-    if script_args.dataset_name=='stack':
+    if script_args.dataset=='stack':
         print('previous data loading logic')
         print(oldstack[0]['prompt'])
         print(oldstack[0]['chosen'])
@@ -242,7 +243,7 @@ if __name__ == "__main__":
         optim=script_args.optimizer_type,
         bf16=True,
         remove_unused_columns=False,
-        run_name="dpo_llama2",
+        run_name="trl_dpo",
     )
 
     peft_config = LoraConfig(
