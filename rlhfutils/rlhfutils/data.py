@@ -468,13 +468,13 @@ def build_stack_promptdata(tokenizer):
     return mapfilt(ds, tokstack)
 
 def adjust_apf(instr, inp):
-    if len(inp)==0:   
+    if inp==None or len(inp)==0:   
         return "Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\n"+instr+"\n\n### Response:"
     # version that also has the input
     return "Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.\n\n### Instruction:\n"+instr+"\n\n### Input:\n"+inp+"\n\n### Response:"
 
 def inp_origformat(instr, inp):
-    if len(inp)>0:
+    if inp!=None and len(inp)>0:
         return "Question: "+instr+"\n\nInput: "+inp+"\n\nAnswer: "
     else:
         return "Question: "+instr+"\n\nAnswer: "
