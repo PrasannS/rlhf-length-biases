@@ -250,6 +250,9 @@ class RewardDataCollatorWithPadding:
             "ids": [f["ids"] for f in features], # propagate datapoint ID through code for data carto
             "return_loss": True,
         }
+        # add logic for using mag in training
+        if "mag" in features[0].keys():
+            batch['mag'] = [f["mag"] for f in features]
         return batch
     
 import os
@@ -280,7 +283,14 @@ class RewardTrainer(Trainer):
     def compute_loss(self, model, inputs, return_outputs=False):
         rewards_j = model(input_ids=inputs["input_ids_j"], attention_mask=inputs["attention_mask_j"])[0]
         rewards_k = model(input_ids=inputs["input_ids_k"], attention_mask=inputs["attention_mask_k"])[0]
-        loss = -nn.functional.logsigmoid(rewards_j - rewards_k).mean()
+        mg = torch.zeros_like(rewards_j)
+        if "mag" in inputs.keys():
+            print("using mag loss")
+            # note that the shape should be the same? 
+            assert mg.shape==inputs['mag'].shape
+            mg = inputs["mag"]
+        # NOTE adding in magnitude based loss
+        loss = -nn.functional.logsigmoid(rewards_j - rewards_k - mg).mean()
         if return_outputs:
             return loss, {"rewards_j": rewards_j, "rewards_k": rewards_k}
         self.save_carto(inputs, rewards_j, rewards_k)

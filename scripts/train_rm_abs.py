@@ -1,4 +1,4 @@
-#  General file for training RMs, compartmentalize as much as possible so that we can run all RMs for all settings through the same thing
+#  General file for training RMs, but the loss function can take advantage of difference magnitude measurements
 
 # Code for setting up (and training) a token-factored reward model
 
@@ -16,13 +16,11 @@ from rlhfutils.rmcode import (
     RewardTrainer
 )
 from rlhfutils.data import (
-    load_wgpt,
-    load_rlcd,
     load_stack,
     load_apfarm,
+    load_ultra,
     tokenize_dset,
     augment_data,
-    tmpdata
 )
 from accelerate import Accelerator
 import pandas as pd
@@ -35,14 +33,10 @@ script_args = parser.parse_args_into_dataclasses()[0]
 training_args = get_trainargs(script_args)
 
 # Load in dataset according to params, we get something in format of 
-if "wgpt" in script_args.dataset:
-    train_dataset, eval_dataset = load_wgpt()
-elif "rlcd" in script_args.dataset:
-    train_dataset, eval_dataset = load_rlcd()
-elif "stack" in script_args.dataset:
+if "stack" in script_args.dataset:
     train_dataset, eval_dataset = load_stack()
-elif "apfarm" in script_args.dataset:
-    train_dataset, eval_dataset = load_apfarm(script_args.dataset)
+elif "ultra" in script_args.dataset:
+    train_dataset, eval_dataset = load_ultra()
 
 if Accelerator().local_process_index == 0:
     print(train_dataset[0]['question'])
@@ -63,7 +57,6 @@ def lh_sanity(tk, ds):
 # HACK just using this for the shuffle
 train_dataset = train_dataset.shuffle(seed=100) #augment_data(train_dataset, )
 
-# NOTE ACKCA:EFIOHAE:FOIHA:EFLIHEDSA:LKFH: I messed up...
 if script_args.carto_file:
     print("Using carto file")
     sellist = list(pd.read_json(script_args.carto_file, lines=True, orient='records')[0])
@@ -95,6 +88,8 @@ train_dataset, eval_dataset = tokenize_dset(train_dataset, eval_dataset, script_
 
 if Accelerator().local_process_index == 0:
     print(tokenizer.decode(train_dataset[0]['input_ids_j']))
+    if "ultra" in script_args.dataset:
+        assert "mag" in train_dataset.column_names
 
 # Train the model, woohoo
 trainer = RewardTrainer(

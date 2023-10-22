@@ -1,6 +1,6 @@
 # Code for loading in data for reward modeling and PPO
 
-from datasets import load_dataset, concatenate_datasets, Dataset
+from datasets import load_dataset, concatenate_datasets, Dataset, load_from_disk
 import pandas as pd
 import random
 from typing import List, Callable
@@ -56,7 +56,10 @@ def preprocess_function_rm(examples, tokenizer):
         "attention_mask_k": [],
         "ids": [], # used for data carto
     }
-    for question, response_j, response_k, rowid in zip(examples["question"], examples["response_j"], examples["response_k"], examples['row_index']):
+    if "magnitude" in examples.keys():
+        new_examples['mag'] = [] # handle ultra case
+        
+    for question, response_j, response_k, rowid, mag in zip(examples["question"], examples["response_j"], examples["response_k"], examples['row_index'], examples['magnitude']):
         tokenized_j = tokenizer("Question: " + question + "\n\nAnswer: " + response_j, truncation=True)
         tokenized_k = tokenizer("Question: " + question + "\n\nAnswer: " + response_k, truncation=True)
 
@@ -68,6 +71,7 @@ def preprocess_function_rm(examples, tokenizer):
         # TODO do without hashing
         # new_examples['ids'].append(str(hash(response_j))+"_"+str(hash(response_k)))
         new_examples['ids'].append(rowid)
+        new_examples['mag'].append(mag)
 
     return new_examples
 
@@ -239,8 +243,12 @@ def len_balance(indataset):
     return  Dataset.from_pandas(balanced_df)
 
 def tokenize_dset(train_dataset, eval_dataset, script_args, tokenizer):
-    
-    train_dataset = train_dataset.select_columns(['question', 'response_j', 'response_k', 'row_index'])
+    selcols = ['question', 'response_j', 'response_k', 'row_index']
+    # if we have a magnitude based dataset, make sure to use that automatically 
+    if 'magnitude' in train_dataset.column_names:
+        # TODO can set smth up to test whether it's necessary or not
+        selcols =  selcols+["magnitude"]
+    train_dataset = train_dataset.select_columns(selcols)
     num_proc = 24  # Can adjust to be higher if you have more processors.
     original_columns = train_dataset.column_names
     
@@ -350,6 +358,38 @@ def load_stack():
     
     eval_dataset = eval_dataset.shuffle(seed=0) # redundant? 
     
+    return train_dataset, eval_dataset
+    
+# load data for ultra-feedback dataset
+def load_ultra():
+    # need to first generate data and store it in the right directory
+    # NOTE can also try doing smth with the data that's supposed to be "equal"
+    orig_dataset = load_from_disk("../data/ultrafeeddiff")
+    print("initial size ", len(orig_dataset))
+    
+    orig_dataset = orig_dataset.shufffle(seed=0)
+    # NOTE use 95% of the dataset for training
+    DRATIO = 0.95
+    train_dataset = orig_dataset.select(range(int(len(orig_dataset)*DRATIO)))
+
+    eval_dataset = eval_dataset.select(range(int(len(orig_dataset)*DRATIO)), len(orig_dataset))
+        
+    return train_dataset, eval_dataset
+
+# load data for ultra-feedback dataset
+def load_stack_mag():
+    # need to first generate data and store it in the right directory
+    # NOTE can also try doing smth with the data that's supposed to be "equal"
+    orig_dataset = load_from_disk("../data/ultrafeeddiff")
+    print("initial size ", len(orig_dataset))
+    
+    orig_dataset = orig_dataset.shufffle(seed=0)
+    # NOTE use 95% of the dataset for training
+    DRATIO = 0.95
+    train_dataset = orig_dataset.select(range(int(len(orig_dataset)*DRATIO)))
+
+    eval_dataset = eval_dataset.select(range(int(len(orig_dataset)*DRATIO)), len(orig_dataset))
+        
     return train_dataset, eval_dataset
 
 trainperc =  0.95
