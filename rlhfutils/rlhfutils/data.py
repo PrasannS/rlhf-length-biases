@@ -342,6 +342,20 @@ def load_rlcd():
     
     return train_dataset, eval_dataset
 
+def load_harmless():
+    train_dataset = load_dataset("Anthropic/hh-rlhf", data_dir='harmless-base')['train']
+    print("initial size ", len(train_dataset))
+
+    train_dataset = train_dataset.shuffle(seed=0)
+
+    eval_dataset = load_dataset("Anthropic/hh-rlhf", data_dir='harmless-base')['test']
+    
+    # run the right preprocessing function to prep the data in the right way
+    train_dataset = train_dataset.map(preproc_hh)
+    eval_dataset = eval_dataset.map(preproc_hh)
+    
+    return train_dataset, eval_dataset
+
 def load_stack():
     orig_dataset = load_dataset("lvwerra/stack-exchange-paired", data_dir="data/reward", split="train")
     print("initial size ", len(orig_dataset))
@@ -376,10 +390,10 @@ def load_manual(iname):
     
     
 # load data for ultra-feedback dataset
-def load_ultra():
+def load_ultra(dname="data/ultrafeeddiff"):
     # need to first generate data and store it in the right directory
     # NOTE can also try doing smth with the data that's supposed to be "equal"
-    orig_dataset = load_from_disk("data/ultrafeeddiff")
+    orig_dataset = load_from_disk(dname)
     print("initial size ", len(orig_dataset))
     
     orig_dataset = orig_dataset.shuffle(seed=0)

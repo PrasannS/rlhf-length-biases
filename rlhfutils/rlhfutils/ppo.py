@@ -55,6 +55,11 @@ DEFAULT_BOS_TOKEN = "</s>"
 DEFAULT_UNK_TOKEN = "</s>"
 
 def setup_train_policy(script_args, current_device):
+    output_name = script_args.output_dir
+
+    rname = output_name.split("/")
+    rname = rname[-1] if output_name[-1]!='/' else rname[-2]
+    
     config = PPOConfig(
         model_name=script_args.model_name,
         learning_rate=script_args.learning_rate,
@@ -76,6 +81,7 @@ def setup_train_policy(script_args, current_device):
         steps=script_args.steps,
         gamma=1,
         lam=0.95,
+        run_name=rname, # wandb based on name set for output
     )
     if "decapoda" in script_args.model_name.lower():
         tokenizer = LlamaTokenizer.from_pretrained(script_args.model_name)

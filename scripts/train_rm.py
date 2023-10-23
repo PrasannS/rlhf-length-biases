@@ -23,6 +23,7 @@ from rlhfutils.data import (
     load_ultra,
     tokenize_dset,
     augment_data,
+    load_harmless,
     load_manual,
     tmpdata
 )
@@ -49,6 +50,8 @@ elif "apfarm" in script_args.dataset:
     train_dataset, eval_dataset = load_apfarm(script_args.dataset)
 elif "ultra" in script_args.dataset: 
     train_dataset, eval_dataset = load_ultra()
+elif "harmless" in script_args.dataset:
+    train_dataset, eval_dataset = load_harmless()
 
 if Accelerator().local_process_index == 0:
     print(train_dataset[0]['question'])
