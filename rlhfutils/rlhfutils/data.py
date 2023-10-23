@@ -359,6 +359,21 @@ def load_stack():
     eval_dataset = eval_dataset.shuffle(seed=0) # redundant? 
     
     return train_dataset, eval_dataset
+
+def load_manual(iname):
+    print("GOING THROUGH PROCESS FOR "+iname)
+    orig_dataset = load_from_disk("data/categories/"+iname.replace("stack_", ""))
+    print("initial size ", len(orig_dataset))
+
+    # NOTE use 95% of the dataset for training
+    DRATIO = 0.90
+    train_dataset = orig_dataset.select(range(int(len(orig_dataset)*DRATIO)))
+    print(len(train_dataset))
+    eval_dataset = orig_dataset.select(range(int(len(orig_dataset)*DRATIO), len(orig_dataset)))
+    print("eval len")
+    print(len(eval_dataset))
+    return train_dataset, eval_dataset
+    
     
 # load data for ultra-feedback dataset
 def load_ultra():
