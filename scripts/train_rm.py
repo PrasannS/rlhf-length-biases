@@ -23,6 +23,7 @@ from rlhfutils.data import (
     load_ultra,
     tokenize_dset,
     augment_data,
+    load_manual,
     tmpdata
 )
 from accelerate import Accelerator
@@ -40,6 +41,8 @@ if "wgpt" in script_args.dataset:
     train_dataset, eval_dataset = load_wgpt()
 elif "rlcd" in script_args.dataset:
     train_dataset, eval_dataset = load_rlcd()
+elif "stack_" in script_args.dataset:
+    train_dataset, eval_dataset = load_manual(script_args.dataset)
 elif "stack" in script_args.dataset:
     train_dataset, eval_dataset = load_stack()
 elif "apfarm" in script_args.dataset:
@@ -120,5 +123,5 @@ if script_args.eval_first_step:
 trainer.train(script_args.resume_from_checkpoint)
 
 print("Saving last checkpoint of the model")
-model.save_pretrained(script_args.output_dir + "_peft_last_checkpoint")
+model.save_pretrained(script_args.output_dir + "/_peft_last_checkpoint")
     

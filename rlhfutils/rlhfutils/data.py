@@ -359,6 +359,21 @@ def load_stack():
     eval_dataset = eval_dataset.shuffle(seed=0) # redundant? 
     
     return train_dataset, eval_dataset
+
+def load_manual(iname):
+    print("GOING THROUGH PROCESS FOR "+iname)
+    orig_dataset = load_from_disk("data/categories/"+iname.replace("stack_", ""))
+    print("initial size ", len(orig_dataset))
+
+    # NOTE use 95% of the dataset for training
+    DRATIO = 0.90
+    train_dataset = orig_dataset.select(range(int(len(orig_dataset)*DRATIO)))
+    print(len(train_dataset))
+    eval_dataset = orig_dataset.select(range(int(len(orig_dataset)*DRATIO), len(orig_dataset)))
+    print("eval len")
+    print(len(eval_dataset))
+    return train_dataset, eval_dataset
+    
     
 # load data for ultra-feedback dataset
 def load_ultra():
@@ -457,6 +472,32 @@ def build_wgpt_promptdata(tokenizer):
 
     return mapfilt(ds, tokwgpt)
 
+# Build WGPT Dataset for RL (may be able to compress)
+def build_ultra_promptdata(tokenizer):
+    # input_size = LengthSampler(input_min_text_length, input_max_text_length)
+    ds = load_dataset("stingning/ultrachat", split="train")
+
+    def tokultra(sample):
+        # TODO trying out this thing for batching
+        new_examples = {
+            "query": [],
+            "input_ids": [],
+        }
+        for question in sample["data"]:
+            # just use the first thing as the prompt every time? 
+            query = question[0]
+            
+            query = webgpt_template(query)
+            
+            #query = "Question: " + question + "\n\nAnswer: "
+            tokenized_question = tokenizer(query, truncation=True)
+            new_examples["query"].append(question[0])
+            new_examples["input_ids"].append(tokenized_question["input_ids"])
+
+        return new_examples
+
+    return mapfilt(ds, tokultra)
+
 def build_rlcd_promptdata(tokenizer):
 
     # input_size = LengthSampler(input_min_text_length, input_max_text_length)
@@ -541,6 +582,8 @@ def build_apf_promptdata(tokenizer):
         return new_examples
 
     return mapfilt(ds, apftok)
+
+
 
 # Format used for QA style reward models (WebGPT, AlpacaFarm?, Stack)
 def qaform(q, r):

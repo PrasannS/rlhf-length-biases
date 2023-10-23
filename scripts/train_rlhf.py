@@ -16,6 +16,7 @@ from rlhfutils.data import (
     build_rlcd_promptdata,
     build_stack_promptdata,
     build_apf_promptdata,
+    build_ultra_promptdata,
     collator,
     qaform,
     anscat,
@@ -46,6 +47,9 @@ elif "stack" in script_args.dataset_name:
 elif "apfarm" in script_args.dataset_name:
     dataset = build_apf_promptdata(tokenizer)
     rmformat = anscat
+elif "ultra" in script_args.dataset_name:
+    # TODO maybe unify original prompt format? 
+    dataset = build_ultra_promptdata(tokenizer)
     
 print(dataset[0])
 
