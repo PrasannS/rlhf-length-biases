@@ -51,7 +51,7 @@ class ScriptArguments:
         },
     )
     per_device_train_batch_size: Optional[int] = field(default=2)
-    per_device_eval_batch_size: Optional[int] = field(default=2)
+    per_device_eval_batch_size: Optional[int] = field(default=4)
     gradient_accumulation_steps: Optional[int] = field(default=2)
     learning_rate: Optional[float] = field(default=1e-5)
     weight_decay: Optional[float] = field(default=0.001)
