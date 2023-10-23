@@ -249,7 +249,7 @@ def tokenize_dset(train_dataset, eval_dataset, script_args, tokenizer):
         # TODO can set smth up to test whether it's necessary or not
         selcols =  selcols+["magnitude"]
     train_dataset = train_dataset.select_columns(selcols)
-    num_proc = 24  # Can adjust to be higher if you have more processors.
+    num_proc = 10  # Can adjust to be higher if you have more processors.
     original_columns = train_dataset.column_names
     
     # preprocess the dataset and filter out QAs that are longer than script_args.max_length
@@ -364,16 +364,17 @@ def load_stack():
 def load_ultra():
     # need to first generate data and store it in the right directory
     # NOTE can also try doing smth with the data that's supposed to be "equal"
-    orig_dataset = load_from_disk("../data/ultrafeeddiff")
+    orig_dataset = load_from_disk("data/ultrafeeddiff")
     print("initial size ", len(orig_dataset))
     
-    orig_dataset = orig_dataset.shufffle(seed=0)
+    orig_dataset = orig_dataset.shuffle(seed=0)
     # NOTE use 95% of the dataset for training
-    DRATIO = 0.95
+    DRATIO = 0.99
     train_dataset = orig_dataset.select(range(int(len(orig_dataset)*DRATIO)))
-
-    eval_dataset = eval_dataset.select(range(int(len(orig_dataset)*DRATIO)), len(orig_dataset))
-        
+    print(len(train_dataset))
+    eval_dataset = orig_dataset.select(range(int(len(orig_dataset)*DRATIO), len(orig_dataset)))
+    print("eval len")
+    print(len(eval_dataset))
     return train_dataset, eval_dataset
 
 # load data for ultra-feedback dataset

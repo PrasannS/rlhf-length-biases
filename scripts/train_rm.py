@@ -87,7 +87,7 @@ train_dataset = train_dataset.map(add_row_index, with_indices=True)
 eval_dataset = eval_dataset.map(add_row_index, with_indices=True)
 
 tokenizer, model = load_rmodel_standard(script_args)
-lh_sanity(tokenizer, train_dataset)
+# lh_sanity(tokenizer, train_dataset)
 
 print("new size of dataset", len(train_dataset))
 

@@ -124,6 +124,8 @@ def get_trainargs(script_args):
     # Define the training args. Needs to be done before the model is loaded if you are using deepspeed.
     output_name = script_args.output_dir
 
+    rname = output_name.split("/")
+    rname = rname[-1] if output_name[-1]!='/' else rname[-2]
     return TrainingArguments(
         output_dir=output_name,
         learning_rate=script_args.learning_rate,
@@ -147,8 +149,10 @@ def get_trainargs(script_args):
         optim=script_args.optim,
         lr_scheduler_type=script_args.lr_scheduler_type,
         include_inputs_for_metrics=False,
+        run_name=rname, # wandb based on name set for output
+        
     )
-     
+    
 def load_rmodel_standard(script_args):
     # Load the value-head model and tokenizer.
     tokenizer_name = script_args.tokenizer_name if script_args.tokenizer_name is not None else script_args.model_name
@@ -171,6 +175,7 @@ def load_rmodel_standard(script_args):
     # Need to do this for gpt2, because it doesn't have an official pad token.
     tokenizer.pad_token = tokenizer.eos_token
     model.config.pad_token_id = tokenizer.eos_token_id
+    make_folder_if_not_exists("carto_outs/")
     model.config.use_cache = not script_args.gradient_checkpointing
     return tokenizer, model
 
@@ -252,7 +257,7 @@ class RewardDataCollatorWithPadding:
         }
         # add logic for using mag in training
         if "mag" in features[0].keys():
-            batch['mag'] = [f["mag"] for f in features]
+            batch['mag'] = torch.tensor([f["mag"] for f in features])
         return batch
     
 import os
@@ -271,7 +276,7 @@ class RewardTrainer(Trainer):
             fname = fname[-2]
         else:
             fname = fname[-1]
-        make_folder_if_not_exists("carto_outs/")
+        
         savef = open("carto_outs/"+fname+".jsonl", "a")  # append mode
         #print(rewards_j.shape)
         for i in range(len(inps['ids'])):
@@ -285,10 +290,9 @@ class RewardTrainer(Trainer):
         rewards_k = model(input_ids=inputs["input_ids_k"], attention_mask=inputs["attention_mask_k"])[0]
         mg = torch.zeros_like(rewards_j)
         if "mag" in inputs.keys():
-            print("using mag loss")
             # note that the shape should be the same? 
-            assert mg.shape==inputs['mag'].shape
-            mg = inputs["mag"]
+            assert mg.shape==inputs['mag'].unsqueeze(-1).shape
+            mg = inputs["mag"].unsqueeze(-1)
         # NOTE adding in magnitude based loss
         loss = -nn.functional.logsigmoid(rewards_j - rewards_k - mg).mean()
         if return_outputs:
