@@ -512,10 +512,13 @@ def build_ultra_promptdata(tokenizer):
 
     return mapfilt(ds, tokultra)
 
-def build_rlcd_promptdata(tokenizer):
+def build_rlcd_promptdata(tokenizer, dname):
 
-    # input_size = LengthSampler(input_min_text_length, input_max_text_length)
-    ds = load_dataset("Anthropic/hh-rlhf", data_dir="helpful-base", split="train")
+    if "harm" in dname:
+        ds = load_dataset("Anthropic/hh-rlhf", data_dir="harmless-base", split="train")
+    else:
+        # input_size = LengthSampler(input_min_text_length, input_max_text_length)
+        ds = load_dataset("Anthropic/hh-rlhf", data_dir="helpful-base", split="train")
 
     def tokrlcd(sample):
         # TODO trying out this thing for batching

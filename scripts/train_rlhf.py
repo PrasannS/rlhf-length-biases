@@ -39,7 +39,7 @@ if "wgpt" in script_args.dataset_name:
     dataset = build_wgpt_promptdata(tokenizer)
     # TODO the ones below this
 elif "rlcd" in script_args.dataset_name:
-    dataset = build_rlcd_promptdata(tokenizer)
+    dataset = build_rlcd_promptdata(tokenizer, script_args.dataset_name)
     rmformat = anscat  # NOTE RLCD RM has a different prompt template depending on the model, this is a bit ad-hoc
 elif "stack" in script_args.dataset_name:
     dataset = build_stack_promptdata(tokenizer)
