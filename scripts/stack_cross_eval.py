@@ -46,6 +46,8 @@ tokenizer.pad_token = tokenizer.eos_token
 
 
 evals = ['english', 'diy', 'physics', 'stats', 'softwareengineering', 'scifi']
+
+new_evals = []
 # load 'em in
 dsets = {}
 

@@ -106,6 +106,10 @@ class ScriptArguments:
         default=True,
         metadata={"help": "Whether to run eval after the first step"},
     )
+    use_magnitude: Optional[bool] = field(
+        default=True,
+        metadata={"help": "Whether to run eval after the first step"},
+    )
     output_dir: Optional[str] = field(
         default="checkpoints/wgptsaved"
     )
@@ -118,7 +122,8 @@ class ScriptArguments:
         metadata={"help": "How much random augmentation to do"},
     )
     balance_len: Optional[int] = field(default=0)
-
+    # TO add preference over preference loss, make sure to have prefoverpref in output_dir name
+    # pref_o_pref: Optional[int] = field(default=0) # use preference over preference loss
     
 def get_trainargs(script_args):
     # Define the training args. Needs to be done before the model is loaded if you are using deepspeed.
@@ -289,12 +294,33 @@ class RewardTrainer(Trainer):
         rewards_j = model(input_ids=inputs["input_ids_j"], attention_mask=inputs["attention_mask_j"])[0]
         rewards_k = model(input_ids=inputs["input_ids_k"], attention_mask=inputs["attention_mask_k"])[0]
         mg = torch.zeros_like(rewards_j)
-        if "mag" in inputs.keys():
+        fname = self.args.output_dir.strip().split("/")
+        if len(fname[-1])==0:
+            fname = fname[-2]
+        else:
+            fname = fname[-1]
+        # need to use mag key to actually use magnitude
+        if "mag" in inputs.keys() and "mag" in fname:
             # note that the shape should be the same? 
             assert mg.shape==inputs['mag'].unsqueeze(-1).shape
             mg = inputs["mag"].unsqueeze(-1)
+        rdiff = rewards_j - rewards_k
         # NOTE adding in magnitude based loss
-        loss = -nn.functional.logsigmoid(rewards_j - rewards_k - mg).mean()
+        loss = -nn.functional.logsigmoid(rdiff - mg).mean()
+        # do preference over preference loss too
+        if "prefoverpref" in self.args.output_dir:
+            assert mg.shape[1]==1
+            assert rdiff.shape[1]==1
+            for i in range(0, len(rewards_j)-1):
+                for j in range(i+1, len(rewards_j)):
+                    if i==j:
+                        continue
+                    # more loss for pref over pref
+                    if mg[i][0]>[j][0]:
+                        loss = loss + -nn.functional.logsigmoid(rdiff[i][0] - rdiff[j][0] - (mg[i][0]-mg[j][0])).mean()
+                    elif mg[j][0]>mg[i][0]:
+                        loss = loss + -nn.functional.logsigmoid(rdiff[j][0] - rdiff[i][0] - (mg[j][0]-mg[i][0])).mean()
+        
         if return_outputs:
             return loss, {"rewards_j": rewards_j, "rewards_k": rewards_k}
         self.save_carto(inputs, rewards_j, rewards_k)
