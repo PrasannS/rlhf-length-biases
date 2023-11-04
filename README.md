@@ -1,6 +1,6 @@
 # A Long Way to Go: Investigating Length Correlations in RLHF
 
-This repo contains code and instructions for reproducing experiments in the paper "A Long Way to Go: Investigating Length Correlations in RLHF" (https://arxiv.org/abs/2307.12950), by Prasann Singhal, Tanya Goyal, Jiacheng Xu, and Greg Durrett. In this work, using both observational and interventional analyses, we find striking relationships with length across all stages of RLHF in 3 open-domain settings. Gains from RLHF may in large part be driven by length increases. 
+This repo contains code and instructions for reproducing experiments in the paper "A Long Way to Go: Investigating Length Correlations in RLHF" (https://arxiv.org/abs/2310.03716), by Prasann Singhal, Tanya Goyal, Jiacheng Xu, and Greg Durrett. In this work, using both observational and interventional analyses, we find striking relationships with length across all stages of RLHF in 3 open-domain settings. Gains from RLHF may in large part be driven by length increases. 
 
 ## Installation
 

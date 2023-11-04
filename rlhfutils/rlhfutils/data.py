@@ -32,7 +32,7 @@ def preproc_apf(example):
         ex['response_j'] = example['output_1']
     return ex
 
-def preproc_rlcd_all (inpdf):
+def preproc_rlcd_all(inpdf):
     allres = []
     for row in inpdf:
         res = {}
@@ -56,8 +56,13 @@ def preprocess_function_rm(examples, tokenizer):
         "attention_mask_k": [],
         "ids": [], # used for data carto
     }
+    hasmag = False
     if "magnitude" in examples.keys():
         new_examples['mag'] = [] # handle ultra case
+        hasmag = True
+    else:
+        examples['magnitude'] = [None]*len(examples["question"])
+        
         
     for question, response_j, response_k, rowid, mag in zip(examples["question"], examples["response_j"], examples["response_k"], examples['row_index'], examples['magnitude']):
         tokenized_j = tokenizer("Question: " + question + "\n\nAnswer: " + response_j, truncation=True)
@@ -71,7 +76,8 @@ def preprocess_function_rm(examples, tokenizer):
         # TODO do without hashing
         # new_examples['ids'].append(str(hash(response_j))+"_"+str(hash(response_k)))
         new_examples['ids'].append(rowid)
-        new_examples['mag'].append(mag)
+        if hasmag:
+            new_examples['mag'].append(mag)
 
     return new_examples
 
@@ -374,9 +380,9 @@ def load_stack():
     
     return train_dataset, eval_dataset
 
-def load_manual(iname):
+def load_manual(iname, base="data/categories/"):
     print("GOING THROUGH PROCESS FOR "+iname)
-    orig_dataset = load_from_disk("data/categories/"+iname.replace("stack_", ""))
+    orig_dataset = load_from_disk(base+iname.replace("stack_", ""))
     print("initial size ", len(orig_dataset))
 
     # NOTE use 95% of the dataset for training

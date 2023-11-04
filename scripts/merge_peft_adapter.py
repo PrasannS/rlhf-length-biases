@@ -30,6 +30,7 @@ if peft_config.task_type == "SEQ_CLS":
     model = AutoModelForSequenceClassification.from_pretrained(
         script_args.base_model_name, num_labels=1, torch_dtype=torch.bfloat16
     )
+# NOTE this was added for an experiment I think?
 elif peft_config.task_type == "TOKEN_CLS":
     tmp = AutoModelForSequenceClassification.from_pretrained(
         script_args.base_model_name, num_labels=1, torch_dtype=torch.bfloat16
