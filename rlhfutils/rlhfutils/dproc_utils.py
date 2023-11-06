@@ -110,6 +110,10 @@ def create_pairwise_dataframe(df):
                 'tok':row['tokens'][idk],
                 'response_j': response_j,
                 'response_k': response_k,
-                'magnitude': magnitude
+                'magnitude': magnitude,
             })
+            aks = ['mn', 'hf', 'hn', 'tn', "ifg"]
+            for a in aks:
+                new_rows[-1][a+"_j"] = row[a][idj]
+                new_rows[-1][a+"_k"] = row[a][idk]
     return pd.DataFrame(new_rows)

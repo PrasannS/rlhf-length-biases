@@ -26,3 +26,4 @@ oldcode/
 *.vscode
 *.ipynb_checkpoints/
 data/
+*.pickle

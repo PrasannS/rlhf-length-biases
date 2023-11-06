@@ -20,6 +20,7 @@ from transformers import (
     LlamaPreTrainedModel,
     LlamaModel
 )
+import pickle
 from transformers.modeling_outputs import TokenClassifierOutput
 from transformers.utils import PaddingStrategy
 import random 
@@ -50,9 +51,9 @@ class ScriptArguments:
             "help": "name of dataset, used to figure out preprocessing / data loading stuff"
         },
     )
-    per_device_train_batch_size: Optional[int] = field(default=2)
-    per_device_eval_batch_size: Optional[int] = field(default=4)
-    gradient_accumulation_steps: Optional[int] = field(default=2)
+    per_device_train_batch_size: Optional[int] = field(default=1)
+    per_device_eval_batch_size: Optional[int] = field(default=2)
+    gradient_accumulation_steps: Optional[int] = field(default=4)
     learning_rate: Optional[float] = field(default=1e-5)
     weight_decay: Optional[float] = field(default=0.001)
     model_name: Optional[str] = field(
@@ -275,6 +276,7 @@ def make_folder_if_not_exists(folder_path):
         print(f"Folder '{folder_path}' already exists.")
 
 class RewardTrainer(Trainer):
+
     def save_carto(self, inps, rewards_j, rewards_k):
         fname = self.args.output_dir.strip().split("/")
         if len(fname[-1])==0:
@@ -416,6 +418,8 @@ accuracy = evaluate.load("accuracy")
 
 def compute_metrics(eval_pred):
     predictions, _ = eval_pred
+    with open('tmpmetric.pickle', 'wb') as file:
+        pickle.dump(eval_pred, file)
     # Here, predictions is rewards_j and rewards_k.
     # We want to see how much of the time rewards_j > rewards_k.
     predictions = np.argmax(predictions, axis=0)

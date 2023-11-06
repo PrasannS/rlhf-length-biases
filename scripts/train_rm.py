@@ -52,6 +52,9 @@ elif "ultra" in script_args.dataset:
     train_dataset, eval_dataset = load_ultra()
 elif "harmless" in script_args.dataset:
     train_dataset, eval_dataset = load_harmless()
+else: 
+    print("loading in custom")
+    train_dataset, eval_dataset = load_ultra(script_args.dataset)
 
 if Accelerator().local_process_index == 0:
     print(train_dataset[0]['question'])
@@ -95,12 +98,13 @@ eval_dataset = eval_dataset.map(add_row_index, with_indices=True)
 tokenizer, model = load_rmodel_standard(script_args)
 # lh_sanity(tokenizer, train_dataset)
 
-print("new size of dataset", len(train_dataset))
 
 # NOTE future RLCD models will be using standard template, TODO adjust PPO accordingly
 # tokenize the dataset
 # HACK just leave this hardcoded in as a shuffle operation, bring in DA separately
 train_dataset, eval_dataset = tokenize_dset(train_dataset, eval_dataset, script_args, tokenizer)
+
+print("new size of dataset", len(train_dataset))
 
 if Accelerator().local_process_index == 0:
     print(tokenizer.decode(train_dataset[0]['input_ids_j']))
