@@ -35,6 +35,7 @@ from transformers import AutoModelForSequenceClassification, AutoTokenizer
 from scipy.stats import spearmanr, pearsonr
 from rlhfutils.data import load_ultra
 import torch
+import os
 
 # parse args and load data
 parser = HfArgumentParser(ScriptArguments)
@@ -50,7 +51,7 @@ def add_row_index(example, idx):
     example['row_index'] = idx
     return example
 
-_, evals = load_ultra("data/ultrafeedasp/")
+_, evals = load_ultra(script_args.dataset)
 evals = evals.map(add_row_index, with_indices=True)
 _, evals = tokenize_dset(evals, evals, script_args, tokenizer)
 
@@ -91,3 +92,5 @@ trainer = RewardTrainer(
 )
 evalnums = trainer.evaluate()
 print(edict)
+
+#os.rename("tmpmetric.pickle", script_args.output_dir.split("/")[-2]+".pickle")

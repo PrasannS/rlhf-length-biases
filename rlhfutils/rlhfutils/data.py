@@ -331,12 +331,12 @@ def preproc_rlcd(example):
 # HACK assume all RM training is happening on Fuji
 def load_rlcd():
     try:
-        train_dataset = load_dataset("csv", data_files="simulated_data/simulated_preference_data_consolidated_helpful7b.csv")['train']
+        train_dataset = load_dataset("csv", data_files="/scratch/cluster/prasanns/research/rlhf-exploration/rlcd-llama/simulated_data/simulated_preference_data_consolidated_helpful7b.csv")['train']
     except:
         try:
-            train_dataset = load_dataset("csv", data_files="simulated_data/simulated_preference_data_consolidated_helpful7b.csv")['train']
+            train_dataset = load_dataset("csv", data_files="/scratch/cluster/prasanns/research/rlhf-exploration/rlcd-llama/simulated_data/simulated_preference_data_consolidated_helpful7b.csv")['train']
         except:
-            train_dataset = load_dataset("csv", data_files="simulated_data/simulated_preference_data_consolidated_helpful7b.csv")['train']
+            train_dataset = load_dataset("csv", data_files="/scratch/cluster/prasanns/research/rlhf-exploration/rlcd-llama/simulated_data/simulated_preference_data_consolidated_helpful7b.csv")['train']
     # HACK against 2 weird NaN outputs
     train_dataset = train_dataset.filter(
         lambda x: x['output_1'] and x['output_2']
@@ -410,6 +410,8 @@ def load_ultra(dname="data/ultrafeeddiff"):
     orig_dataset = orig_dataset.shuffle(seed=0)
     # NOTE use 95% of the dataset for training
     DRATIO = 0.99
+    if len(orig_dataset)<30000:
+        DRATIO = 0.9
     train_dataset = orig_dataset.select(range(int(len(orig_dataset)*DRATIO)))
     print(len(train_dataset))
     eval_dataset = orig_dataset.select(range(int(len(orig_dataset)*DRATIO), len(orig_dataset)))

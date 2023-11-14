@@ -30,6 +30,9 @@ from rlhfutils.data import (
 from accelerate import Accelerator
 import pandas as pd
 from datasets import concatenate_datasets
+import torch
+
+torch.autograd.set_detect_anomaly(True)
 
 # parse args and load data
 parser = HfArgumentParser(ScriptArguments)

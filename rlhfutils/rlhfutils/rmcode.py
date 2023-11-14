@@ -52,8 +52,8 @@ class ScriptArguments:
         },
     )
     per_device_train_batch_size: Optional[int] = field(default=1)
-    per_device_eval_batch_size: Optional[int] = field(default=2)
-    gradient_accumulation_steps: Optional[int] = field(default=4)
+    per_device_eval_batch_size: Optional[int] = field(default=1)
+    gradient_accumulation_steps: Optional[int] = field(default=2)
     learning_rate: Optional[float] = field(default=1e-5)
     weight_decay: Optional[float] = field(default=0.001)
     model_name: Optional[str] = field(
@@ -76,6 +76,10 @@ class ScriptArguments:
     )
     num_train_epochs: Optional[int] = field(
         default=4,
+        metadata={"help": "The number of training epochs for the reward model."},
+    )
+    eval_steps: Optional[int] = field(
+        default=100,
         metadata={"help": "The number of training epochs for the reward model."},
     )
     train_subset: Optional[int] = field(
@@ -140,9 +144,9 @@ def get_trainargs(script_args):
         num_train_epochs=script_args.num_train_epochs,
         weight_decay=script_args.weight_decay,
         evaluation_strategy="steps",
-        eval_steps=100,
+        eval_steps=script_args.eval_steps,
         save_strategy="steps",
-        save_steps=100,
+        save_steps=script_args.eval_steps,
         gradient_accumulation_steps=script_args.gradient_accumulation_steps,
         gradient_checkpointing=script_args.gradient_checkpointing,
         deepspeed=script_args.deepspeed,
@@ -173,7 +177,7 @@ def load_rmodel_standard(script_args):
         lora_dropout=0.1,
     )
     model = AutoModelForSequenceClassification.from_pretrained(
-        script_args.model_name, num_labels=1, torch_dtype=torch.bfloat16
+        script_args.model_name, num_labels=1, torch_dtype=torch.bfloat16,# device_map="auto"
     )
     model = get_peft_model(model, peft_config)
     model.print_trainable_parameters()
@@ -293,16 +297,12 @@ class RewardTrainer(Trainer):
         
     # Define how to compute the reward loss. We use the InstructGPT pairwise logloss: https://arxiv.org/abs/2203.02155
     def compute_loss(self, model, inputs, return_outputs=False):
+        # print(inputs["input_ids_j"].requires_grad)
         rewards_j = model(input_ids=inputs["input_ids_j"], attention_mask=inputs["attention_mask_j"])[0]
         rewards_k = model(input_ids=inputs["input_ids_k"], attention_mask=inputs["attention_mask_k"])[0]
         mg = torch.zeros_like(rewards_j)
-        fname = self.args.output_dir.strip().split("/")
-        if len(fname[-1])==0:
-            fname = fname[-2]
-        else:
-            fname = fname[-1]
         # need to use mag key to actually use magnitude
-        if "mag" in inputs.keys() and "mag" in fname:
+        if "mag" in inputs.keys() and "nomag" not in self.args.output_dir:
             # note that the shape should be the same? 
             assert mg.shape==inputs['mag'].unsqueeze(-1).shape
             mg = inputs["mag"].unsqueeze(-1)
