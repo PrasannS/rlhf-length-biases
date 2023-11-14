@@ -74,6 +74,13 @@ export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 #     --rand_ratio=0 \
 #     --balance_len=0 \
 #     --num_train_epochs=5
+torchrun --nnodes 1  --nproc_per_node 8 --master_port=12337 scripts/train_rm.py \
+        --model_name=/u/prasanns/research/rlhf-length-biases/models/llama \
+        --output_dir=checkpoints/ultranormal \
+        --dataset="ultra" \
+        --rand_ratio=0 \
+        --balance_len=0 \
+        --num_train_epochs=1
 
 torchrun --nnodes 1  --nproc_per_node 8 --master_port=12335 scripts/train_rm.py \
     --model_name=/u/prasanns/research/rlhf-length-biases/models/stack/sft \

@@ -26,3 +26,9 @@ oldcode/
 *.vscode
 *.ipynb_checkpoints/
 data/
+*.pickle
+.nfs00000000edd9e2ab00002cfb
+.nfs00000000edd9e2ac00002cfc
+train_rm.sh
+.nfs00000000edd9e2aa00002cfa
+.nfs00000000edd9e2ad00002cfd

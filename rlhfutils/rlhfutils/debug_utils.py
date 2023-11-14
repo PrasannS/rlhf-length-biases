@@ -100,7 +100,7 @@ def load_rm(name, device, quant=True):
 
 def progress_rm(inputs, rm, kwargs):
     results = []
-    split = 16
+    split = 8
     for i in tqdm(range(0, len(inputs), split)):
         results.extend(rm(inputs[i:i+split], **kwargs))
     return results

@@ -248,7 +248,7 @@ def len_balance(indataset):
     
     return  Dataset.from_pandas(balanced_df)
 
-def tokenize_dset(train_dataset, eval_dataset, script_args, tokenizer):
+def tokenize_dset(train_dataset, eval_dataset, script_args=None, tokenizer=None):
     selcols = ['question', 'response_j', 'response_k', 'row_index']
     # if we have a magnitude based dataset, make sure to use that automatically 
     if 'magnitude' in train_dataset.column_names:
@@ -265,8 +265,12 @@ def tokenize_dset(train_dataset, eval_dataset, script_args, tokenizer):
         num_proc=num_proc,
         remove_columns=original_columns,
     )
+    if script_args is not None:
+        mlen = script_args.max_length
+    else:
+        mlen = 512
     train_dataset = train_dataset.filter(
-        lambda x: len(x["input_ids_j"]) <= script_args.max_length and len(x["input_ids_k"]) <= script_args.max_length
+        lambda x: len(x["input_ids_j"]) <= mlen and len(x["input_ids_k"]) <= mlen
     )
 
     eval_dataset = eval_dataset.map(
@@ -276,9 +280,10 @@ def tokenize_dset(train_dataset, eval_dataset, script_args, tokenizer):
         remove_columns=original_columns,
     )
     eval_dataset = eval_dataset.filter(
-        lambda x: len(x["input_ids_j"]) <= script_args.max_length and len(x["input_ids_k"]) <= script_args.max_length
+        lambda x: len(x["input_ids_j"]) <= mlen and len(x["input_ids_k"]) <= mlen
     )
-    if script_args.balance_len==1:
+
+    if script_args is not None and script_args.balance_len==1:
         print("Balancing")
         train_dataset = len_balance(train_dataset)
     
@@ -326,12 +331,12 @@ def preproc_rlcd(example):
 # HACK assume all RM training is happening on Fuji
 def load_rlcd():
     try:
-        train_dataset = load_dataset("csv", data_files="simulated_data/simulated_preference_data_consolidated_helpful7b.csv")['train']
+        train_dataset = load_dataset("csv", data_files="/scratch/cluster/prasanns/research/rlhf-exploration/rlcd-llama/simulated_data/simulated_preference_data_consolidated_helpful7b.csv")['train']
     except:
         try:
-            train_dataset = load_dataset("csv", data_files="simulated_data/simulated_preference_data_consolidated_helpful7b.csv")['train']
+            train_dataset = load_dataset("csv", data_files="/scratch/cluster/prasanns/research/rlhf-exploration/rlcd-llama/simulated_data/simulated_preference_data_consolidated_helpful7b.csv")['train']
         except:
-            train_dataset = load_dataset("csv", data_files="simulated_data/simulated_preference_data_consolidated_helpful7b.csv")['train']
+            train_dataset = load_dataset("csv", data_files="/scratch/cluster/prasanns/research/rlhf-exploration/rlcd-llama/simulated_data/simulated_preference_data_consolidated_helpful7b.csv")['train']
     # HACK against 2 weird NaN outputs
     train_dataset = train_dataset.filter(
         lambda x: x['output_1'] and x['output_2']
@@ -405,6 +410,8 @@ def load_ultra(dname="data/ultrafeeddiff"):
     orig_dataset = orig_dataset.shuffle(seed=0)
     # NOTE use 95% of the dataset for training
     DRATIO = 0.99
+    if len(orig_dataset)<30000:
+        DRATIO = 0.9
     train_dataset = orig_dataset.select(range(int(len(orig_dataset)*DRATIO)))
     print(len(train_dataset))
     eval_dataset = orig_dataset.select(range(int(len(orig_dataset)*DRATIO), len(orig_dataset)))
