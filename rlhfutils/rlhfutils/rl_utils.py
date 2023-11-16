@@ -20,7 +20,10 @@ from transformers import (
     T5Tokenizer,
     T5ForConditionalGeneration
 )
+
+import requests, json
 import math
+
 from statistics import mean, stdev
 import random
 
@@ -91,7 +94,7 @@ DEFAULT_PAD_TOKEN = "[PAD]"
 DEFAULT_EOS_TOKEN = "</s>"
 DEFAULT_BOS_TOKEN = "</s>"
 DEFAULT_UNK_TOKEN = "</s>"
-def load_models(script_args):
+def load_models(script_args, loadms="rmppo"):
     
     current_device = Accelerator().local_process_index
     config = PPOConfig(
@@ -133,49 +136,81 @@ def load_models(script_args):
         tokenizer = AutoTokenizer.from_pretrained(script_args.model_name)
         if getattr(tokenizer, "pad_token", None) is None:
             tokenizer.pad_token = tokenizer.eos_token
-            
-    lora_config = LoraConfig(
-        r=16,
-        lora_alpha=32,
-        lora_dropout=0.05,
-        bias="none",
-        task_type="CAUSAL_LM",
-    )
-    model = AutoModelForCausalLMWithValueHead.from_pretrained(
-        script_args.model_name,
-        load_in_8bit=True, # re-enable for llama model
-        device_map={"": current_device},
-        peft_config=lora_config,
-    )
-
-    optimizer = None
-    if script_args.adafactor:
-        optimizer = Adafactor(
-            filter(lambda p: p.requires_grad, model.parameters()),
-            scale_parameter=False,
-            relative_step=False,
-            warmup_init=False,
-            lr=config.learning_rate,
-        )
-    
-    pipetok = AutoTokenizer.from_pretrained(script_args.reward_model_name)
-    if pipetok.pad_token is None:
-        pipetok.pad_token_id = pipetok.eos_token_id
         
-    reward_model = pipeline(
-        "sentiment-analysis",
-        model=script_args.reward_model_name,
-        device_map={"": current_device},
-        model_kwargs={"load_in_8bit": True},
-        tokenizer=pipetok,
-        return_token_type_ids=False,
-    )
-    return config, tokenizer, model, optimizer, reward_model
+    if "ppo" in loadms:
+        lora_config = LoraConfig(
+            r=16,
+            lora_alpha=32,
+            lora_dropout=0.05,
+            bias="none",
+            task_type="CAUSAL_LM",
+        )
+        model = AutoModelForCausalLMWithValueHead.from_pretrained(
+            script_args.model_name,
+            load_in_8bit=True, # re-enable for llama model
+            device_map={"": current_device},
+            peft_config=lora_config,
+        )
 
+        optimizer = None
+        if script_args.adafactor:
+            optimizer = Adafactor(
+                filter(lambda p: p.requires_grad, model.parameters()),
+                scale_parameter=False,
+                relative_step=False,
+                warmup_init=False,
+                lr=config.learning_rate,
+            )
+    
+    
+    
+    if "rm" in loadms:
+        pipetok = AutoTokenizer.from_pretrained(script_args.reward_model_name)
+        if pipetok.pad_token is None:
+            pipetok.pad_token_id = pipetok.eos_token_id
+        reward_model = pipeline(
+            "sentiment-analysis",
+            model=script_args.reward_model_name,
+            device_map={"": current_device},
+            model_kwargs={"load_in_8bit": True},
+            tokenizer=pipetok,
+            return_token_type_ids=False,
+        )
+    if loadms=="rm":
+        return config, tokenizer, reward_model
+    # PPO client for API endpoint
+    if loadms=="ppo":
+        return config, tokenizer, model, optimizer
+    # standard PPO
+    return config, tokenizer, model, optimizer, reward_model
 
 
 def lensco(lval):
     return -1*abs(lval-1)+1
+
+def get_scores_from_api(text_list, url):
+    # URL of your Flask API
+    # url = 'http://127.0.0.1:5000/predict'
+
+    # Prepare data in the correct format
+    data = json.dumps({"texts": text_list})
+
+    # Send POST request to the Flask API
+    try:
+        response = requests.post(url, data=data, headers={'Content-Type': 'application/json'})
+        response.raise_for_status()  # Raise an exception for HTTP errors
+
+        # Get the scores from the response
+        scores = response.json()
+        return scores
+    except requests.exceptions.HTTPError as errh:
+        print(f"Http Error: {errh}")
+    except requests.exceptions.ConnectionError as errc:
+        print(f"Error Connecting: {errc}")
+    except requests.exceptions.Timeout as errt:
+        print(f"Timeout Error: {errt}")
+    except requests.exceptions.RequestException as err:
+        print(f"Oops: Something Else: {err}")
 
 def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
     sent_kwargs = {"return_all_scores": True, "function_to_apply": "none", "batch_size": 8, "truncation": True}
@@ -199,6 +234,8 @@ def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
     run_hist = 10
     running_means = []
     running_stds = []
+    rmname = script_args.reward_model_name
+    
     for epoch, batch in tqdm(enumerate(ppo_trainer.dataloader)):
         if epoch >= script_args.steps:
             break
@@ -249,13 +286,18 @@ def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
 
         # Get RM score, NOTE that the input formatting is reward model specific
         texts = [qaform(q, r) for q, r in zip(batch["query"], batch["response"])]
-        pipe_outputs = reward_model(texts, **sent_kwargs)
-        if script_args.len_only>0:
-            # the reward is just a weird function thing, you set the max
-            rewards = [torch.tensor(lensco(len(response)/script_args.len_only)).to(current_device) for response in response_tensors]
-        else:
-            # TODO length constraints, other fancy stuff gets added in here
-            rewards = [torch.tensor(output[0]["score"]-script_args.reward_baseline).to(current_device) for output in pipe_outputs]
+        
+        # NOTE RM score is based on API endpoint (rmname)
+        if "http" in rmname: 
+            rewards = [torch.tensor(s).to(current_device) for s in get_scores_from_api(texts, rmname)]
+        else: # otherwise based on in-process RM
+            pipe_outputs = reward_model(texts, **sent_kwargs)
+            if script_args.len_only>0:
+                # the reward is just a weird function thing, you set the max
+                rewards = [torch.tensor(lensco(len(response)/script_args.len_only)).to(current_device) for response in response_tensors]
+            else:
+                # TODO length constraints, other fancy stuff gets added in here
+                rewards = [torch.tensor(output[0]["score"]-script_args.reward_baseline).to(current_device) for output in pipe_outputs]
         # use this for logging
         logrewards = [r for r in rewards]
         # using running mean and running stdev to do stuff if needed

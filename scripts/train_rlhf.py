@@ -31,8 +31,13 @@ script_args: ScriptArguments = parser.parse_args_into_dataclasses()[0]
 
 set_seed(script_args.seed)
 
-# NOTE handle loading everything in, since hyperparams are same for every setting more or less
-config, tokenizer, model, optimizer, reward_model = load_models(script_args)
+# NOTE special case if using an api endpoint
+if "http" in script_args.reward_model_name:
+    config, tokenizer, model, optimizer = load_models(script_args, "ppo")
+    reward_model = None
+else:
+    # NOTE handle loading everything in, since hyperparams are same for every setting more or less
+    config, tokenizer, model, optimizer, reward_model = load_models(script_args)
 
 rmformat = qaform
 if "wgpt" in script_args.dataset_name:
