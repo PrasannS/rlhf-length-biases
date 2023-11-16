@@ -102,7 +102,10 @@ def progress_rm(inputs, rm, kwargs):
     results = []
     split = 8
     for i in tqdm(range(0, len(inputs), split)):
-        results.extend(rm(inputs[i:i+split], **kwargs))
+        try:
+            results.extend(rm(inputs[i:i+split], **kwargs))
+        except:
+            results.extend([[{'score':None}]]*split)
     return results
 
 def highlight_differences(old, new):

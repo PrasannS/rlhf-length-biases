@@ -426,7 +426,7 @@ def load_stack_mag():
     orig_dataset = load_from_disk("../data/ultrafeeddiff")
     print("initial size ", len(orig_dataset))
     
-    orig_dataset = orig_dataset.shufffle(seed=0)
+    orig_dataset = orig_dataset.shuffle(seed=0)
     # NOTE use 95% of the dataset for training
     DRATIO = 0.95
     train_dataset = orig_dataset.select(range(int(len(orig_dataset)*DRATIO)))
@@ -563,7 +563,7 @@ def build_rlcd_promptdata(tokenizer, dname):
 def build_stack_promptdata(tokenizer):
     # load stack with datasets
     ds = load_dataset("lvwerra/stack-exchange-paired", data_dir="data/rl", split="train")
-    
+    ds = ds.select(range(0, 500000))
     def tokstack(examples):
         new_examples = {
             "query": [],

@@ -16,11 +16,11 @@
 #     0 500  \
 #     1
 
-export CUDA_VISIBLE_DEVICES=2
+export CUDA_VISIBLE_DEVICES=4
 python -u scripts/generate_outs.py \
-    "models/stack/sft" \
-    stack \
-    "dpo/dpostack/checkpoint-4000" \
-    "stackdpo" \
+    "models/sft10k" \
+    webgpt \
+    "orig" \
+    "wgptextral" \
     0 500  \
     1

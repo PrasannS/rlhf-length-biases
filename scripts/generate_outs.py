@@ -200,7 +200,7 @@ def main(args):
         
     # NOTE try original kwargs since new ones are broken?
     generation_kwargs = {
-        "min_length": -1,
+        "min_length": 200, # TODO switch this back at some point
         "max_new_tokens":256,
         #"top_k": 0.0,
         "top_p": 0.9,

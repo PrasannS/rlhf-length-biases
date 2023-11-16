@@ -20,7 +20,7 @@
 export CUDA_VISIBLE_DEVICES=0,1
 accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29518 \
     --num_machines 1  \
-    --num_processes 2 \
+    --num_processes 8 \
     scripts/train_rlhf.py --log_with=wandb \
     --model_name=/mnt/data1/prasann/rlhf-length-biases/models/sft10k \
     --dataset_name="wgpt" \

@@ -53,7 +53,7 @@ class ScriptArguments:
     )
     per_device_train_batch_size: Optional[int] = field(default=1)
     per_device_eval_batch_size: Optional[int] = field(default=1)
-    gradient_accumulation_steps: Optional[int] = field(default=2)
+    gradient_accumulation_steps: Optional[int] = field(default=4)
     learning_rate: Optional[float] = field(default=1e-5)
     weight_decay: Optional[float] = field(default=0.001)
     model_name: Optional[str] = field(
@@ -135,7 +135,10 @@ def get_trainargs(script_args):
     output_name = script_args.output_dir
 
     rname = output_name.split("/")
-    rname = rname[-1] if output_name[-1]!='/' else rname[-2]
+    try:
+        rname = rname[-1] if output_name[-1]!='/' else rname[-2]
+    except:
+        rmname = "nothing"
     return TrainingArguments(
         output_dir=output_name,
         learning_rate=script_args.learning_rate,
