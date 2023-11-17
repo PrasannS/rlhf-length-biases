@@ -14,6 +14,10 @@ from rlhfutils.rl_utils import (
     load_models,
 )
 
+import threading
+
+lock = threading.Lock()
+
 os.environ["WANDB_TAGS"] = "[\"llamatrl\"]"
 tqdm.pandas()
 
@@ -28,11 +32,12 @@ config, tokenizer, reward_model = load_models(script_args, "rm")
 # TODO assume that RM strings are passed in with the right format
 
 app = Flask(__name__)
-sent_kwargs = {"return_all_scores": True, "function_to_apply": "none", "batch_size": 8, "truncation": True}
+sent_kwargs = {"return_all_scores": True, "function_to_apply": "none", "batch_size": 4, "truncation": True}
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    try:
+    # for thread safety
+    with lock:
         # Get list of strings from the POST request
         data = request.json
         input_texts = data.get("texts", [])
@@ -45,8 +50,7 @@ def predict():
         scores = [output[0]["score"] for output in results]
         
         return jsonify(scores)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    
 
 if __name__ == '__main__':
     app.run(debug=False)
