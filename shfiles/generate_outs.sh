@@ -16,11 +16,11 @@
 #     0 500  \
 #     1
 
-export CUDA_VISIBLE_DEVICES=4
+export CUDA_VISIBLE_DEVICES=5
 python -u scripts/generate_outs.py \
-    "models/sft10k" \
-    webgpt \
-    "orig" \
-    "wgptextral" \
+    "models/stack/sft" \
+    stack \
+    "/u/prasanns/research/rlhf-length-biases/checkpoints/stackapibigrmstep_225" \
+    "stack13bppo" \
     0 500  \
     1

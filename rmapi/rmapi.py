@@ -51,6 +51,5 @@ def predict():
         
         return jsonify(scores)
     
-
 if __name__ == '__main__':
     app.run(debug=False)

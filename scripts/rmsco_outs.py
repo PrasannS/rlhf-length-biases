@@ -1,4 +1,4 @@
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, AutoModelForCausalLM
 import pandas as pd
 from rlhfutils.eval_utils import getapfsft, tok_dist
 import matplotlib.pyplot as plt
@@ -7,6 +7,8 @@ import argparse
 import nltk
 from nltk.tokenize import sent_tokenize
 import random
+import torch
+from dpo_eval import calculate_log_likelihoods
 nltk.download('punkt')
 
 # replace all wgptouts with corresponding stack QA format (RM input format)
@@ -77,24 +79,42 @@ def main(args):
     outdf = pd.read_json(args.inpf, orient='records', lines=True)    
     if args.lim > 0:
         outdf = outdf.iloc[:args.lim]
+    tokdir = args.rmname if "nobase" in args.basemodel else args.basemodel
     if stack:
-        tok = AutoTokenizer.from_pretrained(args.rmname)
+        tok = AutoTokenizer.from_pretrained(tokdir)
         outdf = procall(outdf, tok, False)
     else:
-        tok = AutoTokenizer.from_pretrained(args.rmname)
+        tok = AutoTokenizer.from_pretrained(tokdir)
         outdf = procall(outdf, tok, True)
         
+    allresps = getfulldist(outdf.response)
     # if we want, we can score perturbed data (shuffle sentences via nltk)
     # TODO do a double check on whether removing truncated sentence from output helps (APEval)
     if args.shuffle>0:
         outdf['response'] = [shuffle_row_resp(r) for _, r in outdf.iterrows()]
+    
+    print(allresps[0])
+    if 'dpo' in args.rmname or 'tulu' in args.rmname:
+        tokenizer = AutoTokenizer.from_pretrained(args.rmname)
+        model = AutoModelForCausalLM.from_pretrained(args.rmname, device_map="auto")
+        model.eval()
+        allresps = [r.replace("Question: ", "<|user|>\n").replace("\n\nAnswer: ", "\n<|assistant|>\n") for r in allresps]
         
-    tok, rm, kwargs = load_rm(args.rmname, args.device)
-    allresps = getfulldist(outdf.response)
-    allscos = progress_rm(allresps, rm, kwargs)
-    scos = compdist([a[0]['score'] for a in allscos], 8)
-    outdf[args.rmname.split("/")[-1]] = scos
-    outdf.to_json(args.rmname.split("/")[-1]+".jsonl", lines=True, orient='records')
+        scos = calculate_log_likelihoods(allresps, tokenizer, model)
+        scos = compdist(scos, 4)
+    else:
+        tok, rm, kwargs = load_rm(args.rmname, args.device, True, args.basemodel)
+        if kwargs:
+            with torch.no_grad():
+                allscos = progress_rm(allresps, rm, kwargs)
+        # TODO compdist set to 4
+        scos = compdist([a[0]['score'] for a in allscos], 4)
+    outdf['scores'] = scos
+    if args.outputdir=='default':
+        
+        outdf.to_json(args.rmname.split("/")[-1]+".jsonl", lines=True, orient='records')
+    else:
+        outdf.to_json(args.outputdir, lines=True, orient='records')
     
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='My Python script.')
@@ -104,6 +124,8 @@ if __name__=="__main__":
     parser.add_argument('--device', type=int, help='outputs per prompt')
     parser.add_argument('--lim', type=int, help="whatever")
     parser.add_argument('--shuffle', type=int, help='whether to shuffle sentences before scoring or not')
+    parser.add_argument('--basemodel', type=str, help='base model for RM', default="nobase")
+    parser.add_argument('--outputdir', type=str, help='base model for RM', default="default")
     
     progargs = parser.parse_args()
     

@@ -401,13 +401,15 @@ def load_manual(iname, base="data/categories/"):
     
     
 # load data for ultra-feedback dataset
-def load_ultra(dname="data/ultrafeeddiff"):
+def load_ultra(dname="data/ultrafeeddiff", useall=False):
     # need to first generate data and store it in the right directory
     # NOTE can also try doing smth with the data that's supposed to be "equal"
     orig_dataset = load_from_disk(dname)
     print("initial size ", len(orig_dataset))
     
     orig_dataset = orig_dataset.shuffle(seed=0)
+    if useall:
+        return orig_dataset, orig_dataset
     # NOTE use 95% of the dataset for training
     DRATIO = 0.99
     if len(orig_dataset)<30000:

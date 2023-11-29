@@ -178,6 +178,7 @@ def load_models(script_args, loadms="rmppo"):
         )
     if loadms=="rm":
         return config, tokenizer, reward_model
+    model.gradient_checkpointing_disable()
     # PPO client for API endpoint
     if loadms=="ppo":
         return config, tokenizer, model, optimizer
