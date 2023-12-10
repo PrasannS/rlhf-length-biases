@@ -152,7 +152,7 @@ def get_trainargs(script_args):
         save_steps=script_args.eval_steps,
         gradient_accumulation_steps=script_args.gradient_accumulation_steps,
         gradient_checkpointing=script_args.gradient_checkpointing,
-        #gradient_checkpointing_kwargs={"use_reentrant": False},
+        gradient_checkpointing_kwargs={"use_reentrant": False},
         deepspeed=script_args.deepspeed,
         local_rank=script_args.local_rank,
         remove_unused_columns=False,
@@ -183,7 +183,7 @@ def load_rmodel_standard(script_args):
     if "70b" in script_args.model_name: 
         # maybe see what happens with this thing in 8bit? 
         model = AutoModelForSequenceClassification.from_pretrained(
-            script_args.model_name, num_labels=1, torch_dtype=torch.bfloat16, load_in_8bit=True, device_map='auto'
+            script_args.model_name, num_labels=1, torch_dtype=torch.bfloat16, load_in_4bit=True#, device_map='auto'
         )
         model.config.pretraining_tp = 1 
     else:

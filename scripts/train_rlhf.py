@@ -35,6 +35,9 @@ set_seed(script_args.seed)
 if "http" in script_args.reward_model_name:
     config, tokenizer, model, optimizer = load_models(script_args, "ppo")
     reward_model = None
+elif "function:" in script_args.reward_model_name:
+    config, tokenizer, model, optimizer = load_models(script_args, "ppo")
+    reward_model = "function"
 else:
     # NOTE handle loading everything in, since hyperparams are same for every setting more or less
     config, tokenizer, model, optimizer, reward_model = load_models(script_args)

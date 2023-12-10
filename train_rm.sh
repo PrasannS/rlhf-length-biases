@@ -48,9 +48,9 @@
 #         --gradient_accumulation_steps=8 \
 #         --learning_rate=1e-4
 
-export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
-torchrun --nnodes 1  --nproc_per_node 1 --master_port=12339 scripts/train_rm.py \
-        --model_name=meta-llama/Llama-2-70b-hf \
+export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5
+torchrun --nnodes 1  --nproc_per_node 6 --master_port=12339 scripts/train_rm.py \
+        --model_name=allenai/tulu-2-70b \
         --output_dir=/u/prasanns/research/rlhf-length-biases/checkpoints/ultrafeed/giganticrm \
         --dataset="ultra" \
         --rand_ratio=0 \
@@ -61,7 +61,9 @@ torchrun --nnodes 1  --nproc_per_node 1 --master_port=12339 scripts/train_rm.py 
         --gradient_accumulation_steps=4 \
         --learning_rate=5e-5 \
         --eval_steps=50 \
-        --deepspeed=/u/prasanns/research/rlhf-length-biases/scripts/deepspeed_config.json
+        --gradient_checkpointing=true
+        #\
+        #--deepspeed=/u/prasanns/research/rlhf-length-biases/scripts/deepspeed_config.json
 
 # torchrun --nnodes 1  --nproc_per_node 8 --master_port=12339 scripts/train_rm.py \
 #         --model_name=facebook/opt-125m \

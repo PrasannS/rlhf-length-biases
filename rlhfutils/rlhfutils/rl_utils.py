@@ -1,33 +1,34 @@
 # All the verbose / complex stuff that's generic to all TRL RLHF code
-import os
-
 import torch
-import time
 from dataclasses import dataclass, field
 from typing import Optional
 from accelerate import Accelerator
-from datasets import load_dataset
-from peft import LoraConfig
+from peft import LoraConfig, get_peft_model
 from tqdm import tqdm
-import pandas as pd
-from datasets import Dataset
 from transformers import (
     Adafactor,
     AutoTokenizer,
     LlamaTokenizer,
-    HfArgumentParser,
     pipeline,
-    T5Tokenizer,
-    T5ForConditionalGeneration
 )
+import numpy as np
+from nltk.tokenize import word_tokenize
+from nltk import pos_tag
+import random
+from statistics import mean
+import spacy
+from peft import PeftModel
+import json
+
+# Load the English language model
+nlp = spacy.load("en_core_web_sm")
 
 import requests, json
-import math
 
 from statistics import mean, stdev
 import random
 
-from trl import AutoModelForCausalLMWithValueHead, PPOConfig, PPOTrainer, set_seed
+from trl import AutoModelForCausalLMWithValueHead, PPOConfig
 from trl.core import LengthSampler
 
 @dataclass
@@ -89,11 +90,33 @@ class ScriptArguments:
        default=0,
        metadata={"help": "whether to omit outputs that don't fit in length context or not"},
     )
+    gen_bsize: Optional[int] = field(
+       default=4,
+       metadata={"help": "how many outputs to over-generate per sample"},
+    )
+    # these are some parameters for custom rollouts
+    rollout_strategy: Optional[str] = field(default="normal", metadata={"help": "rollout strategy, start with high var, high mean, etc"})
+    oversample: Optional[int] = field(
+       default=1,
+       metadata={"help": "how many outputs to over-generate per sample"},
+    )
+    temperature: Optional[float] = field(
+       default=1,
+       metadata={"help": "sampling temperature for generation"},
+    )
+    generators_json: Optional[str] = field(default=None, metadata={"help": "json file indicating which checkpoints to use for rollouts at various points"})
 
 DEFAULT_PAD_TOKEN = "[PAD]"
 DEFAULT_EOS_TOKEN = "</s>"
 DEFAULT_BOS_TOKEN = "</s>"
 DEFAULT_UNK_TOKEN = "</s>"
+lora_config = LoraConfig(
+            r=16,
+            lora_alpha=32,
+            lora_dropout=0.05,
+            bias="none",
+            task_type="CAUSAL_LM",
+        )
 def load_models(script_args, loadms="rmppo"):
     
     current_device = Accelerator().local_process_index
@@ -138,19 +161,23 @@ def load_models(script_args, loadms="rmppo"):
             tokenizer.pad_token = tokenizer.eos_token
         
     if "ppo" in loadms:
-        lora_config = LoraConfig(
-            r=16,
-            lora_alpha=32,
-            lora_dropout=0.05,
-            bias="none",
-            task_type="CAUSAL_LM",
-        )
         model = AutoModelForCausalLMWithValueHead.from_pretrained(
             script_args.model_name,
             load_in_8bit=True, # re-enable for llama model
             device_map={"": current_device},
-            peft_config=lora_config,
         )
+        model.pretrained_model = get_peft_model(model.pretrained_model, peft_config=lora_config, adapter_name='original')
+        
+        if script_args.generators_json !=None:
+            # with open(script_args.generators_json) as f:
+            #     sjson = json.load(f)
+            # for s in sjson['checkpoints']:
+            #     model.pretrained_model.load_adapter(s, s, is_trainable=False)
+            # model.pretrained_model.set_adapter("/u/prasanns/research/rlhf-length-biases/checkpoints/bowvarmax/step_50")
+            model.pretrained_model.set_adapter("original")
+            model.pretrained_model.to(current_device)
+            # print(model.pretrained_model.active_adapters)
+            # print(model.pretrained_model.peft_config)
 
         optimizer = None
         if script_args.adafactor:
@@ -212,73 +239,278 @@ def get_scores_from_api(text_list, url):
         print(f"Timeout Error: {errt}")
     except requests.exceptions.RequestException as err:
         print(f"Oops: Something Else: {err}")
+        
+# Function to calculate the depth of a token
+def token_depth(token):
+    depth = 0
+    while token.head != token:
+        token = token.head
+        depth += 1
+    return depth
+
+# code to get max syntax tree depth from a list of 
+def synt_tree_dep(text_list): 
+    def scodep(instr): 
+        # only use response part of str
+        istr = instr.split("Answer:")[1]
+        doc = nlp(istr)
+        
+        # Calculate the maximum depth of the syntax tree
+        return max(token_depth(token) for token in doc)
+    return [float(scodep(s)) for s in text_list]
+
+# return number of nouns in each item from list of strings
+def numnouns(text_list, nocont=True):
+    def sconoun(instr, nocont): 
+        # only use response part of str
+        if nocont:
+            istr = instr.split("Answer:")[1]
+        else: 
+            istr = instr
+        tokens = word_tokenize(istr)
+        tagged = pos_tag(tokens)
+        return len([word for word, pos in tagged if pos.startswith('NN')])
+    return [float(sconoun(s, nocont)) for s in text_list]
+
+bow_words = [
+    # content
+    'data', 'hope', 'information', 'provide', 'example', 'your', 'however', 'first', 'have', 'help'
+]
+def bowfunct(text_list, nocont=True):
+    def scobow(instr, nocont): 
+        # only use response part of str
+        if nocont:
+            istr = instr.split("Answer:")[1]
+        else: 
+            istr = instr
+        tokens = word_tokenize(istr)
+        sco = 0
+        for t in bow_words: 
+            if t in tokens: 
+                sco = sco + 1
+        return sco
+    return [float(scobow(s, nocont)) for s in text_list]
+
+# code for omitting stuff that goes over length, TODO sanity check that this works still (mutability context thing)
+def omit_long(tokenizer, response_tensors, question_tensors, batch):
+    longouts = tokenizer.batch_decode(response_tensors, skip_special_tokens=False)
+    # check if we get EOS, if not prepare to throw out
+    safeinds = []
+    badinds = []
+    for i in range(len(longouts)): 
+        if "</s>" not in longouts[i]:
+            badinds.append(i)
+        else:
+            safeinds.append(i)
+    # go through bad stuff, replace truncated with non-truncated
+    for bad in badinds:
+        safe = random.choice(safeinds)
+        # For logging
+        batch['response'][bad] =  "OMMITTED "+batch['response'][bad]
+        # For optimization, just make the response tensor all padding (get rid of the whole thing)
+        question_tensors[bad] = question_tensors[safe]
+        response_tensors[bad] = response_tensors[safe]
+        
+    print(len(badinds), " omitted")
+    
+
+def notoks(text_list):
+    def scotok(instr):
+        istr = instr.split("Answer:")[1]
+        tokens = word_tokenize(istr)
+        return 50 - len(tokens)
+    return [float(scotok(s)) for s in text_list]
+
+def allobjs(text_list):
+    bfs = bowfunct(text_list)
+    dps = synt_tree_dep(text_list)
+    nms = numnouns(text_list)
+    return [(bfs[i])*9+dps[i]+nms[i] for i in range(len(bfs))]
+
+def get_synth_rewards(text_list, rmname):
+    # NOTE does it make a diff if we do with / without input in reward inp
+    cont = ("cont" in rmname)==False
+    scores = []
+    # using syntax tree depth as reward function here
+    if "treedep" in rmname: 
+        scores = synt_tree_dep(text_list)
+    if "nouns" in rmname: 
+        scores = numnouns(text_list, cont)
+    if "bagofwords" in rmname: 
+        scores = bowfunct(text_list, cont)
+    if 'allobjs' in rmname: 
+        scores =  allobjs(text_list)
+    if "nounvstoks" in rmname:
+        ntks = notoks(text_list)
+        nouns = numnouns(text_list)
+        scores = [nouns[i]*3+ntks[i] for i in range(len(ntks))]
+    if "noise" in rmname: 
+        scores = [s+random.uniform(-1,1) for s in scores]
+    return scores
+    
+def keep_strat(script_args, rewards, keep_inds):
+    keeplen = int(len(rewards)/script_args.oversample)
+    # only keep output of each prompt that is the best or worst in terms of reward 
+    if script_args.rollout_strategy=='prompt_max':
+        keep_inds = []
+        # within each prompt sample
+        for i in range(0, len(rewards), script_args.oversample):
+            keep_inds.append(int(i+np.argmax(rewards[i:i+script_args.oversample])))
+    elif script_args.rollout_strategy=='prompt_min':
+        keep_inds = []
+        # within each prompt sample
+        for i in range(0, len(rewards), script_args.oversample):
+            keep_inds.append(int(i+np.argmin(rewards[i:i+script_args.oversample])))
+    # 'all': take regardless of where it's coming from
+    elif script_args.rollout_strategy=='all_max':
+        # last of set to keee
+        keep_inds = list(np.argsort(rewards))[-(keeplen):]
+        #print(keep_inds)
+        #print(rewards)
+        assert rewards[keep_inds[-1]]==max(rewards)
+    elif script_args.rollout_strategy=='all_min':
+        keep_inds = list(np.argsort(rewards))[:(keeplen)]
+        assert rewards[keep_inds[0]]==min(rewards)
+    varlist = [stdev(rewards[i:i+script_args.oversample]) for i in range(0, len(rewards), script_args.oversample)]
+    # keep all stuff from prompts with the highest variation
+    if script_args.rollout_strategy=='var_max':
+        keep_inds = []
+        keepvars = list(np.argsort(varlist))[-int(keeplen/script_args.oversample):]
+        # TODO will need to sanity check this since its weirder
+        for k in keepvars: 
+            keep_inds.extend(list(range(k*script_args.oversample, (k+1)*script_args.oversample)))
+    elif script_args.rollout_strategy=='var_min':
+        keep_inds = []
+        keepvars = list(np.argsort(varlist))[:int(keeplen/script_args.oversample)]
+        # TODO will need to sanity check this since its weirder
+        for k in keepvars: 
+            keep_inds.extend(list(range(k*script_args.oversample, (k+1)*script_args.oversample)))
+    return keep_inds
+
+""" Method to get rollouts, specifically, it supports the ability to have multiple sources of rollouts"""
+def get_rollouts(ppo_trainer, question_tensors, output_length_sampler, script_args, generation_kwargs, tmpmodel, ratio):
+    responses = []
+    inrange = list(range(len(question_tensors)))
+    # print('start rollouts')
+    # print(get_unwrapped(ppo_trainer).active_adapters)
+    # print(get_unwrapped(ppo_trainer).peft_config)
+    # do stuff based on generation from ratio thing, TODO could support more interesting stuff if this works?
+    if ratio>0:
+        
+        get_unwrapped(ppo_trainer).set_adapter(tmpmodel)
+        random.shuffle(inrange)
+        responses.extend(ppo_trainer._generate_batched(
+            ppo_trainer.model,
+            [question_tensors[q] for q in inrange[:int(ratio*len(question_tensors))]],
+            length_sampler=output_length_sampler,
+            batch_size=script_args.gen_bsize,
+            return_prompt=False,
+            **generation_kwargs,
+        ))
+        print("this one has been generated successfully")
+    # print('second part of orollouts')
+    # print(get_unwrapped(ppo_trainer).active_adapters)
+    # print(get_unwrapped(ppo_trainer).peft_config)
+        
+    if ratio<1:
+        get_unwrapped(ppo_trainer).set_adapter("original")
+        # use current rollout for the reset
+        responses.extend(ppo_trainer._generate_batched(
+            ppo_trainer.model,
+            [question_tensors[q] for q in inrange[int(ratio*len(question_tensors)):]],
+            length_sampler=output_length_sampler,
+            batch_size=script_args.gen_bsize,
+            return_prompt=False,
+            **generation_kwargs,
+        ))
+    # put back in the correct order
+    results = [None]*len(question_tensors)
+    for i in range(len(responses)):
+        results[inrange[i]] = responses[i]
+    return results
+    
+def get_unwrapped(ppo_trainer):
+    return ppo_trainer.accelerator.unwrap_model(ppo_trainer.model).pretrained_model
 
 def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
+    #get_unwrapped(ppo_trainer).add_adapter("original", lora_config)
     sent_kwargs = {"return_all_scores": True, "function_to_apply": "none", "batch_size": 8, "truncation": True}
     # the `generate` function of the trained model.
     generation_kwargs = { 
-        "min_length": -1, "top_k": 0.0,"top_p": 1, "do_sample": True, #"pad_token_id": tokenizer.pad_token_id, # "eos_token_id": 100_000,
+        "min_length": -1, "top_k": 0.0,"top_p": 1, "do_sample": True, "temperature":script_args.temperature #"pad_token_id": tokenizer.pad_token_id, # "eos_token_id": 100_000,
     }
+    curstrat = -1
+    # every time we hit a new index in stratchange list, rollout strategy changes (new checkpoint on top of initial)
+    sjson = {'intervals':[100000]}
+    if script_args.generators_json !=None:
+        with open(script_args.generators_json) as f:
+            sjson = json.load(f)
+            
+    # TODO add option to shuffle before oversample generation
     current_device = Accelerator().local_process_index
+    
+    #get_unwrapped(ppo_trainer).to(current_device)
 
     min_len = script_args.output_max_length-2
     if script_args.trl_weird==1:
+        # TODO add in temperature here
         generation_kwargs = {
             "top_k": 0.0,"top_p": 1, "do_sample": True, "pad_token_id": tokenizer.pad_token_id, "eos_token_id": 100_000,
         }
         min_len = 32
-        
+
     # HACK since I don't like how they set up RL code length stuff
     output_length_sampler = LengthSampler(min_len, script_args.output_max_length)
 
     # compute moving averages over last 10 steps
-    run_hist = 10
     running_means = []
     running_stds = []
     rmname = script_args.reward_model_name
     
+    # TODO set up some arg assertions here for rollout strategies, put earlier in training
+    assert (script_args.oversample>1)==(script_args.rollout_strategy!="normal")
+    
+    tmpmodel = None
+    ratio = 0
     for epoch, batch in tqdm(enumerate(ppo_trainer.dataloader)):
+        if sjson['intervals'][curstrat+1]==epoch:
+            print("HOORAY! we're adding another rollout sampler into the mix")
+            curstrat+=1
+            get_unwrapped(ppo_trainer).load_adapter(sjson['checkpoints'][curstrat], sjson['checkpoints'][curstrat], is_trainable=False)
+            get_unwrapped(ppo_trainer).to(current_device)
+            ratio = sjson['ratios'][curstrat]
+            tmpmodel = sjson['checkpoints'][curstrat]
         if epoch >= script_args.steps:
             break
 
         question_tensors = batch["input_ids"]
+        
+        new_questions = []
+        new_queries = []
+        # we're doing something to oversample 
+        if script_args.oversample>1: 
+            for i in range(len(question_tensors)): 
+                new_questions.extend([question_tensors[i]]*script_args.oversample)
+                new_queries.extend([batch['query'][i]]*script_args.oversample)
+        assert len(new_questions)==len(question_tensors)*script_args.oversample
+        
+        question_tensors = new_questions
+        batch['query'] = new_queries
         
         if epoch == 0:
             # SANITY CHECKING
             print("PPO input")
             print(tokenizer.batch_decode(question_tensors, skip_special_tokens=True))
             
-        response_tensors = ppo_trainer.generate(
-            question_tensors,
-            return_prompt=False,
-            length_sampler=output_length_sampler,
-            **generation_kwargs,
-        )
+        with torch.no_grad():
+            # TODO more sophisticated sampling logic (maybe get some API call action, using dataset, etc.)
+            response_tensors = get_rollouts(ppo_trainer, question_tensors, output_length_sampler, script_args, generation_kwargs,tmpmodel, ratio)
+        
         batch["response"] = tokenizer.batch_decode(response_tensors, skip_special_tokens=True)
+        
         # let's manually avoid using stuff that needs to get omitted
         if script_args.omit_long==1:
-            longouts = tokenizer.batch_decode(response_tensors, skip_special_tokens=False)
-            # if epoch==0:
-                # HACK sanity check that the padding thing isn't a debilitating issue
-                # print(longouts)
-            # check if we get EOS, if not prepare to throw out
-            safeinds = []
-            badinds = []
-            for i in range(len(longouts)): 
-                if "</s>" not in longouts[i]:
-                    badinds.append(i)
-                else:
-                    safeinds.append(i)
-            # go through bad stuff, replace truncated with non-truncated
-            for bad in badinds:
-                safe = random.choice(safeinds)
-                # For logging
-                batch['response'][bad] =  "OMMITTED "+batch['response'][bad]
-                # For optimization, just make the response tensor all padding (get rid of the whole thing)
-                question_tensors[bad] = question_tensors[safe]
-                response_tensors[bad] = response_tensors[safe]
-                
-            print(len(badinds), " omitted")
+            omit_long(tokenizer, response_tensors, question_tensors, batch)
     
         if epoch == 0:
             # SANITY CHECKING
@@ -290,15 +522,37 @@ def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
         
         # NOTE RM score is based on API endpoint (rmname)
         if "http" in rmname: 
-            rewards = [torch.tensor(s).to(current_device) for s in get_scores_from_api(texts, rmname)]
+            rewards = [s for s in get_scores_from_api(texts, rmname)]
+        # using some kind of simple function-based reward
+        elif "function" in rmname: 
+            rewards = [s for s in get_synth_rewards(texts, rmname)]
         else: # otherwise based on in-process RM
             pipe_outputs = reward_model(texts, **sent_kwargs)
             if script_args.len_only>0:
                 # the reward is just a weird function thing, you set the max
-                rewards = [torch.tensor(lensco(len(response)/script_args.len_only)).to(current_device) for response in response_tensors]
+                rewards = [lensco(len(response)/script_args.len_only) for response in response_tensors]
             else:
                 # TODO length constraints, other fancy stuff gets added in here
-                rewards = [torch.tensor(output[0]["score"]-script_args.reward_baseline).to(current_device) for output in pipe_outputs]
+                rewards = [output[0]["score"]-script_args.reward_baseline for output in pipe_outputs]
+        
+        # different strategies on how to deal with oversampling, make sure to prop through all the variables to avoid errors
+        keep_inds = keep_strat(script_args, rewards, list(range(len(rewards)))) # default
+        if epoch==0:
+            print(rewards)
+            print(keep_inds)
+        print("KEEP INDS: ", len(keep_inds))
+        print("RM INIT", mean(rewards))
+        print('RM STDEV INIT', stdev(rewards))
+        rewards = [rewards[k] for k in keep_inds]
+        print("RM MEAN", mean(rewards))
+        print('RM STDEV', stdev(rewards))
+        rewards = [torch.tensor(r).to(current_device) for r in rewards]
+        batch['query'] = [batch['query'][k] for k in keep_inds]
+        batch['response'] = [batch['response'][k] for k in keep_inds]
+        response_tensors = [response_tensors[k] for k in keep_inds]
+        question_tensors = [question_tensors[k] for k in keep_inds]
+        
+        # TODO offload into another method too
         # use this for logging
         logrewards = [r for r in rewards]
         # using running mean and running stdev to do stuff if needed
