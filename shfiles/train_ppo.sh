@@ -179,8 +179,123 @@
 #     --early_stopping=False --output_dir=checkpoints/ultrappolongrun/ \
 #     --init_kl_coef=0.04 --steps=1000
 
-export CUDA_VISIBLE_DEVICES=4,5
-accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29527 \
+# export CUDA_VISIBLE_DEVICES=4,5
+# accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29527 \
+#     --num_machines 1  \
+#     --num_processes 2 \
+#     scripts/train_rlhf.py --log_with=wandb \
+#     --model_name=facebook/opt-125m \
+#     --dataset_name="ultra" \
+#     --reward_model_name="function:bagofwords" \
+#     --adafactor=False \
+#     --save_freq=25 \
+#     --output_max_length=50 --batch_size=16 \
+#     --gradient_accumulation_steps=1 \
+#     --ppo_epochs=1 --seed=10 --learning_rate=1.4e-5 \
+#     --early_stopping=False --output_dir=checkpoints/bowvarnewseed/ \
+#     --init_kl_coef=0.02 --steps=300 \
+#     --oversample=4 --rollout_strategy="var_max" \
+#     --gen_bsize=64 --temperature=1 \
+#     --generators_json="scripts/bowstrat.json"
+
+# export CUDA_VISIBLE_DEVICES=4,5
+# accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29527 \
+#     --num_machines 1  \
+#     --num_processes 2 \
+#     scripts/train_rlhf.py --log_with=wandb \
+#     --model_name=facebook/opt-125m \
+#     --dataset_name="ultra" \
+#     --reward_model_name="function:bagofwords" \
+#     --adafactor=False \
+#     --save_freq=25 \
+#     --output_max_length=50 --batch_size=16 \
+#     --gradient_accumulation_steps=1 \
+#     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
+#     --early_stopping=False --output_dir=checkpoints/bowvarmultisamp2/ \
+#     --init_kl_coef=0.02 --steps=300 \
+#     --oversample=4 --rollout_strategy="var_max" \
+#     --gen_bsize=64 --temperature=1 \
+#     --generators_json="scripts/bowstrat2.json"
+
+# export CUDA_VISIBLE_DEVICES=4,5
+# accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29527 \
+#     --num_machines 1  \
+#     --num_processes 2 \
+#     scripts/train_rlhf.py --log_with=wandb \
+#     --model_name=facebook/opt-125m \
+#     --dataset_name="ultra" \
+#     --reward_model_name="function:bagofwords" \
+#     --adafactor=False \
+#     --save_freq=25 \
+#     --output_max_length=50 --batch_size=16 \
+#     --gradient_accumulation_steps=1 \
+#     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
+#     --early_stopping=False --output_dir=checkpoints/bowvarmultisamp3/ \
+#     --init_kl_coef=0.02 --steps=300 \
+#     --oversample=4 --rollout_strategy="var_max" \
+#     --gen_bsize=64 --temperature=1 \
+#     --generators_json="scripts/bowstrat3.json"
+
+# export CUDA_VISIBLE_DEVICES=6,7
+# accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29528 \
+#     --num_machines 1  \
+#     --num_processes 2 \
+#     scripts/train_rlhf.py --log_with=wandb \
+#     --model_name=facebook/opt-125m \
+#     --dataset_name="ultra" \
+#     --reward_model_name="function:bagofwords" \
+#     --adafactor=False \
+#     --save_freq=25 \
+#     --output_max_length=50 --batch_size=32 \
+#     --gradient_accumulation_steps=1 \
+#     --ppo_epochs=1 --seed=10 --learning_rate=1.4e-5 \
+#     --early_stopping=False --output_dir=checkpoints/32bowvarnewseed/ \
+#     --init_kl_coef=0.02 --steps=300 \
+#     --oversample=2 --rollout_strategy="var_max" \
+#     --gen_bsize=64 --temperature=1 \
+#     --generators_json="scripts/bowstrat.json"
+
+# export CUDA_VISIBLE_DEVICES=6,7
+# accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29528 \
+#     --num_machines 1  \
+#     --num_processes 2 \
+#     scripts/train_rlhf.py --log_with=wandb \
+#     --model_name=facebook/opt-125m \
+#     --dataset_name="ultra" \
+#     --reward_model_name="function:bagofwords" \
+#     --adafactor=False \
+#     --save_freq=25 \
+#     --output_max_length=50 --batch_size=32 \
+#     --gradient_accumulation_steps=1 \
+#     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
+#     --early_stopping=False --output_dir=checkpoints/32bowvarmultisamp2/ \
+#     --init_kl_coef=0.02 --steps=300 \
+#     --oversample=2 --rollout_strategy="var_max" \
+#     --gen_bsize=64 --temperature=1 \
+#     --generators_json="scripts/bowstrat2.json"
+
+# export CUDA_VISIBLE_DEVICES=2,3
+# accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29522 \
+#     --num_machines 1  \
+#     --num_processes 2 \
+#     scripts/train_rlhf.py --log_with=wandb \
+#     --model_name=facebook/opt-125m \
+#     --dataset_name="ultra" \
+#     --reward_model_name="function:bagofwords" \
+#     --adafactor=False \
+#     --save_freq=25 \
+#     --output_max_length=50 --batch_size=16 \
+#     --gradient_accumulation_steps=1 \
+#     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
+#     --early_stopping=False --output_dir=checkpoints/bowvarmultisampstartbigmany/ \
+#     --init_kl_coef=0.02 --steps=1000 \
+#     --oversample=4 --rollout_strategy="var_max" \
+#     --gen_bsize=64 --temperature=1 \
+#     --generators_json="scripts/bowstrat.json"
+
+
+export CUDA_VISIBLE_DEVICES=6,7
+accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29520 \
     --num_machines 1  \
     --num_processes 2 \
     scripts/train_rlhf.py --log_with=wandb \
@@ -192,10 +307,10 @@ accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_p
     --output_max_length=50 --batch_size=16 \
     --gradient_accumulation_steps=1 \
     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
-    --early_stopping=False --output_dir=checkpoints/bowvarmultisamp/ \
-    --init_kl_coef=0.02 --steps=300 \
-    --oversample=4 --rollout_strategy="var_max" \
-    --gen_bsize=64 --temperature=1 \
+    --early_stopping=False --output_dir=checkpoints/bownormalmultisampadd50b16/ \
+    --init_kl_coef=0.02 --steps=1000 \
+    --oversample=1 --rollout_strategy="normal" \
+    --gen_bsize=32 --temperature=1 \
     --generators_json="scripts/bowstrat.json"
 
 # note I played with the LR here

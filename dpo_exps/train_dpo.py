@@ -10,7 +10,7 @@ from peft import LoraConfig
 from transformers import AutoTokenizer, HfArgumentParser, TrainingArguments, AutoModelForCausalLM
 
 from trl import DPOTrainer
-from rlhfutils.data import load_rlcd, load_wgpt, load_stack, inp_origformat, adjust_apf
+from rlhfutils.data import load_rlcd, load_wgpt, load_stack, inp_origformat, adjust_apf, load_manual
 
 os.environ["WANDB_TAGS"] = "[\"dporlhf\"]"
 
@@ -39,8 +39,8 @@ class ScriptArguments:
     weight_decay: Optional[float] = field(default=0.05, metadata={"help": "the weight decay"})
     optimizer_type: Optional[str] = field(default="paged_adamw_32bit", metadata={"help": "the optimizer type"})
 
-    per_device_train_batch_size: Optional[int] = field(default=4, metadata={"help": "train batch size per device"})
-    per_device_eval_batch_size: Optional[int] = field(default=1, metadata={"help": "eval batch size per device"})
+    per_device_train_batch_size: Optional[int] = field(default=2, metadata={"help": "train batch size per device"})
+    per_device_eval_batch_size: Optional[int] = field(default=8, metadata={"help": "eval batch size per device"})
     gradient_accumulation_steps: Optional[int] = field(
         default=1, metadata={"help": "the number of gradient accumulation steps"}
     )
@@ -54,10 +54,10 @@ class ScriptArguments:
 
     max_prompt_length: Optional[int] = field(default=512, metadata={"help": "the maximum prompt length"})
     max_length: Optional[int] = field(default=1024, metadata={"help": "the maximum sequence length"})
-    max_steps: Optional[int] = field(default=4000, metadata={"help": "max number of training steps"})
+    max_steps: Optional[int] = field(default=50000, metadata={"help": "max number of training steps"})
     logging_steps: Optional[int] = field(default=10, metadata={"help": "the logging frequency"})
-    save_steps: Optional[int] = field(default=100, metadata={"help": "the saving frequency"})
-    eval_steps: Optional[int] = field(default=100, metadata={"help": "the evaluation frequency"})
+    save_steps: Optional[int] = field(default=1000, metadata={"help": "the saving frequency"})
+    eval_steps: Optional[int] = field(default=1000, metadata={"help": "the evaluation frequency"})
 
     output_dir: Optional[str] = field(default="./results", metadata={"help": "the output directory"})
     log_freq: Optional[int] = field(default=1, metadata={"help": "the logging frequency"})
@@ -95,6 +95,9 @@ def load_dpo_data(
         pfunct = inp_origformat
     elif dataset == 'rlcd':
         train_data, eval_data = load_rlcd()
+        pfunct = adjust_apf
+    else: 
+        train_data, eval_data = load_manual(dataset, "")
         pfunct = adjust_apf
         
     # TODO add in a sanity check
@@ -197,17 +200,17 @@ if __name__ == "__main__":
     train_dataset, eval_dataset = load_dpo_data(script_args, script_args.dataset)
     
     # 2. Load the Stack-exchange paired dataset
-    oldstack = get_stack_exchange_paired(data_dir="data/rl", sanity_check=script_args.sanity_check)
-    oldstack = train_dataset.filter(
-        lambda x: len(x["prompt"]) + len(x["chosen"]) <= script_args.max_length
-        and len(x["prompt"]) + len(x["rejected"]) <= script_args.max_length
-    )
+    # oldstack = get_stack_exchange_paired(data_dir="data/rl", sanity_check=script_args.sanity_check)
+    # oldstack = train_dataset.filter(
+    #     lambda x: len(x["prompt"]) + len(x["chosen"]) <= script_args.max_length
+    #     and len(x["prompt"]) + len(x["rejected"]) <= script_args.max_length
+    # )
     
-    print("MAKE SURE TO LOOK AT THIS DATA AND MAKE SURE IT MAKES SENSE")
-    if script_args.dataset=='stack':
-        print('previous data loading logic')
-        print(oldstack[0]['prompt'])
-        print(oldstack[0]['chosen'])
+    # print("MAKE SURE TO LOOK AT THIS DATA AND MAKE SURE IT MAKES SENSE")
+    # if script_args.dataset=='stack':
+    #     print('previous data loading logic')
+    #     print(oldstack[0]['prompt'])
+    #     print(oldstack[0]['chosen'])
     
     print("TRAIN DATA")
     print(train_dataset[0]['prompt'])

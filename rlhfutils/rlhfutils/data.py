@@ -386,12 +386,16 @@ def load_stack():
     return train_dataset, eval_dataset
 
 def load_manual(iname, base="data/categories/"):
+   
     print("GOING THROUGH PROCESS FOR "+iname)
-    orig_dataset = load_from_disk(base+iname.replace("stack_", ""))
+    if "stack" in iname:
+        orig_dataset = load_from_disk(base+iname.replace("stack_", ""))
+    else: 
+        orig_dataset = load_from_disk(base+iname)
     print("initial size ", len(orig_dataset))
 
     # NOTE use 95% of the dataset for training
-    DRATIO = 0.90
+    DRATIO = 0.99
     train_dataset = orig_dataset.select(range(int(len(orig_dataset)*DRATIO)))
     print(len(train_dataset))
     eval_dataset = orig_dataset.select(range(int(len(orig_dataset)*DRATIO), len(orig_dataset)))

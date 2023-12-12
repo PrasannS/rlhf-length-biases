@@ -6,7 +6,7 @@ from datasets import load_dataset
 from peft import PeftModel
 from tqdm import tqdm
 from transformers import  AutoTokenizer, AutoModelForCausalLM
-from rlhfutils.data import load_rlcd, load_apfarm, webgpt_template
+from rlhfutils.data import load_rlcd, load_apfarm, webgpt_template, load_ultra
 import pandas as pd
 import copy
 import argparse
@@ -73,6 +73,16 @@ def load_webgpt(topval, bottom=0):
 def adjust_rlcd(question):
     # NOTE this only works for new RLCD models, prompt matters, this was off, rerun wgpt accordingly
     return webgpt_template("Continue the conversation:\n\n"+question.strip()+"\n\nAssistant: ")
+
+
+def lultra(topval, bottom=0):
+    _, eval_dset = load_ultra()
+    # NOTE need to get the prompt data in the right way, not the RM way
+    res = [{'query':adjust_input(q['question'], True)} for q in eval_dset]
+    
+    print("SANITY CHECK\n"+res[0]['query'])
+    return res[bottom:topval]
+    
 # wrapper for loading rlcd
 def lrlcd(topval, bottom=0):
     _, eval_dset = load_rlcd()
@@ -101,6 +111,8 @@ def load_dset(dset, topval, bottom=0):
         return lapf(topval, bottom)
     elif "rlcd" in dset:
         return lrlcd(topval, bottom)
+    elif "ultra" in dset: 
+        return lultra(topval, bottom)
 
 def generate_outs(model, results, generation_kwargs, qsize=1, savefile="tmp.jsonl"):
     generation_kwargs['num_return_sequences']=1
@@ -200,7 +212,7 @@ def main(args):
         
     # NOTE try original kwargs since new ones are broken?
     generation_kwargs = {
-        "min_length": 200, # TODO switch this back at some point
+        "min_length": -1,
         "max_new_tokens":256,
         #"top_k": 0.0,
         "top_p": 0.9,

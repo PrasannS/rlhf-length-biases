@@ -18,9 +18,17 @@
 
 export CUDA_VISIBLE_DEVICES=5
 python -u scripts/generate_outs.py \
-    "models/stack/sft" \
-    stack \
-    "/u/prasanns/research/rlhf-length-biases/checkpoints/stackapibigrmstep_225" \
-    "stack13bppo" \
-    0 500  \
-    1
+    "facebook/opt-125m" \
+    ultra \
+    "/u/prasanns/research/rlhf-length-biases/dpo/dpobow/checkpoint-3000" \
+    "dpobow3k" \
+    0 100  \
+    4
+
+# python -u scripts/generate_outs.py \
+#     "facebook/opt-125m" \
+#     ultra \
+#     "/u/prasanns/research/rlhf-length-biases/dpo/dponoun/checkpoint-42000" \
+#     "dponoun" \
+#     0 100  \
+#     4
