@@ -285,15 +285,15 @@
 #     --basemodel "nobase" \
 #     --outputdir outputs/ultrarmscos/u750_dpo13b.jsonl
 
-export CUDA_VISIBLE_DEVICES=6,7
-python -u scripts/rmsco_outs.py \
-    --rmname="allenai/tulu-2-dpo-13b" \
-    --inpf="/u/prasanns/research/rlhf-length-biases/outputs/ultragen/generated_ultra975.jsonl" \
-    --device 0 \
-    --lim 100 \
-    --shuffle 0 \
-    --basemodel "nobase" \
-    --outputdir outputs/ultrarmscos/u975_dpo13b.jsonl
+# export CUDA_VISIBLE_DEVICES=6,7
+# python -u scripts/rmsco_outs.py \
+#     --rmname="allenai/tulu-2-dpo-13b" \
+#     --inpf="/u/prasanns/research/rlhf-length-biases/outputs/ultragen/generated_ultra975.jsonl" \
+#     --device 0 \
+#     --lim 100 \
+#     --shuffle 0 \
+#     --basemodel "nobase" \
+#     --outputdir outputs/ultrarmscos/u975_dpo13b.jsonl
 
 # export CUDA_VISIBLE_DEVICES=4,5
 # python -u scripts/rmsco_outs.py \
@@ -452,15 +452,78 @@ python -u scripts/rmsco_outs.py \
 #     --outputdir outputs/ultrarmscos/u750_7brm.jsonl
 
 
-# export CUDA_VISIBLE_DEVICES=0,1,2,3
+export CUDA_VISIBLE_DEVICES=2,3,4,5,6,7
 # python -u scripts/rmsco_outs.py \
 #     --rmname="/u/prasanns/research/rlhf-length-biases/models/rewards/ultrarm" \
-#     --inpf="/u/prasanns/research/rlhf-length-biases/outputs/ultragen/generated_ultra975.jsonl" \
+#     --inpf="/u/prasanns/research/rlhf-length-biases/outputs/longppo_samples/generated_longppo_big25.jsonl" \
 #     --device 0 \
-#     --lim 100 \
+#     --lim 1200 \
 #     --shuffle 0 \
 #     --basemodel "nobase" \
-#     --outputdir outputs/ultrarmscos/u975_7brm.jsonl
+#     --outputdir outputs/longjobscos/step25.jsonl
+
+# python -u scripts/rmsco_outs.py \
+#     --rmname="/u/prasanns/research/rlhf-length-biases/models/rewards/ultrarm" \
+#     --inpf="/u/prasanns/research/rlhf-length-biases/outputs/longppo_samples/generated_longppo_big50.jsonl" \
+#     --device 0 \
+#     --lim 1200 \
+#     --shuffle 0 \
+#     --basemodel "nobase" \
+#     --outputdir outputs/longjobscos/step50.jsonl
+
+# python -u scripts/rmsco_outs.py \
+#     --rmname="/u/prasanns/research/rlhf-length-biases/models/rewards/ultrarm" \
+#     --inpf="/u/prasanns/research/rlhf-length-biases/outputs/longppo_samples/generated_longppo_big75.jsonl" \
+#     --device 1 \
+#     --lim 1200 \
+#     --shuffle 0 \
+#     --basemodel "nobase" \
+#     --outputdir outputs/longjobscos/step75.jsonl
+
+python -u scripts/rmsco_outs.py \
+    --rmname="/u/prasanns/research/rlhf-length-biases/models/rewards/ultrarm" \
+    --inpf="/u/prasanns/research/rlhf-length-biases/outputs/longppo_samples/generated_longppo_bigorig.jsonl" \
+    --device 1 \
+    --lim 1200 \
+    --shuffle 0 \
+    --basemodel "nobase" \
+    --outputdir outputs/longjobscos/sft.jsonl
+
+# python -u scripts/rmsco_outs.py \
+#     --rmname="/u/prasanns/research/rlhf-length-biases/models/rewards/ultrarm" \
+#     --inpf="/u/prasanns/research/rlhf-length-biases/outputs/longppo_samples/generated_longppo_big100.jsonl" \
+#     --device 2 \
+#     --lim 1200 \
+#     --shuffle 0 \
+#     --basemodel "nobase" \
+#     --outputdir outputs/longjobscos/step100.jsonl
+
+# python -u scripts/rmsco_outs.py \
+#     --rmname="/u/prasanns/research/rlhf-length-biases/models/rewards/ultrarm" \
+#     --inpf="/u/prasanns/research/rlhf-length-biases/outputs/longppo_samples/generated_longppo_big125.jsonl" \
+#     --device 3 \
+#     --lim 1200 \
+#     --shuffle 0 \
+#     --basemodel "nobase" \
+#     --outputdir outputs/longjobscos/step125.jsonl
+
+# python -u scripts/rmsco_outs.py \
+#     --rmname="/u/prasanns/research/rlhf-length-biases/models/rewards/ultrarm" \
+#     --inpf="/u/prasanns/research/rlhf-length-biases/outputs/longppo_samples/generated_longppo_big150.jsonl" \
+#     --device 4 \
+#     --lim 1200 \
+#     --shuffle 0 \
+#     --basemodel "nobase" \
+#     --outputdir outputs/longjobscos/step150.jsonl
+
+# python -u scripts/rmsco_outs.py \
+#     --rmname="/u/prasanns/research/rlhf-length-biases/models/rewards/ultrarm" \
+#     --inpf="/u/prasanns/research/rlhf-length-biases/outputs/longppo_samples/generated_longppo_big175.jsonl" \
+#     --device 5 \
+#     --lim 1200 \
+#     --shuffle 0 \
+#     --basemodel "nobase" \
+#     --outputdir outputs/longjobscos/step175.jsonl
 
 # export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 # torchrun --nnodes 1  --nproc_per_node 1 --master_port=12349 scripts/dpo_eval.py \

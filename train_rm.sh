@@ -161,8 +161,8 @@
 export CUDA_VISIBLE_DEVICES=4,5,6,7
 torchrun --nnodes 1  --nproc_per_node 4 --master_port=12340 scripts/train_rm.py \
         --model_name=facebook/opt-125m \
-        --output_dir=/u/prasanns/research/rlhf-length-biases/checkpoints/moresynth/nounsrm/ \
-        --dataset=/u/prasanns/research/rlhf-length-biases/data/dponounsynth \
+        --output_dir=/u/prasanns/research/rlhf-length-biases/checkpoints/expbowrm \
+        --dataset=/u/prasanns/research/rlhf-length-biases/data/expandedbowsynth \
         --rand_ratio=0 \
         --balance_len=0 \
         --num_train_epochs=15 \

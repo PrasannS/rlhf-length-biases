@@ -19,6 +19,8 @@ from statistics import mean
 import spacy
 from peft import PeftModel
 import json
+import filelock
+import math
 
 # Load the English language model
 nlp = spacy.load("en_core_web_sm")
@@ -57,7 +59,7 @@ class ScriptArguments:
     )
     adafactor: Optional[bool] = field(default=False, metadata={"help": "whether to use the adafactor optimizer"})
     early_stopping: Optional[bool] = field(default=False, metadata={"help": "whether to early stop"})
-    save_rollouts: Optional[bool] = field(default=True, metadata={"help": "save rollouts, rewards to file"})
+    save_rollouts: Optional[bool] = field(default=False, metadata={"help": "save rollouts, rewards to file"})
     target_kl: Optional[float] = field(default=0.1, metadata={"help": "kl target for early stopping"})
     reward_baseline: Optional[float] = field(
        default=0,
@@ -92,13 +94,13 @@ class ScriptArguments:
        metadata={"help": "whether to omit outputs that don't fit in length context or not"},
     )
     gen_bsize: Optional[int] = field(
-       default=32,
+       default=1,
        metadata={"help": "how many outputs to over-generate per sample"},
     )
     # these are some parameters for custom rollouts
     rollout_strategy: Optional[str] = field(default="normal", metadata={"help": "rollout strategy, start with high var, high mean, etc"})
     oversample: Optional[int] = field(
-       default=4,
+       default=1,
        metadata={"help": "how many outputs to over-generate per sample"},
     )
     temperature: Optional[float] = field(
@@ -106,7 +108,12 @@ class ScriptArguments:
        metadata={"help": "sampling temperature for generation"},
     )
     generators_json: Optional[str] = field(default=None, metadata={"help": "json file indicating which checkpoints to use for rollouts at various points"})
-
+    # token count-based bonus for exploration, TODO will need to mess with this more, may be additional fun stuff to try
+    tok_bonus_ratio: Optional[float] = field(
+       default=0,
+       metadata={"help": "bonus reward (token-based) to encourage unexplored tokens showing up more"},
+    )
+    
 DEFAULT_PAD_TOKEN = "[PAD]"
 DEFAULT_EOS_TOKEN = "</s>"
 DEFAULT_BOS_TOKEN = "</s>"
@@ -253,50 +260,95 @@ def token_depth(token):
 # code to get max syntax tree depth from a list of 
 def synt_tree_dep(text_list): 
     def scodep(instr): 
-        # only use response part of str
-        istr = instr.split("Answer:")[1]
+        if "Answer:" in instr:
+            # only use response part of str
+            istr = instr.split("Answer:")[1]
+        else:
+            istr = instr
         doc = nlp(istr)
         
         # Calculate the maximum depth of the syntax tree
         return max(token_depth(token) for token in doc)
     return [float(scodep(s)) for s in text_list]
 
-# return number of nouns in each item from list of strings
-def numnouns(text_list, nocont=True):
-    def sconoun(instr, nocont): 
+# contextualized
+def scopos(instr, pstr="NN"): 
+        
         # only use response part of str
-        if nocont:
+        if "Answer:" in instr:
             istr = instr.split("Answer:")[1]
-        else: 
+        else:
             istr = instr
+
+            
         tokens = word_tokenize(istr)
         tagged = pos_tag(tokens)
-        return len([word for word, pos in tagged if pos.startswith('NN')])
-    return [float(sconoun(s, nocont)) for s in text_list]
+        # print(tagged)
+        return len([word for word, pos in tagged if pos.startswith(pstr)])
+    
+# return number of nouns in each item from list of strings
+def numnouns(text_list):
+    return [float(scopos(s)) for s in text_list]
+
+featlist = [
+    {'noun':lambda ex: scopos(ex, "NN"), 'adj':lambda ex: scopos(ex, "JJ"), 'verb':lambda ex: scopos(ex, "V")}, 
+    {'min':lambda sco: -1*sco, 'max':lambda sco:sco},
+]
+def contnumpos(text_list):
+    def scocont(instr):
+        try:
+            splitter = "Answer:" if "Answer:" in instr else "### Response:"
+            assert "Answer:" in instr or "### Response:" in instr
+            inpwords = instr.split(splitter)[0].split(" ")
+            #print(inpwords)
+            res = instr.split(splitter)[1]
+            for f in featlist:
+                for k in f.keys():
+                    if k in inpwords: 
+                        #print(k)
+                        res = float(f[k](res))
+            #print(res)
+            return float(res)
+        except: 
+            print('weird')
+            return 0
+    
+    return [scocont(s) for s in text_list]
 
 bow_words = [
     # content
     'data', 'hope', 'information', 'provide', 'example', 'your', 'however', 'first', 'have', 'help'
 ]
-def bowfunct(text_list, nocont=True, log=True):
-    uns = []
-    def scobow(instr, nocont, uns): 
+# more bow words to use if we want
+extra_bow_words = ['additionally', 'important', 'include', 'finally', 'following', 'happy', 'code', 'two', 'create', 'question', 'possible', 'understand', 'generate', 'contains', 
+'appropriate', 'best', 'respectful', 'ensure', 'experience', 'safe']
+# TODO reverted back to original list size
+bow_words.extend(extra_bow_words)
+def scobow(instr, nocont, uns):
         # only use response part of str
         if nocont:
-            istr = instr.split("Answer:")[1]
+            if "Answer:" in instr:
+                istr = instr.split("Answer:")[1]
+            else:
+                istr = instr
         else: 
             istr = instr
         tokens = word_tokenize(istr)
         sco = 0
         for t in bow_words: 
             if t in tokens: 
-                uns.append(t)
+                if t not in uns.keys():
+                    uns[t] = 0
+                uns[t] = uns[t]+1
+                #uns.append(t)
                 sco = sco + 1
         return sco
     
+def bowfunct(text_list, nocont=True, log=False):
+    uns = {}
     bowscos = [float(scobow(s, nocont, uns)) for s in text_list]
     if log:
-        print("uniques", len(set(uns)), set(uns))
+        print("uniques", len(uns.keys()), uns)
     return bowscos
 
 # code for omitting stuff that goes over length, TODO sanity check that this works still (mutability context thing)
@@ -320,7 +372,6 @@ def omit_long(tokenizer, response_tensors, question_tensors, batch):
         response_tensors[bad] = response_tensors[safe]
         
     print(len(badinds), " omitted")
-    
 
 def notoks(text_list):
     def scotok(instr):
@@ -343,9 +394,11 @@ def get_synth_rewards(text_list, rmname):
     if "treedep" in rmname: 
         scores = synt_tree_dep(text_list)
     if "nouns" in rmname: 
-        scores = numnouns(text_list, cont)
+        scores = numnouns(text_list)
     if "bagofwords" in rmname: 
         scores = bowfunct(text_list, cont)
+    if "contpos" in rmname: 
+        scores = contnumpos(text_list)
     if 'allobjs' in rmname: 
         scores =  allobjs(text_list)
     if "nounvstoks" in rmname:
@@ -359,36 +412,34 @@ def get_synth_rewards(text_list, rmname):
 def keep_strat(script_args, rewards, keep_inds):
     keeplen = int(len(rewards)/script_args.oversample)
     # only keep output of each prompt that is the best or worst in terms of reward 
-    if script_args.rollout_strategy=='prompt_max':
+    if 'prompt_max' in script_args.rollout_strategy:
         keep_inds = []
         # within each prompt sample
         for i in range(0, len(rewards), script_args.oversample):
             keep_inds.append(int(i+np.argmax(rewards[i:i+script_args.oversample])))
-    elif script_args.rollout_strategy=='prompt_min':
+    elif 'prompt_min' in script_args.rollout_strategy:
         keep_inds = []
         # within each prompt sample
         for i in range(0, len(rewards), script_args.oversample):
             keep_inds.append(int(i+np.argmin(rewards[i:i+script_args.oversample])))
     # 'all': take regardless of where it's coming from
-    elif script_args.rollout_strategy=='all_max':
+    elif 'all_max' in script_args.rollout_strategy:
         # last of set to keee
         keep_inds = list(np.argsort(rewards))[-(keeplen):]
-        #print(keep_inds)
-        #print(rewards)
         assert rewards[keep_inds[-1]]==max(rewards)
-    elif script_args.rollout_strategy=='all_min':
+    elif 'all_min' in script_args.rollout_strategy:
         keep_inds = list(np.argsort(rewards))[:(keeplen)]
         assert rewards[keep_inds[0]]==min(rewards)
     if script_args.oversample>1:
         varlist = [stdev(rewards[i:i+script_args.oversample]) for i in range(0, len(rewards), script_args.oversample)]
     # keep all stuff from prompts with the highest variation
-    if script_args.rollout_strategy=='var_max':
+    if 'var_max' in script_args.rollout_strategy:
         keep_inds = []
         keepvars = list(np.argsort(varlist))[-int(keeplen/script_args.oversample):]
         # TODO will need to sanity check this since its weirder
         for k in keepvars: 
             keep_inds.extend(list(range(k*script_args.oversample, (k+1)*script_args.oversample)))
-    elif script_args.rollout_strategy=='var_min':
+    elif 'var_min' in script_args.rollout_strategy:
         keep_inds = []
         keepvars = list(np.argsort(varlist))[:int(keeplen/script_args.oversample)]
         # TODO will need to sanity check this since its weirder
@@ -403,17 +454,28 @@ def get_rollouts(ppo_trainer, question_tensors, output_length_sampler, script_ar
     kl_mask = [1]*len(question_tensors)
     # do stuff based on generation from ratio thing, TODO could support more interesting stuff if this works?
     if ratio>0:
-        
-        get_unwrapped(ppo_trainer).set_adapter(tmpmodel)
+        if tmpmodel!='orig':
+            get_unwrapped(ppo_trainer).set_adapter(tmpmodel)
         random.shuffle(inrange)
-        responses.extend(ppo_trainer._generate_batched(
-            ppo_trainer.model,
-            [question_tensors[q] for q in inrange[:int(ratio*len(question_tensors))]],
-            length_sampler=output_length_sampler,
-            batch_size=script_args.gen_bsize,
-            return_prompt=False,
-            **generation_kwargs,
-        ))
+        if tmpmodel=='orig':
+            with ppo_trainer.optional_peft_ctx():
+                responses.extend(ppo_trainer._generate_batched(
+                    ppo_trainer.model,
+                    [question_tensors[q] for q in inrange[:int(ratio*len(question_tensors))]],
+                    length_sampler=output_length_sampler,
+                    batch_size=script_args.gen_bsize,
+                    return_prompt=False,
+                    **generation_kwargs,
+                ))
+        else:
+            responses.extend(ppo_trainer._generate_batched(
+                ppo_trainer.model,
+                [question_tensors[q] for q in inrange[:int(ratio*len(question_tensors))]],
+                length_sampler=output_length_sampler,
+                batch_size=script_args.gen_bsize,
+                return_prompt=False,
+                **generation_kwargs,
+            ))
         for j in inrange[:int(ratio*len(question_tensors))]:
             kl_mask[j]=0
         print("this one has been generated successfully")
@@ -441,6 +503,39 @@ def get_rollouts(ppo_trainer, question_tensors, output_length_sampler, script_ar
 def get_unwrapped(ppo_trainer):
     return ppo_trainer.accelerator.unwrap_model(ppo_trainer.model).pretrained_model
 
+
+def append_dict_to_jsonl(metadata_dict, fname):
+    # Convert dictionary to JSON string
+    json_string = json.dumps(metadata_dict)
+
+    # Ensure thread-safe file writing
+    lock = filelock.FileLock(f"{fname}.lock")
+
+    with lock:
+        # Open the file in append mode and write the JSON string
+        with open(fname, 'a') as file:
+            file.write(json_string + '\n')
+            
+# TODO try with and without context (will give bonus to newer contexts)
+def update_tokdict_bonuses(responses, tokdict): 
+    # add based on unique things where a word occurs
+    resps = [set(word_tokenize(resp)) for resp in responses]
+    bonuses = []
+    base = len(responses)
+    if len(tokdict.values())>0:
+        base = base + max(tokdict.values())
+    for r in resps: 
+        bonus = 0
+        for word in r: 
+            if word not in tokdict.keys(): 
+                tokdict[word] = 0
+            # NOTE order sort of matters here, don't give bonus at the very beginning, not sure if matters
+            tokdict[word] += 1
+            bonus+= (1-math.sqrt(tokdict[word]/base))
+        bonuses.append(bonus)
+    # TODO play around with scaling a bit
+    return bonuses
+
 def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
     #get_unwrapped(ppo_trainer).add_adapter("original", lora_config)
     sent_kwargs = {"return_all_scores": True, "function_to_apply": "none", "batch_size": 8, "truncation": True}
@@ -459,7 +554,7 @@ def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
     current_device = Accelerator().local_process_index
     
     #get_unwrapped(ppo_trainer).to(current_device)
-
+    rollout_tokens_dict = {}
     min_len = script_args.output_max_length-2
     if script_args.trl_weird==1:
         # TODO add in temperature here
@@ -477,7 +572,7 @@ def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
     rmname = script_args.reward_model_name
     
     # TODO set up some arg assertions here for rollout strategies, put earlier in training
-    assert (script_args.oversample>1)==(script_args.rollout_strategy!="normal")
+    assert (script_args.oversample>1)==("normal" not in script_args.rollout_strategy)
     
     tmpmodel = None
     ratio = 0
@@ -485,8 +580,10 @@ def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
         if sjson['intervals'][curstrat+1]==epoch:
             print("HOORAY! we're adding another rollout sampler into the mix")
             curstrat+=1
-            get_unwrapped(ppo_trainer).load_adapter(sjson['checkpoints'][curstrat], sjson['checkpoints'][curstrat], is_trainable=False)
-            get_unwrapped(ppo_trainer).to(current_device)
+            # make an exception for just sft case
+            if sjson['checkpoints'][curstrat]!='orig':
+                get_unwrapped(ppo_trainer).load_adapter(sjson['checkpoints'][curstrat], sjson['checkpoints'][curstrat], is_trainable=False)
+                get_unwrapped(ppo_trainer).to(current_device)
             ratio = sjson['ratios'][curstrat]
             tmpmodel = sjson['checkpoints'][curstrat]
         if epoch >= script_args.steps:
@@ -513,7 +610,7 @@ def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
             
         with torch.no_grad():
             # TODO more sophisticated sampling logic (maybe get some API call action, using dataset, etc.)
-            response_tensors, kl_mask = get_rollouts(ppo_trainer, question_tensors, output_length_sampler, script_args, generation_kwargs,tmpmodel, ratio)
+            response_tensors, kl_mask = get_rollouts(ppo_trainer, question_tensors, output_length_sampler, script_args, generation_kwargs,tmpmodel,abs(ratio))
         
         batch["response"] = tokenizer.batch_decode(response_tensors, skip_special_tokens=True)
         
@@ -546,8 +643,7 @@ def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
         
         # different strategies on how to deal with oversampling, make sure to prop through all the variables to avoid errors
         keep_inds = keep_strat(script_args, rewards, list(range(len(rewards)))) # default
-        if script_args.keep_rollouts:
-            rollfile = script_args.output_dir.replace("checkpoints/", "outputs/rollouts")
+        if script_args.save_rollouts:
             roll_dict = {'inputs':batch['query'], 'outputs':batch['response'], 'rewards':rewards, 'keepinds':keep_inds}
         if epoch==0:
             print(rewards)
@@ -556,24 +652,46 @@ def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
         print("RM INIT", mean(rewards))
         print('RM STDEV INIT', stdev(rewards))
         rewards = [rewards[k] for k in keep_inds]
-        print("RM MEAN", mean(rewards))
-        print('RM STDEV', stdev(rewards))
-        rewards = [torch.tensor(r).to(current_device) for r in rewards]
         batch['query'] = [batch['query'][k] for k in keep_inds]
         batch['response'] = [batch['response'][k] for k in keep_inds]
         response_tensors = [response_tensors[k] for k in keep_inds]
         question_tensors = [question_tensors[k] for k in keep_inds]
         kl_mask = torch.tensor([kl_mask[k] for k in keep_inds]).to(current_device)
         
-        # TODO offload into another method too
-        # use this for logging
-        logrewards = [r for r in rewards]
+        
+        print("RM MEAN", mean(rewards))
+        print('RM STDEV', stdev(rewards))
+        rewards = [torch.tensor(r).to(current_device) for r in rewards]
+        
         # using running mean and running stdev to do stuff if needed
         rws = [float(f) for f in rewards]
         running_means.append(mean(rws))
         running_stds.append(stdev(rws))
         meanval = mean(running_means[-10:])
         sigma = mean(running_stds[-10:])
+        
+        logrewards = []
+        logmean = []
+        # we can set negative ratio for 'contrastive' reward that cancels out reward from certain outputs
+        for i in range(len(kl_mask)):
+            # only log using rewards from the properly sampled outputs, will want values to be subbed in with mean
+            if kl_mask[i]==1:
+                logrewards.append(float(rewards[i].item()))
+                logmean.append(float(rewards[i].item()))
+            else: 
+                logrewards.append(-1000)
+                if ratio<0:
+                    # TODO test making 0 vs making negative
+                    rewards[i] = -1*sigma*rewards[i]
+
+        if len(logmean)>0:
+            lmean = mean(logmean)
+        else: 
+            lmean = float(0)
+        # don't use weird values, or counter-examples
+        for i in range(len(logrewards)):
+            if logrewards[i]==-1000:
+                logrewards[i] = lmean
         
         if script_args.len_penalty==1:
             # basically if you go 50 tokens out (hit limit), then you get penalized by 1 stdev of RM score
@@ -588,11 +706,32 @@ def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
             if epoch<10:
                 print(rewards)
                 
+        if script_args.tok_bonus_ratio>0:
+            bonuses = update_tokdict_bonuses(batch['response'], rollout_tokens_dict)
+            bonuses = [b*sigma*script_args.tok_bonus_ratio for b in bonuses]
+            print("Bonuses: ", bonuses)
+            # TODO need to tune the scaling stuff a little bit
+            rewards = [rewards[i]+bonuses[i] for i in range(len(rewards))]
+                
         stats = ppo_trainer.step(question_tensors, response_tensors, rewards, kl_mask=kl_mask)
-        if script_args.keep_rollouts: 
+        print("d")
+        if script_args.save_rollouts: 
             # do a nice comprehensive log of the stuff 
-            roll_dict['stats'] = stats
+            # NOTE removing stats so that log_dicts aren't taking a ton of space
+            # roll_dict['stats'] = stats
+            # for r in roll_dict['stats'].keys():
+            #     try:
+            #         roll_dict['stats'][r] = roll_dict['stats'][r].tolist()
+            #     except:
+            #         ""
+            roll_dict['step'] = epoch
+            rollfile = script_args.output_dir.replace("checkpoints/", "outputs/rollouts/")
+            while rollfile[-1]=='/':
+                rollfile = rollfile[:-1]
+            rollfile = rollfile+".jsonl"
+            append_dict_to_jsonl(roll_dict, rollfile)
+            
         ppo_trainer.log_stats(stats, batch, logrewards)
-
+        print("e")
         if script_args.save_freq and epoch and epoch % script_args.save_freq == 0:
             ppo_trainer.save_pretrained(script_args.output_dir + f"step_{epoch}")

@@ -385,7 +385,7 @@ def load_stack():
     
     return train_dataset, eval_dataset
 
-def load_manual(iname, base="data/categories/"):
+def load_manual(iname, base="data/categories/", testdir=None, fancyshuff=False):
    
     print("GOING THROUGH PROCESS FOR "+iname)
     if "stack" in iname:
@@ -396,9 +396,19 @@ def load_manual(iname, base="data/categories/"):
 
     # NOTE use 95% of the dataset for training
     DRATIO = 0.99
-    train_dataset = orig_dataset.select(range(int(len(orig_dataset)*DRATIO)))
+    if fancyshuff:
+        inds = range(len(orig_dataset))
+        traininds = random.sample(inds, int(len(orig_dataset)*DRATIO))
+        testinds = [n for n in inds if n not in traininds]
+        train_dataset = orig_dataset.select(traininds)
+        eval_dataset = orig_dataset.select(testinds)
+    else:
+        train_dataset = orig_dataset.select(range(int(len(orig_dataset)*DRATIO)))
+        eval_dataset = orig_dataset.select(range(int(len(orig_dataset)*DRATIO), len(orig_dataset)))
+    if testdir is not None: 
+        eval_dataset = load_from_disk(testdir)
+        eval_dataset = eval_dataset.select(range(int(len(eval_dataset)*DRATIO), len(eval_dataset)))
     print(len(train_dataset))
-    eval_dataset = orig_dataset.select(range(int(len(orig_dataset)*DRATIO), len(orig_dataset)))
     print("eval len")
     print(len(eval_dataset))
     return train_dataset, eval_dataset
@@ -530,6 +540,30 @@ def build_ultra_promptdata(tokenizer):
         return new_examples
 
     return mapfilt(ds, tokultra)
+
+# Let's use a preference set instead of a set of just rollouts
+def build_custom_promptdata(tokenizer, dsetname):
+    # input_size = LengthSampler(input_min_text_length, input_max_text_length)
+    ds = Dataset.load_from_disk(dsetname)
+
+    def tokcustom(sample):
+        # TODO trying out this thing for batching
+        new_examples = {
+            "query": [],
+            "input_ids": [],
+        }
+        for question in sample["question"]:
+            # just use the first thing as the prompt every time? s
+            query = webgpt_template(question)
+            
+            #query = "Question: " + question + "\n\nAnswer: "
+            tokenized_question = tokenizer(query, truncation=True)
+            new_examples["query"].append(question)
+            new_examples["input_ids"].append(tokenized_question["input_ids"])
+
+        return new_examples
+
+    return mapfilt(ds, tokcustom)
 
 def build_rlcd_promptdata(tokenizer, dname):
 
