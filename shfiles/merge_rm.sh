@@ -20,7 +20,7 @@
 #     --output_name="models/rewards/minibowrm"
 
 python scripts/merge_peft_adapter.py \
-    --adapter_model_name="/u/prasanns/research/rlhf-length-biases/checkpoints/ktorm/checkpoint-5000" \
+    --adapter_model_name="/u/prasanns/research/rlhf-length-biases/checkpoints/expbowrm/checkpoint-7800" \
     --base_model_name="facebook/opt-125m" \
-    --output_name="models/rewards/ktoreward"
+    --output_name="models/rewards/expbowreward"
 

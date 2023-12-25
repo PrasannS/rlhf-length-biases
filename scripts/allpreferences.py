@@ -16,11 +16,11 @@ adfs = load_alldfs(GENERATED_OUTPUT_FOLDER,  500)
 print(adfs.keys())
 
 # original thing to compare with simulated preferences
-ORIGNAME = "stackorigrerun"
+ORIGNAME = "dpofollowppo"
 # list of keys to compare against ORIGNAME with APFarmEval  
-trykeys = [ 'stacklenonlyppo3']
+trykeys = [ 'dpobase']
 
-assert len(adfs[trykeys[0]])>400
+# assert len(adfs[trykeys[0]])>400
 
 for t in trykeys:
     assert t in adfs.keys()
@@ -28,4 +28,4 @@ for t in trykeys:
 for k in trykeys:
     print(len(adfs[k]))
     # match everything against original PPO
-    lenannot = annotate_apfarm(adfs, k, ORIGNAME, 100, len(adfs[k]), oai_kwargs())
+    lenannot = annotate_apfarm(adfs, k, ORIGNAME, 0, len(adfs[k]), oai_kwargs())

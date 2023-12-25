@@ -350,25 +350,24 @@
 #     --gen_bsize=64 --temperature=1 \
 #     --generators_json="scripts/bs8.json"
 
-export CUDA_VISIBLE_DEVICES=6,7
+export CUDA_VISIBLE_DEVICES=4,5
 accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29524 \
     --num_machines 1  \
     --num_processes 2 \
     scripts/train_rlhf.py --log_with=wandb \
     --model_name=facebook/opt-125m \
     --dataset_name="ultra" \
-    --reward_model_name="function:bagofwords" \
+    --reward_model_name="models/rewards/expbowreward" \
     --adafactor=False \
     --save_freq=25 \
     --output_max_length=50 --batch_size=16 \
     --gradient_accumulation_steps=1 \
     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
-    --early_stopping=False --output_dir=checkpoints/bowoffpolicyconverged2/ \
-    --init_kl_coef=0.02 --steps=300 \
-    --oversample=4 --rollout_strategy="var_max" \
+    --early_stopping=False --output_dir=checkpoints/rmppoexpbowoverfit/ \
+    --init_kl_coef=0.02 --steps=1000 \
     --gen_bsize=64 --temperature=1 \
-    --generators_json="scripts/bs9.json"
-
+    --save_rollouts=True
+# --oversample=4 --rollout_strategy="var_max" \
 
 # export CUDA_VISIBLE_DEVICES=4,5
 # accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29523 \

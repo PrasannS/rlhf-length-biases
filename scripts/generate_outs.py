@@ -17,7 +17,7 @@ tmptok = AutoTokenizer.from_pretrained("facebook/opt-125m")
 def get_step_ckpt(ckpt, origmodel):
     if ckpt=="orig":
         print("using original")
-        return copy.deepcopy(origmodel)
+        return origmodel
     return PeftModel.from_pretrained(origmodel, ckpt)
         
 
@@ -74,20 +74,28 @@ def adjust_rlcd(question):
     # NOTE this only works for new RLCD models, prompt matters, this was off, rerun wgpt accordingly
     return webgpt_template("Continue the conversation:\n\n"+question.strip()+"\n\nAssistant: ")
 
+def adjust_tulu(question, useless):
+    return "<user>\n"+question+"\n<assistant>\n"
+
 # HACK this has been adapted to be able to do a lot more data, make sure to switch this back if we
 # ever go back to RM eval to make sure that we're not training RM on the test set or something.
-def lultra(topval, bottom=0):
-    ds = load_dataset("stingning/ultrachat", split="train").shuffle(seed=0)
-    def ultra2prompt(ex):
-        return {'query':adjust_input(ex['data'][0], True)}
-    #ds = ds.filter(lambda ex: len(tmptok(ex['query']).input_ids)<900)
-    ds = ds.map(ultra2prompt, num_proc=10)
-    #_, eval_dset = load_ultra()
-    # NOTE need to get the prompt data in the right way, not the RM way
-    #res = [{'query':adjust_input(q['question'], True)} for q in eval_dset]
+def lultra(adjinp, topval, bottom=0, largepset=False):
+    if largepset:
     
-    #print("SANITY CHECK\n"+res[0]['query'])
-    return ds.select(range(bottom,topval))
+        ds = load_dataset("stingning/ultrachat", split="train").shuffle(seed=0)
+        def ultra2prompt(ex):
+            return {'query':adjinp(ex['data'][0], True)}
+        #ds = ds.filter(lambda ex: len(tmptok(ex['query']).input_ids)<900)
+        ds = ds.map(ultra2prompt, num_proc=10)
+        return ds.select(range(bottom,topval))
+    else:
+        _, eval_dset = load_ultra()
+        # NOTE need to get the prompt data in the right way, not the RM way
+        res = [{'query':adjinp(q['question'], True)} for q in eval_dset]
+        
+        print("SANITY CHECK\n"+res[0]['query'])
+        return res[bottom:topval]
+    
 
 # load in generation setup from custom pairwise dataset, taking care to use comparable eval set
 def lcustom(dstr, topval, bottom=0, dosamp=True):
@@ -126,7 +134,7 @@ def lapf(topval, bottom=0):
     return res[bottom:topval]
 
 # TODO maybe clean this up for easier runs later on
-def load_dset(dset, topval, bottom=0):
+def load_dset(script_args, dset, topval, bottom=0):
     if 'stack' in dset:
         return load_stack(topval, bottom)
     elif 'webgpt' in dset:
@@ -136,8 +144,12 @@ def load_dset(dset, topval, bottom=0):
         return lapf(topval, bottom)
     elif "rlcd" in dset:
         return lrlcd(topval, bottom)
-    elif "ultra" in dset: 
-        return lultra(topval, bottom)
+    elif "ultra" in dset:
+        # for prompt compabitibility with TULU model 
+        ifunct = adjust_input
+        if 'tulu' in script_args.basemodel:
+            ifunct = adjust_tulu
+        return lultra(ifunct, topval, bottom)
     else: 
         # we're doing a custom setup instead
         # TODO will need custom logic if we don't want to traintestsplit things
@@ -255,7 +267,7 @@ def main(args):
         "eos_token_id": tokenizer.eos_token_id,
     }
     
-    results = load_dset(args.dset, args.top, args.bottom)
+    results = load_dset(args, args.dset, args.top, args.bottom)
     print(results[0]['query'])
     # ckpts = ["/mnt/data1/prasann/rlhf-exploration/stack-llama/checkpoints/advmseppo/step_125", "orig", "/mnt/data1/prasann/rlhf-exploration/stack-llama/checkpoints/2gpumix"]
     # fnames = ["advmse", "orig", "mix"]

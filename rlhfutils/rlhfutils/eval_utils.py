@@ -1,9 +1,7 @@
 import os
 import openai
-from tqdm import tqdm
 from alpaca_farm.auto_annotations import PairwiseAutoAnnotator
 import pandas as pd
-from statistics import mean, stdev
 from transformers import AutoTokenizer
 import re
 from datasets import load_dataset
@@ -80,6 +78,16 @@ def proctmp(tmp):
 
     return tmp
     
+def tulu_to_qa(resps):
+    qlist = []
+    rlist = []
+    for r in resps:
+        tmp = r[7:]
+        q, a = tmp.split("\n<assistant>\n")
+        qlist.append(q)
+        rlist.append(a)
+    return qlist, rlist
+
 def load_alldfs(base="use_outs/", limit=100, matching=True):
     alldfs = {}
     for f in os.listdir(base):
@@ -95,7 +103,10 @@ def load_alldfs(base="use_outs/", limit=100, matching=True):
                 qs = [getapfsft(r)[0] for r in tmp['response']]
                 tmp['response'] = resps
                 tmp['question'] = qs
-                
+            if "<user>" in tmp['response'][0]:
+                qs, resps = tulu_to_qa(tmp['response'])
+                tmp['question'] = qs
+                tmp['response'] = resps
             if "Continue the conversation:\n\n" in tmp['question'][0]:
                 print('here')
                 tmp['question'] = [s.replace("Continue the conversation:\n\n", "") for s in tmp['question']]
