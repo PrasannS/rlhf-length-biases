@@ -6,7 +6,7 @@ from datasets import load_dataset
 from peft import PeftModel
 from tqdm import tqdm
 from transformers import  AutoTokenizer, AutoModelForCausalLM
-from rlhfutils.data import load_rlcd, load_apfarm, webgpt_template
+from rlhfutils.data import load_rlcd, load_apfarm, webgpt_template, load_ultra
 import pandas as pd
 import copy
 import argparse
@@ -73,6 +73,21 @@ def load_webgpt(topval, bottom=0):
 def adjust_rlcd(question):
     # NOTE this only works for new RLCD models, prompt matters, this was off, rerun wgpt accordingly
     return webgpt_template("Continue the conversation:\n\n"+question.strip()+"\n\nAssistant: ")
+
+# HACK this has been adapted to be able to do a lot more data, make sure to switch this back if we
+# ever go back to RM eval to make sure that we're not training RM on the test set or something.
+def lultra(topval, bottom=0):
+    ds = load_dataset("stingning/ultrachat", split="train").shuffle(seed=0)
+    def ultra2prompt(ex):
+        return {'query':adjust_input(ex['data'][0], True)}
+    ds = ds.map(ultra2prompt, num_proc=10)
+    #_, eval_dset = load_ultra()
+    # NOTE need to get the prompt data in the right way, not the RM way
+    #res = [{'query':adjust_input(q['question'], True)} for q in eval_dset]
+    
+    #print("SANITY CHECK\n"+res[0]['query'])
+    return ds.select(range(bottom,topval))
+    
 # wrapper for loading rlcd
 def lrlcd(topval, bottom=0):
     _, eval_dset = load_rlcd()
@@ -101,6 +116,8 @@ def load_dset(dset, topval, bottom=0):
         return lapf(topval, bottom)
     elif "rlcd" in dset:
         return lrlcd(topval, bottom)
+    elif "ultra" in dset: 
+        return lultra(topval, bottom)
 
 def generate_outs(model, results, generation_kwargs, qsize=1, savefile="tmp.jsonl"):
     generation_kwargs['num_return_sequences']=1
