@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 import torch
-from datasets import load_dataset
+from datasets import load_dataset, Dataset
 from peft import PeftModel
 from tqdm import tqdm
 from transformers import  AutoTokenizer, AutoModelForCausalLM
@@ -11,15 +11,15 @@ import pandas as pd
 import copy
 import argparse
 
+tmptok = AutoTokenizer.from_pretrained("facebook/opt-125m")
+
 
 def get_step_ckpt(ckpt, origmodel):
     if ckpt=="orig":
         print("using original")
         return copy.deepcopy(origmodel)
-    try:   
-        return PeftModel.from_pretrained(origmodel, "./trl-stack/"+ckpt)
-    except:
-        return PeftModel.from_pretrained(origmodel, ckpt)
+    return PeftModel.from_pretrained(origmodel, ckpt)
+        
 
 def load_stack(topval, bottom=0):
     dset = load_dataset("lvwerra/stack-exchange-paired",  data_dir="data/evaluation", split="train")
@@ -80,6 +80,7 @@ def lultra(topval, bottom=0):
     ds = load_dataset("stingning/ultrachat", split="train").shuffle(seed=0)
     def ultra2prompt(ex):
         return {'query':adjust_input(ex['data'][0], True)}
+    #ds = ds.filter(lambda ex: len(tmptok(ex['query']).input_ids)<900)
     ds = ds.map(ultra2prompt, num_proc=10)
     #_, eval_dset = load_ultra()
     # NOTE need to get the prompt data in the right way, not the RM way
@@ -87,6 +88,25 @@ def lultra(topval, bottom=0):
     
     #print("SANITY CHECK\n"+res[0]['query'])
     return ds.select(range(bottom,topval))
+
+# load in generation setup from custom pairwise dataset, taking care to use comparable eval set
+def lcustom(dstr, topval, bottom=0, dosamp=True):
+    orig_dataset = Dataset.load_from_disk(dstr)
+    orig_dataset = orig_dataset.shuffle(seed=0)
+    # NOTE use 95% of the dataset for training
+    DRATIO = 0.99
+    if len(orig_dataset)<30000:
+        DRATIO = 0.9
+    if dosamp==False: 
+        DRATIO = 0
+    eval_dataset = orig_dataset.select(range(int(len(orig_dataset)*DRATIO), len(orig_dataset)))
+    def custom2prompt(ex):
+        return {'query':adjust_input(ex['question'], True)}
+    eval_dataset = eval_dataset.filter(lambda ex: len(tmptok(ex['question']).input_ids)<900)
+    print(len(eval_dataset))
+    eval_dataset = eval_dataset.map(custom2prompt, num_proc=10)
+    
+    return eval_dataset.select(range(bottom,topval))
     
 # wrapper for loading rlcd
 def lrlcd(topval, bottom=0):
@@ -118,6 +138,10 @@ def load_dset(dset, topval, bottom=0):
         return lrlcd(topval, bottom)
     elif "ultra" in dset: 
         return lultra(topval, bottom)
+    else: 
+        # we're doing a custom setup instead
+        # TODO will need custom logic if we don't want to traintestsplit things
+        return lcustom(dset, topval, bottom)
 
 def generate_outs(model, results, generation_kwargs, qsize=1, savefile="tmp.jsonl"):
     generation_kwargs['num_return_sequences']=1
@@ -131,7 +155,7 @@ def generate_outs(model, results, generation_kwargs, qsize=1, savefile="tmp.json
                 generated_responses = []
                 try: 
                     model_inputs = tokenizer(qtemps, return_tensors='pt', padding=True, truncation=True).to(model.device)
-        
+                    print(model_inputs.input_ids.shape)
                     # Generate outputs for N things in one go
                     generated_output = [model.generate(**model_inputs, **generation_kwargs)]
                 except:
@@ -171,17 +195,17 @@ def multi_generate_outs(model, results, generation_kwargs, bsize=1, savefile="tm
         for result in tqdm(results, desc='Processing results'):            
             generated_responses = []
             model_inputs = tokenizer([result['query']], return_tensors='pt', padding=True, truncation=True).to(model.device)
-            try: 
-                # Generate outputs for N things in one go
-                generated_output = [model.generate(**model_inputs, **generation_kwargs)]
-            except:
-                generation_kwargs['num_return_sequences']=2
-                # if batch is too big then split it up
-                generated_output = []
-                print("Got an OOM error")
-                torch.cuda.empty_cache()
-                for i in range(0, bsize, 2):
-                    generated_output.append(model.generate(**model_inputs, **generation_kwargs))
+            # try: 
+            # Generate outputs for N things in one go
+            generated_output = [model.generate(**model_inputs, **generation_kwargs)]
+            # except:
+            #     generation_kwargs['num_return_sequences']=2
+            #     # if batch is too big then split it up
+            #     generated_output = []
+            #     print("Got an OOM error")
+            #     torch.cuda.empty_cache()
+            #     for i in range(0, bsize, 2):
+            #         generated_output.append(model.generate(**model_inputs, **generation_kwargs))
             for gen in generated_output:
                 for generated_sequence in gen:
                     # HACK to see if the huggingface issue was the problem
@@ -202,13 +226,16 @@ def multi_generate_outs(model, results, generation_kwargs, bsize=1, savefile="tm
     return scored_results    
 
 def main(args):
+    
+    
     # NOTE, make sure to set CUDA_VISIBLE_DEVICES in a call
     # load in original sft model
-    origmodel = AutoModelForCausalLM.from_pretrained(
-        args.basemodel,
-        load_in_8bit=True, # re-enable for llama model
-        device_map={"": 0},
-    )
+    # origmodel = AutoModelForCausalLM.from_pretrained(
+    #     args.basemodel,
+    #     load_in_8bit=True, # re-enable for llama model
+    #     device_map={"": 0},
+    #     torch_dtype=torch.bfloat16
+    # )
     print("original model loaded")
 
         
@@ -218,7 +245,7 @@ def main(args):
     # NOTE try original kwargs since new ones are broken?
     generation_kwargs = {
         "min_length": -1,
-        "max_new_tokens":256,
+        "max_new_tokens":args.maxlen,
         #"top_k": 0.0,
         "top_p": 0.9,
         "temperature": 0.9,
@@ -232,8 +259,17 @@ def main(args):
     print(results[0]['query'])
     # ckpts = ["/mnt/data1/prasann/rlhf-exploration/stack-llama/checkpoints/advmseppo/step_125", "orig", "/mnt/data1/prasann/rlhf-exploration/stack-llama/checkpoints/2gpumix"]
     # fnames = ["advmse", "orig", "mix"]
-    ckpts = [args.ckname]
-    fnames = [args.fname]
+    if args.cklist is None:
+        ckpts = [args.ckname]
+        fnames = [args.fname]
+    else: 
+        # no need to make this float ig?
+        args.cklist = args.cklist.split(",")
+        # functionality for doing multiple checkpoints in one go
+        ckpts = [args.ckname+str(ck) for ck in args.cklist]
+        fnames = [args.fname+str(ck) for ck in args.cklist]
+        
+    
     
     # ckpts = [s.replace("oldrm", "rlhfdalen") for s in ckpts]
     # fnames = [s.replace("olds", "dalenl") for s in fnames]
@@ -242,32 +278,44 @@ def main(args):
     # Repeat generation process for each relevant checkpoint
     for i in range(len(ckpts)):
         allres = []
+        origmodel = AutoModelForCausalLM.from_pretrained(
+            args.basemodel,
+            load_in_8bit=True, # re-enable for llama model
+            device_map={"": 0},
+            torch_dtype=torch.bfloat16
+        )
         print("going through process for checkpoint "+str(ckpts[i]))
-        fname = "generated_"+str(fnames[i])+".jsonl"
+        fname = str(fnames[i])+".jsonl"
         model = get_step_ckpt(ckpts[i], origmodel)
+        model.eval()
         if args.bsize>1:
             multi_generate_outs(model, results, generation_kwargs, args.bsize, fname)
         else:
             generate_outs(model, results, generation_kwargs, 6, fname)
-        
-        # TODO is model deletion necessary?
         del model
+        del origmodel
+        torch.cuda.empty_cache()
+        # TODO is model deletion necessary?
+        # del model
 
 if __name__=="__main__":
     
     # take in args and parse them
     parser = argparse.ArgumentParser(description='My Python script.')
-    parser.add_argument('basemodel', type=str, help='base model checkpoint is trained on')
-    parser.add_argument('dset', type=str, help='name of dataset to generate on')
-    parser.add_argument('ckname', type=str, help='checkpoint to load from')
-    parser.add_argument('fname', type=str, help='generation filename')
-    parser.add_argument('bottom', type=int, help='bottom of range to generate for')
-    parser.add_argument('top', type=int, help='top of range to generate for')
-    parser.add_argument('bsize', type=int, help='outputs per prompt')
+    parser.add_argument('--basemodel', type=str, help='base model checkpoint is trained on')
+    parser.add_argument('--dset', type=str, help='name of dataset to generate on')
+    parser.add_argument('--ckname', type=str, help='checkpoint to load from')
+    parser.add_argument('--fname', type=str, help='generation filename')
+    parser.add_argument('--bottom', type=int, help='bottom of range to generate for')
+    parser.add_argument('--top', type=int, help='top of range to generate for')
+    parser.add_argument('--bsize', type=int, help='outputs per prompt')
+    parser.add_argument('--maxlen', type=int, default=256, help='decoding max length')
+    parser.add_argument("--cklist", type=str, default=None, help='list of checkpoint numbers we want to do stuff for')
     
     progargs = parser.parse_args()
     # make tokenizer, get stuff started
     tokenizer = AutoTokenizer.from_pretrained(progargs.basemodel, padding_side='left')
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
+    
     main(progargs)

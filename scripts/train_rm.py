@@ -27,7 +27,7 @@ from rlhfutils.data import (
     load_manual,
     tmpdata
 )
-from accelerate import Accelerator
+#from accelerate import Accelerator
 import pandas as pd
 from datasets import concatenate_datasets
 import torch
@@ -40,6 +40,7 @@ script_args = parser.parse_args_into_dataclasses()[0]
 
 training_args = get_trainargs(script_args)
 
+print("over here")
 # Load in dataset according to params, we get something in format of 
 if "wgpt" in script_args.dataset:
     train_dataset, eval_dataset = load_wgpt()
@@ -59,9 +60,9 @@ else:
     print("loading in custom")
     train_dataset, eval_dataset = load_ultra(script_args.dataset)
 
-if Accelerator().local_process_index == 0:
-    print(train_dataset[0]['question'])
-    print(train_dataset[0]['response_j'])
+# if Accelerator().local_process_index == 0:
+#     print(train_dataset[0]['question'])
+#     print(train_dataset[0]['response_j'])
 
 def add_row_index(example, idx):
     example['row_index'] = idx
@@ -98,10 +99,13 @@ if augdata:
 train_dataset = train_dataset.map(add_row_index, with_indices=True)
 eval_dataset = eval_dataset.map(add_row_index, with_indices=True)
 
+print("now over here")
+
+
 tokenizer, model = load_rmodel_standard(script_args)
 # lh_sanity(tokenizer, train_dataset)
 
-
+print("model load process")
 # NOTE future RLCD models will be using standard template, TODO adjust PPO accordingly
 # tokenize the dataset
 # HACK just leave this hardcoded in as a shuffle operation, bring in DA separately
@@ -109,8 +113,8 @@ train_dataset, eval_dataset = tokenize_dset(train_dataset, eval_dataset, script_
 
 print("new size of dataset", len(train_dataset))
 
-if Accelerator().local_process_index == 0:
-    print(tokenizer.decode(train_dataset[0]['input_ids_j']))
+#if Accelerator().local_process_index == 0:
+#    print(tokenizer.decode(train_dataset[0]['input_ids_j']))
 
 # Train the model, woohoo
 trainer = RewardTrainer(

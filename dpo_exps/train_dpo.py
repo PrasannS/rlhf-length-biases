@@ -10,9 +10,11 @@ from peft import LoraConfig
 from transformers import AutoTokenizer, HfArgumentParser, TrainingArguments, AutoModelForCausalLM
 
 from trl import DPOTrainer
-from rlhfutils.data import load_rlcd, load_wgpt, load_stack, inp_origformat, adjust_apf
+from rlhfutils.data import load_rlcd, load_wgpt, load_stack, inp_origformat, adjust_apf, load_manual
 
 os.environ["WANDB_TAGS"] = "[\"dporlhf\"]"
+
+#HACK currently modified DPO logging code
 
 # Define and parse arguments.
 @dataclass
@@ -22,7 +24,7 @@ class ScriptArguments:
     """
 
     # data parameters
-    beta: Optional[float] = field(default=0.1, metadata={"help": "the beta parameter for DPO loss"})
+    beta: Optional[float] = field(default=0.02, metadata={"help": "the beta parameter for DPO loss"})
 
     # training parameters
     model_name_or_path: Optional[str] = field(
@@ -33,16 +35,16 @@ class ScriptArguments:
         default=None,
         metadata={"help": "the name of the dataset we're doing"},
     )
-    learning_rate: Optional[float] = field(default=5e-4, metadata={"help": "optimizer learning rate"})
+    learning_rate: Optional[float] = field(default=1e-5, metadata={"help": "optimizer learning rate"})
     lr_scheduler_type: Optional[str] = field(default="cosine", metadata={"help": "the lr scheduler type"})
     warmup_steps: Optional[int] = field(default=100, metadata={"help": "the number of warmup steps"})
     weight_decay: Optional[float] = field(default=0.05, metadata={"help": "the weight decay"})
     optimizer_type: Optional[str] = field(default="paged_adamw_32bit", metadata={"help": "the optimizer type"})
 
-    per_device_train_batch_size: Optional[int] = field(default=4, metadata={"help": "train batch size per device"})
-    per_device_eval_batch_size: Optional[int] = field(default=1, metadata={"help": "eval batch size per device"})
+    per_device_train_batch_size: Optional[int] = field(default=2, metadata={"help": "train batch size per device"})
+    per_device_eval_batch_size: Optional[int] = field(default=2, metadata={"help": "eval batch size per device"})
     gradient_accumulation_steps: Optional[int] = field(
-        default=1, metadata={"help": "the number of gradient accumulation steps"}
+        default=16, metadata={"help": "the number of gradient accumulation steps"}
     )
     gradient_checkpointing: Optional[bool] = field(
         default=False, metadata={"help": "whether to use gradient checkpointing"}
@@ -52,14 +54,15 @@ class ScriptArguments:
     lora_dropout: Optional[float] = field(default=0.05, metadata={"help": "the lora dropout parameter"})
     lora_r: Optional[int] = field(default=8, metadata={"help": "the lora r parameter"})
 
-    max_prompt_length: Optional[int] = field(default=512, metadata={"help": "the maximum prompt length"})
-    max_length: Optional[int] = field(default=1024, metadata={"help": "the maximum sequence length"})
-    max_steps: Optional[int] = field(default=4000, metadata={"help": "max number of training steps"})
+    max_prompt_length: Optional[int] = field(default=1024, metadata={"help": "the maximum prompt length"})
+    max_length: Optional[int] = field(default=1300, metadata={"help": "the maximum sequence length"})
+    max_steps: Optional[int] = field(default=100000, metadata={"help": "max number of training steps"})
     logging_steps: Optional[int] = field(default=10, metadata={"help": "the logging frequency"})
-    save_steps: Optional[int] = field(default=100, metadata={"help": "the saving frequency"})
-    eval_steps: Optional[int] = field(default=100, metadata={"help": "the evaluation frequency"})
+    save_steps: Optional[int] = field(default=1000, metadata={"help": "the saving frequency"})
+    eval_steps: Optional[int] = field(default=500, metadata={"help": "the evaluation frequency"})
 
     output_dir: Optional[str] = field(default="./results", metadata={"help": "the output directory"})
+    loss_type: Optional[str] = field(default="sigmoid", metadata={"help": "the loss type: sigmoid, ipo, kto"})
     log_freq: Optional[int] = field(default=1, metadata={"help": "the logging frequency"})
 
     # instrumentation
@@ -80,10 +83,18 @@ class ScriptArguments:
             "https://github.com/huggingface/transformers/issues/22482#issuecomment-1595790992"
         },
     )
+    evaldata: Optional[str] = field(
+        default=None,
+        metadata={"help": "the name of the dataset we're doing"},
+    )
 
+def tulu_pf(question, answer):
+    return "<user>\n"+question+"\n<assistant>\n"+answer
+    
 def load_dpo_data(
     script_args,
     dataset: str = None,
+    eval_dataset: str=None,
     num_proc=12,
 ) -> Dataset:   
     # Load in data from the right datasets
@@ -96,10 +107,17 @@ def load_dpo_data(
     elif dataset == 'rlcd':
         train_data, eval_data = load_rlcd()
         pfunct = adjust_apf
+    else: 
+        train_data, eval_data = load_manual(dataset, "", testdir=eval_dataset)
+        pfunct = adjust_apf
+    
+    if "tulu" in script_args.model_name_or_path:
+        pfunct = tulu_pf
         
     # TODO add in a sanity check
 
     original_columns = train_data.column_names
+    eval_columns = eval_data.column_names
     
     def return_prompt_and_responses(samples) -> Dict[str, str]:
         return {
@@ -119,12 +137,15 @@ def load_dpo_data(
         return_prompt_and_responses,
         batched=True,
         num_proc=num_proc,
-        remove_columns=original_columns,
-    )    
+        remove_columns=eval_columns,
+    )
+    print("len before filter ", len(final_train))
+    
     final_train = final_train.filter(
         lambda x: len(x["prompt"]) + len(x["chosen"]) <= script_args.max_length
         and len(x["prompt"]) + len(x["rejected"]) <= script_args.max_length
     )
+    print("len after filter", len(final_train))
     final_eval = final_eval.filter(
         lambda x: len(x["prompt"]) + len(x["chosen"]) <= script_args.max_length
         and len(x["prompt"]) + len(x["rejected"]) <= script_args.max_length
@@ -194,20 +215,22 @@ if __name__ == "__main__":
     tokenizer.pad_token = tokenizer.eos_token
 
     # NOTE we're now doing this model
-    train_dataset, eval_dataset = load_dpo_data(script_args, script_args.dataset)
+    train_dataset, eval_dataset = load_dpo_data(script_args, script_args.dataset, eval_dataset=script_args.evaldata)
+    
+    print("length of dataset is ", len(train_dataset))
     
     # 2. Load the Stack-exchange paired dataset
-    oldstack = get_stack_exchange_paired(data_dir="data/rl", sanity_check=script_args.sanity_check)
-    oldstack = train_dataset.filter(
-        lambda x: len(x["prompt"]) + len(x["chosen"]) <= script_args.max_length
-        and len(x["prompt"]) + len(x["rejected"]) <= script_args.max_length
-    )
+    # oldstack = get_stack_exchange_paired(data_dir="data/rl", sanity_check=script_args.sanity_check)
+    # oldstack = train_dataset.filter(
+    #     lambda x: len(x["prompt"]) + len(x["chosen"]) <= script_args.max_length
+    #     and len(x["prompt"]) + len(x["rejected"]) <= script_args.max_length
+    # )
     
-    print("MAKE SURE TO LOOK AT THIS DATA AND MAKE SURE IT MAKES SENSE")
-    if script_args.dataset=='stack':
-        print('previous data loading logic')
-        print(oldstack[0]['prompt'])
-        print(oldstack[0]['chosen'])
+    # print("MAKE SURE TO LOOK AT THIS DATA AND MAKE SURE IT MAKES SENSE")
+    # if script_args.dataset=='stack':
+    #     print('previous data loading logic')
+    #     print(oldstack[0]['prompt'])
+    #     print(oldstack[0]['chosen'])
     
     print("TRAIN DATA")
     print(train_dataset[0]['prompt'])
@@ -272,6 +295,7 @@ if __name__ == "__main__":
         peft_config=peft_config,
         max_prompt_length=script_args.max_prompt_length,
         max_length=script_args.max_length,
+        loss_type=script_args.loss_type
     )
 
     # 6. train

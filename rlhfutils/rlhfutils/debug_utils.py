@@ -7,6 +7,8 @@ from transformers import pipeline
 from tqdm import tqdm
 import difflib
 from IPython.core.display import display, HTML
+import torch
+from transformers import AutoModelForSequenceClassification
 
 def get_omodel(base):
     origmodel = AutoModelForCausalLM.from_pretrained(
@@ -79,17 +81,29 @@ def load_all_hackdfs(base):
         
     return alldfs
     
-def load_rm(name, device, quant=True):
-    tokenizer = AutoTokenizer.from_pretrained(name)
+def load_rm(name, device, quant=True, basemodel="nobase"):
+    tokdir = name if "nobase" in basemodel else basemodel
+
+    tokenizer = AutoTokenizer.from_pretrained(tokdir)
     tokenizer.pad_token_id = tokenizer.eos_token_id
-    sentiment_pipe = pipeline(
-        "sentiment-analysis",
-        model=name,
-        device_map={"": device},
-        model_kwargs={"load_in_8bit": quant},
-        tokenizer=tokenizer,
-        return_token_type_ids=False,
-    )
+    # we want to load model in directly as an adapter
+    if "nobase" not in basemodel:
+        model = AutoModelForSequenceClassification.from_pretrained(
+            basemodel, num_labels=1, torch_dtype=torch.bfloat16
+        )
+        # load in stuff based on adapter
+        model = PeftModel.from_pretrained(model, name)
+        # NOTE pipeline not supported by peft
+        return tokenizer, model, None
+    else:
+        sentiment_pipe = pipeline(
+            "sentiment-analysis",
+            model=name,
+            device_map={"": device},
+            model_kwargs={"load_in_8bit": quant},
+            tokenizer=tokenizer,
+            return_token_type_ids=False,
+        )
     kwargs = {
         "return_all_scores": True,
         "function_to_apply": "none",
@@ -102,7 +116,10 @@ def progress_rm(inputs, rm, kwargs):
     results = []
     split = 8
     for i in tqdm(range(0, len(inputs), split)):
-        results.extend(rm(inputs[i:i+split], **kwargs))
+        try:
+            results.extend(rm(inputs[i:i+split], **kwargs))
+        except:
+            results.extend([[{'score':None}]]*split)
     return results
 
 def highlight_differences(old, new):

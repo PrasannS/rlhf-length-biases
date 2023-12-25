@@ -385,29 +385,45 @@ def load_stack():
     
     return train_dataset, eval_dataset
 
-def load_manual(iname, base="data/categories/"):
+def load_manual(iname, base="data/categories/", testdir=None, fancyshuff=False):
+   
     print("GOING THROUGH PROCESS FOR "+iname)
-    orig_dataset = load_from_disk(base+iname.replace("stack_", ""))
+    if "stack" in iname:
+        orig_dataset = load_from_disk(base+iname.replace("stack_", ""))
+    else: 
+        orig_dataset = load_from_disk(base+iname)
     print("initial size ", len(orig_dataset))
 
     # NOTE use 95% of the dataset for training
-    DRATIO = 0.90
-    train_dataset = orig_dataset.select(range(int(len(orig_dataset)*DRATIO)))
+    DRATIO = 0.99
+    if fancyshuff:
+        inds = range(len(orig_dataset))
+        traininds = random.sample(inds, int(len(orig_dataset)*DRATIO))
+        testinds = [n for n in inds if n not in traininds]
+        train_dataset = orig_dataset.select(traininds)
+        eval_dataset = orig_dataset.select(testinds)
+    else:
+        train_dataset = orig_dataset.select(range(int(len(orig_dataset)*DRATIO)))
+        eval_dataset = orig_dataset.select(range(int(len(orig_dataset)*DRATIO), len(orig_dataset)))
+    if testdir is not None: 
+        eval_dataset = load_from_disk(testdir)
+        eval_dataset = eval_dataset.select(range(int(len(eval_dataset)*DRATIO), len(eval_dataset)))
     print(len(train_dataset))
-    eval_dataset = orig_dataset.select(range(int(len(orig_dataset)*DRATIO), len(orig_dataset)))
     print("eval len")
     print(len(eval_dataset))
     return train_dataset, eval_dataset
     
     
 # load data for ultra-feedback dataset
-def load_ultra(dname="data/ultrafeeddiff"):
+def load_ultra(dname="data/ultrafeeddiff", useall=False):
     # need to first generate data and store it in the right directory
     # NOTE can also try doing smth with the data that's supposed to be "equal"
     orig_dataset = load_from_disk(dname)
     print("initial size ", len(orig_dataset))
     
     orig_dataset = orig_dataset.shuffle(seed=0)
+    if useall:
+        return orig_dataset, orig_dataset
     # NOTE use 95% of the dataset for training
     DRATIO = 0.99
     if len(orig_dataset)<30000:
@@ -426,7 +442,7 @@ def load_stack_mag():
     orig_dataset = load_from_disk("../data/ultrafeeddiff")
     print("initial size ", len(orig_dataset))
     
-    orig_dataset = orig_dataset.shufffle(seed=0)
+    orig_dataset = orig_dataset.shuffle(seed=0)
     # NOTE use 95% of the dataset for training
     DRATIO = 0.95
     train_dataset = orig_dataset.select(range(int(len(orig_dataset)*DRATIO)))
@@ -525,6 +541,30 @@ def build_ultra_promptdata(tokenizer):
 
     return mapfilt(ds, tokultra)
 
+# Let's use a preference set instead of a set of just rollouts
+def build_custom_promptdata(tokenizer, dsetname):
+    # input_size = LengthSampler(input_min_text_length, input_max_text_length)
+    ds = Dataset.load_from_disk(dsetname)
+
+    def tokcustom(sample):
+        # TODO trying out this thing for batching
+        new_examples = {
+            "query": [],
+            "input_ids": [],
+        }
+        for question in sample["question"]:
+            # just use the first thing as the prompt every time? s
+            query = webgpt_template(question)
+            
+            #query = "Question: " + question + "\n\nAnswer: "
+            tokenized_question = tokenizer(query, truncation=True)
+            new_examples["query"].append(question)
+            new_examples["input_ids"].append(tokenized_question["input_ids"])
+
+        return new_examples
+
+    return mapfilt(ds, tokcustom)
+
 def build_rlcd_promptdata(tokenizer, dname):
 
     if "harm" in dname:
@@ -563,7 +603,7 @@ def build_rlcd_promptdata(tokenizer, dname):
 def build_stack_promptdata(tokenizer):
     # load stack with datasets
     ds = load_dataset("lvwerra/stack-exchange-paired", data_dir="data/rl", split="train")
-    
+    ds = ds.select(range(0, 500000))
     def tokstack(examples):
         new_examples = {
             "query": [],

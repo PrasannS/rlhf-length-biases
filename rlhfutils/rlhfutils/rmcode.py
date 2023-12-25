@@ -53,7 +53,7 @@ class ScriptArguments:
     )
     per_device_train_batch_size: Optional[int] = field(default=1)
     per_device_eval_batch_size: Optional[int] = field(default=1)
-    gradient_accumulation_steps: Optional[int] = field(default=2)
+    gradient_accumulation_steps: Optional[int] = field(default=4)
     learning_rate: Optional[float] = field(default=1e-5)
     weight_decay: Optional[float] = field(default=0.001)
     model_name: Optional[str] = field(
@@ -135,7 +135,10 @@ def get_trainargs(script_args):
     output_name = script_args.output_dir
 
     rname = output_name.split("/")
-    rname = rname[-1] if output_name[-1]!='/' else rname[-2]
+    try:
+        rname = rname[-1] if output_name[-1]!='/' else rname[-2]
+    except:
+        rmname = "nothing"
     return TrainingArguments(
         output_dir=output_name,
         learning_rate=script_args.learning_rate,
@@ -149,6 +152,7 @@ def get_trainargs(script_args):
         save_steps=script_args.eval_steps,
         gradient_accumulation_steps=script_args.gradient_accumulation_steps,
         gradient_checkpointing=script_args.gradient_checkpointing,
+        gradient_checkpointing_kwargs={"use_reentrant": False},
         deepspeed=script_args.deepspeed,
         local_rank=script_args.local_rank,
         remove_unused_columns=False,
@@ -176,9 +180,16 @@ def load_rmodel_standard(script_args):
         lora_alpha=32,
         lora_dropout=0.1,
     )
-    model = AutoModelForSequenceClassification.from_pretrained(
-        script_args.model_name, num_labels=1, torch_dtype=torch.bfloat16,# device_map="auto"
-    )
+    if "70b" in script_args.model_name: 
+        # maybe see what happens with this thing in 8bit? 
+        model = AutoModelForSequenceClassification.from_pretrained(
+            script_args.model_name, num_labels=1, torch_dtype=torch.bfloat16, load_in_4bit=True#, device_map='auto'
+        )
+        model.config.pretraining_tp = 1 
+    else:
+        model = AutoModelForSequenceClassification.from_pretrained(
+            script_args.model_name, num_labels=1, torch_dtype=torch.bfloat16,# device_map="auto"
+        )
     model = get_peft_model(model, peft_config)
     model.print_trainable_parameters()
 
@@ -418,7 +429,7 @@ accuracy = evaluate.load("accuracy")
 
 def compute_metrics(eval_pred):
     predictions, _ = eval_pred
-    with open('tmpmetric.pickle', 'wb') as file:
+    with open('outputs/evalpickles/tmpmetric.pickle', 'wb') as file:
         pickle.dump(eval_pred, file)
     # Here, predictions is rewards_j and rewards_k.
     # We want to see how much of the time rewards_j > rewards_k.
