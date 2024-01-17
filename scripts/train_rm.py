@@ -58,7 +58,7 @@ elif "harmless" in script_args.dataset:
     train_dataset, eval_dataset = load_harmless()
 else: 
     print("loading in custom")
-    train_dataset, eval_dataset = load_ultra(script_args.dataset)
+    train_dataset, eval_dataset = load_manual(script_args.dataset, "", script_args.evaldata)
 
 # if Accelerator().local_process_index == 0:
 #     print(train_dataset[0]['question'])
@@ -100,8 +100,6 @@ train_dataset = train_dataset.map(add_row_index, with_indices=True)
 eval_dataset = eval_dataset.map(add_row_index, with_indices=True)
 
 print("now over here")
-
-
 tokenizer, model = load_rmodel_standard(script_args)
 # lh_sanity(tokenizer, train_dataset)
 
@@ -125,7 +123,7 @@ trainer = RewardTrainer(
     compute_metrics=compute_metrics,
     data_collator=RewardDataCollatorWithPadding(tokenizer=tokenizer, max_length=script_args.max_length),
 )
-
+trainer.script_args = script_args
 if script_args.eval_first_step:
     class EvaluateFirstStepCallback(TrainerCallback):
         def on_step_end(self, args, state, control, **kwargs):

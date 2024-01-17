@@ -1,0 +1,5 @@
+{
+    "intervals":[0, 500, 100000],
+    "ratios":[1.0, 0],
+    "checkpoints":["orig", "orig"]
+}

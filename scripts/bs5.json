@@ -1,5 +1,0 @@
-{
-    "intervals":[50, 100000],
-    "ratios":[0.5],
-    "checkpoints":["/u/prasanns/research/rlhf-length-biases/checkpoints/bowvarmax/step_50"]
-}

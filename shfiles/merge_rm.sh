@@ -19,8 +19,32 @@
 #     --base_model_name="facebook/opt-125m" \
 #     --output_name="models/rewards/minibowrm"
 
+# python scripts/merge_peft_adapter.py \
+#     --adapter_model_name="/u/prasanns/research/rlhf-length-biases/checkpoints/80rmv2/_peft_last_checkpoint" \
+#     --base_model_name="facebook/opt-125m" \
+#     --output_name="models/rewards/expbow80"
+
+# TODO look into trying out earlier checkpoints as well
+# python scripts/merge_peft_adapter.py \
+#     --adapter_model_name="/u/prasanns/research/rlhf-length-biases/checkpoints/30rmv2/_peft_last_checkpoint" \
+#     --base_model_name="facebook/opt-125m" \
+#     --output_name="models/rewards/expbow30"
+
+# python scripts/merge_peft_adapter.py \
+#     --adapter_model_name="/u/prasanns/research/rlhf-length-biases/checkpoints/50rmv2/_peft_last_checkpoint" \
+#     --base_model_name="facebook/opt-125m" \
+#     --output_name="models/rewards/expbow50"
+
+export CUDA_VISIBLE_DEVICES=7
 python scripts/merge_peft_adapter.py \
-    --adapter_model_name="/u/prasanns/research/rlhf-length-biases/checkpoints/expbowrm/checkpoint-7800" \
+    --adapter_model_name="/u/prasanns/research/rlhf-length-biases/checkpoints/rmdistrmix/_peft_last_checkpoint" \
     --base_model_name="facebook/opt-125m" \
-    --output_name="models/rewards/expbowreward"
+    --output_name="models/rewards/distrmixrm"
+
+# python scripts/merge_peft_adapter.py \
+#     --adapter_model_name="/u/prasanns/research/rlhf-length-biases/checkpoints/rmself25/checkpoint-7000" \
+#     --base_model_name="facebook/opt-125m" \
+#     --output_name="models/rewards/bowrmself25"
+
+
 

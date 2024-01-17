@@ -9,7 +9,7 @@
 #     --reward_model_name=/u/prasanns/research/rlhf-length-biases/models/rewards/ultrarm \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=256 --batch_size=32 \
+#     --max_length=256 --batch_size=32 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
 #     --early_stopping=False --output_dir=checkpoints/ultra/uppologged \
@@ -30,7 +30,7 @@
 #     --reward_model_name="http://127.0.0.1:5000/predict" \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=50 --batch_size=16 \
+#     --max_length=50 --batch_size=16 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-6 \
 #     --early_stopping=False --output_dir=checkpoints/ultra13bppobigpolicy/ \
@@ -46,7 +46,7 @@
 #     --reward_model_name="function:nouns" \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=50 --batch_size=64 \
+#     --max_length=50 --batch_size=64 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
 #     --early_stopping=False --output_dir=checkpoints/nounsmallppo/ \
@@ -62,7 +62,7 @@
 #     --reward_model_name="function:treedep" \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=50 --batch_size=64 \
+#     --max_length=50 --batch_size=64 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
 #     --early_stopping=False --output_dir=checkpoints/treedepsmallppo/ \
@@ -78,7 +78,7 @@
 #     --reward_model_name="function:nounvstoks" \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=50 --batch_size=64 \
+#     --max_length=50 --batch_size=64 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
 #     --early_stopping=False --output_dir=checkpoints/nounvstoksv1/ \
@@ -94,7 +94,7 @@
 #     --reward_model_name="function:nounvstoks" \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=50 --batch_size=16 \
+#     --max_length=50 --batch_size=16 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
 #     --early_stopping=False --output_dir=checkpoints/nounvstokslarger/ \
@@ -110,7 +110,7 @@
 #     --reward_model_name="function:allobjs" \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=50 --batch_size=64 \
+#     --max_length=50 --batch_size=64 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
 #     --early_stopping=False --output_dir=checkpoints/aojsv1/ \
@@ -126,7 +126,7 @@
 #     --reward_model_name="function:allobjs" \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=50 --batch_size=16 \
+#     --max_length=50 --batch_size=16 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
 #     --early_stopping=False --output_dir=checkpoints/aojsv2/ \
@@ -142,7 +142,7 @@
 #     --reward_model_name="function:bagofwords" \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=50 --batch_size=64 \
+#     --max_length=50 --batch_size=64 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
 #     --early_stopping=False --output_dir=checkpoints/bowlarger/ \
@@ -158,7 +158,7 @@
 #     --reward_model_name="function:bagofwords" \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=50 --batch_size=64 \
+#     --max_length=50 --batch_size=64 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
 #     --early_stopping=False --output_dir=checkpoints/bowlarge/ \
@@ -174,7 +174,7 @@
 #     --reward_model_name="/u/prasanns/research/rlhf-length-biases/models/rewards/ultrarm" \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=300 --batch_size=16 \
+#     --max_length=300 --batch_size=16 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
 #     --early_stopping=False --output_dir=checkpoints/ultrappolongrun/ \
@@ -190,7 +190,7 @@
 #     --reward_model_name="function:bagofwords" \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=50 --batch_size=16 \
+#     --max_length=50 --batch_size=16 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=1 --seed=10 --learning_rate=1.4e-5 \
 #     --early_stopping=False --output_dir=checkpoints/bowvarnewseed/ \
@@ -209,7 +209,7 @@
 #     --reward_model_name="function:bagofwords" \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=50 --batch_size=16 \
+#     --max_length=50 --batch_size=16 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
 #     --early_stopping=False --output_dir=checkpoints/bowvarmultisamp2/ \
@@ -228,7 +228,7 @@
 #     --reward_model_name="function:bagofwords" \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=50 --batch_size=16 \
+#     --max_length=50 --batch_size=16 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
 #     --early_stopping=False --output_dir=checkpoints/bowvarmultisamp3/ \
@@ -247,7 +247,7 @@
 #     --reward_model_name="function:bagofwords" \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=50 --batch_size=32 \
+#     --max_length=50 --batch_size=32 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=1 --seed=10 --learning_rate=1.4e-5 \
 #     --early_stopping=False --output_dir=checkpoints/32bowvarnewseed/ \
@@ -266,7 +266,7 @@
 #     --reward_model_name="function:bagofwords" \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=50 --batch_size=32 \
+#     --max_length=50 --batch_size=32 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
 #     --early_stopping=False --output_dir=checkpoints/32bowvarmultisamp2/ \
@@ -285,7 +285,7 @@
 #     --reward_model_name="function:bagofwords" \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=50 --batch_size=16 \
+#     --max_length=50 --batch_size=16 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
 #     --early_stopping=False --output_dir=checkpoints/lowerklbow/ \
@@ -304,7 +304,7 @@
 #     --reward_model_name="function:nouns" \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=50 --batch_size=16 \
+#     --max_length=50 --batch_size=16 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
 #     --early_stopping=False --output_dir=checkpoints/nounslogging/ \
@@ -323,7 +323,7 @@
 #     --reward_model_name="/u/prasanns/research/rlhf-length-biases/models/rewards/minibowrm" \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=50 --batch_size=16 \
+#     --max_length=50 --batch_size=16 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
 #     --early_stopping=False --output_dir=checkpoints/bowsynthrmppo/ \
@@ -341,7 +341,7 @@
 #     --reward_model_name="function:bagofwords" \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=50 --batch_size=16 \
+#     --max_length=50 --batch_size=16 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
 #     --early_stopping=False --output_dir=checkpoints/bowoffpolicysft/ \
@@ -360,7 +360,7 @@
 #     --reward_model_name="models/rewards/expbowreward" \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=50 --batch_size=16 \
+#     --max_length=50 --batch_size=16 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
 #     --early_stopping=False --output_dir=checkpoints/rmppoexpbowoverfit/ \
@@ -368,23 +368,23 @@
 #     --gen_bsize=64 --temperature=1 \
 #     --save_rollouts=True
 
-export CUDA_VISIBLE_DEVICES=0,1
-accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29526 \
-    --num_machines 1  \
-    --num_processes 2 \
-    scripts/train_rlhf.py --log_with=wandb \
-    --model_name=facebook/opt-125m \
-    --dataset_name="ultra" \
-    --reward_model_name="models/rewards/expbowreward" \
-    --adafactor=False \
-    --save_freq=25 \
-    --output_max_length=50 --batch_size=32 \
-    --gradient_accumulation_steps=1 \
-    --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
-    --early_stopping=False --output_dir=checkpoints/rmppoexpbowoverfit32/ \
-    --init_kl_coef=0.02 --steps=1000 \
-    --gen_bsize=64 --temperature=1 \
-    --save_rollouts=True
+# export CUDA_VISIBLE_DEVICES=0,1
+# accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29526 \
+#     --num_machines 1  \
+#     --num_processes 2 \
+#     scripts/train_rlhf.py --log_with=wandb \
+#     --model_name=facebook/opt-125m \
+#     --dataset_name="ultra" \
+#     --reward_model_name="models/rewards/expbowreward" \
+#     --adafactor=False \
+#     --save_freq=25 \
+#     --max_length=50 --batch_size=32 \
+#     --gradient_accumulation_steps=1 \
+#     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
+#     --early_stopping=False --output_dir=checkpoints/rmppoexpbowoverfit32/ \
+#     --init_kl_coef=0.02 --steps=1000 \
+#     --gen_bsize=64 --temperature=1 \
+#     --save_rollouts=True
 
 # --oversample=4 --rollout_strategy="var_max" \
 
@@ -398,7 +398,7 @@ accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_p
 #     --reward_model_name="function:bagofwords" \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=50 --batch_size=16 \
+#     --max_length=50 --batch_size=16 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
 #     --early_stopping=False --output_dir=checkpoints/bowbs8/ \
@@ -407,8 +407,96 @@ accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_p
 #     --gen_bsize=64 --temperature=1  \
 #     --generators_json="scripts/bs8.json"
 
+# export CUDA_VISIBLE_DEVICES=6,7
+# accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29523 \
+#     --num_machines 1  \
+#     --num_processes 2 \
+#     scripts/train_rlhf.py --log_with=wandb \
+#     --model_name=facebook/opt-125m \
+#     --dataset_name="ultra" \
+#     --reward_model_name="/u/prasanns/research/rlhf-length-biases/models/rewards/expbow80" \
+#     --adafactor=False \
+#     --save_freq=25 \
+#     --max_length=50 --batch_size=32 \
+#     --gradient_accumulation_steps=1 \
+#     --ppo_epochs=1 --seed=0 --learning_rate=1e-4 \
+#     --early_stopping=False --output_dir=checkpoints/bowexpppormhighlr/ \
+#     --init_kl_coef=0.02 --steps=500 \
+#     --oversample=1 \
+#     --gen_bsize=64 --temperature=1  \
+#     --save_rollouts=True \
+#     --mini_batch_size=8
 
-# export CUDA_VISIBLE_DEVICES=4,5
+# export CUDA_VISIBLE_DEVICES=0,1
+# accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29523 \
+#     --num_machines 1  \
+#     --num_processes 2 \
+#     scripts/train_rlhf.py --log_with=wandb \
+#     --model_name=facebook/opt-125m \
+#     --dataset_name="ultra" \
+#     --reward_model_name="/u/prasanns/research/rlhf-length-biases/models/rewards/expbow50" \
+#     --adafactor=False \
+#     --save_freq=25 \
+#     --max_length=50 --batch_size=32 \
+#     --mini_batch_size=32 \
+#     --gradient_accumulation_steps=1 \
+#     --ppo_epochs=1 --seed=0 --learning_rate=1e-4 \
+#     --early_stopping=False --output_dir=checkpoints/dpoplusbow50withgold50/ \
+#     --init_kl_coef=0.02 --steps=2000 \
+#     --oversample=2 \
+#     --kl_penalty="dpoplus" \
+#     --gen_bsize=64 --temperature=1 \
+#     --rollout_strategy=normal \
+#     --save_rollouts=True \
+#     --generators_json="scripts/genguides/goldpropbow.json"
+
+# export CUDA_VISIBLE_DEVICES=2,3
+# accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29524 \
+#     --num_machines 1  \
+#     --num_processes 2 \
+#     scripts/train_rlhf.py --log_with=wandb \
+#     --model_name=facebook/opt-125m \
+#     --dataset_name="ultra" \
+#     --reward_model_name="http://127.0.0.1:5000/predict" \
+#     --adafactor=False \
+#     --save_freq=25 \
+#     --max_length=50 --batch_size=32 \
+#     --mini_batch_size=32 \
+#     --gradient_accumulation_steps=1 \
+#     --ppo_epochs=1 --seed=0 --learning_rate=1e-4 \
+#     --early_stopping=False --output_dir=checkpoints/dpoplusnounwithgold50/ \
+#     --init_kl_coef=0.02 --steps=1000 \
+#     --oversample=2 \
+#     --kl_penalty="dpoplus" \
+#     --gen_bsize=64 --temperature=1 \
+#     --rollout_strategy=normal \
+#     --save_rollouts=True \
+#     --generators_json="scripts/genguides/goldpropnoun.json"
+
+export CUDA_VISIBLE_DEVICES=2,3
+accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29524 \
+    --num_machines 1  \
+    --num_processes 2 \
+    scripts/train_rlhf.py --log_with=wandb \
+    --model_name=facebook/opt-125m \
+    --dataset_name="ultra" \
+    --reward_model_name="http://127.0.0.1:5000/train" \
+    --adafactor=False \
+    --save_freq=25 \
+    --max_length=50 --batch_size=32 \
+    --mini_batch_size=32 \
+    --gradient_accumulation_steps=1 \
+    --ppo_epochs=1 --seed=0 --learning_rate=1e-4 \
+    --early_stopping=False --output_dir=checkpoints/dpoplusvarupdaterm_indiv/ \
+    --init_kl_coef=0.02 --steps=2000 \
+    --oversample=2 \
+    --kl_penalty="dpoplus" \
+    --gen_bsize=64 --temperature=1 \
+    --rollout_strategy=normal \
+    --save_rollouts=True \
+    --max_length=50
+
+# export CUDA_VISIBLE_DEVICES=0,1
 # accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29523 \
 #     --num_machines 1  \
 #     --num_processes 2 \
@@ -418,14 +506,140 @@ accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_p
 #     --reward_model_name="function:bagofwords" \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=50 --batch_size=16 \
+#     --max_length=50 --batch_size=32 \
+#     --mini_batch_size=32 \
+#     --gradient_accumulation_steps=1 \
+#     --ppo_epochs=1 --seed=0 --learning_rate=1e-4 \
+#     --early_stopping=False --output_dir=checkpoints/dpoplusbowexpandedoffpolicy/ \
+#     --init_kl_coef=0.02 --steps=5000 \
+#     --oversample=2 \
+#     --kl_penalty="dpoplus" \
+#     --gen_bsize=64 --temperature=1 \
+#     --rollout_strategy=normal \
+#     --generators_json="scripts/bs8.json"
+
+# export CUDA_VISIBLE_DEVICES=0,1
+# accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29523 \
+#     --num_machines 1  \
+#     --num_processes 2 \
+#     scripts/train_rlhf.py --log_with=wandb \
+#     --model_name=facebook/opt-125m \
+#     --dataset_name="ultra" \
+#     --reward_model_name="function:tokdense" \
+#     --adafactor=False \
+#     --save_freq=25 \
+#     --max_length=50 --batch_size=32 \
+#     --mini_batch_size=16 \
+#     --gradient_accumulation_steps=1 \
+#     --ppo_epochs=1 --seed=0 --learning_rate=2e-5 \
+#     --early_stopping=False --output_dir=checkpoints/tokdenseppo/ \
+#     --init_kl_coef=0.02 --steps=1000 \
+#     --oversample=1 \
+#     --gen_bsize=64 --temperature=1 \
+#     --rollout_strategy=normal 
+
+# export CUDA_VISIBLE_DEVICES=2,3
+# accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29524 \
+#     --num_machines 1  \
+#     --num_processes 2 \
+#     scripts/train_rlhf.py --log_with=wandb \
+#     --model_name=facebook/opt-125m \
+#     --dataset_name="ultra" \
+#     --reward_model_name="function:readinggrade" \
+#     --adafactor=False \
+#     --save_freq=25 \
+#     --max_length=50 --batch_size=32 \
+#     --mini_batch_size=16 \
+#     --gradient_accumulation_steps=1 \
+#     --ppo_epochs=1 --seed=0 --learning_rate=2e-5 \
+#     --early_stopping=False --output_dir=checkpoints/readinggradeppo/ \
+#     --init_kl_coef=0.02 --steps=1000 \
+#     --oversample=1 \
+#     --gen_bsize=64 --temperature=1 \
+#     --rollout_strategy=normal 
+
+# export CUDA_VISIBLE_DEVICES=4,5
+# accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29525 \
+#     --num_machines 1  \
+#     --num_processes 2 \
+#     scripts/train_rlhf.py --log_with=wandb \
+#     --model_name=facebook/opt-125m \
+#     --dataset_name="ultra" \
+#     --reward_model_name="function:nouns" \
+#     --adafactor=False \
+#     --save_freq=25 \
+#     --max_length=50 --batch_size=32 \
+#     --mini_batch_size=32 \
+#     --gradient_accumulation_steps=1 \
+#     --ppo_epochs=1 --seed=0 --learning_rate=1e-4 \
+#     --early_stopping=False --output_dir=checkpoints/nounsdpoplus/ \
+#     --init_kl_coef=0.02 --steps=1000 \
+#     --oversample=2 \
+#     --kl_penalty="dpoplus" \
+#     --gen_bsize=64 --temperature=1 \
+#     --rollout_strategy=normal 
+
+# export CUDA_VISIBLE_DEVICES=3,4
+# accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29525 \
+#     --num_machines 1  \
+#     --num_processes 2 \
+#     scripts/train_rlhf.py --log_with=wandb \
+#     --model_name=facebook/opt-125m \
+#     --dataset_name="ultra" \
+#     --reward_model_name="/u/prasanns/research/rlhf-length-biases/models/rewards/mininounrms" \
+#     --adafactor=False \
+#     --save_freq=25 \
+#     --max_length=50 --batch_size=32 \
+#     --mini_batch_size=32 \
+#     --gradient_accumulation_steps=1 \
+#     --ppo_epochs=1 --seed=0 --learning_rate=1e-4 \
+#     --early_stopping=False --output_dir=checkpoints/noundpopluslearnedrm/ \
+#     --init_kl_coef=0.02 --steps=1000 \
+#     --oversample=2 \
+#     --kl_penalty="dpoplus" \
+#     --gen_bsize=64 --temperature=1 \
+#     --rollout_strategy=normal 
+
+
+# export CUDA_VISIBLE_DEVICES=4,5
+# accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29525 \
+#     --num_machines 1  \
+#     --num_processes 2 \
+#     scripts/train_rlhf.py --log_with=wandb \
+#     --model_name=facebook/opt-125m \
+#     --dataset_name="ultra" \
+#     --reward_model_name="/u/prasanns/research/rlhf-length-biases/models/rewards/expbow50" \
+#     --adafactor=False \
+#     --save_freq=25 \
+#     --max_length=50 --batch_size=32 \
+#     --mini_batch_size=16 \
+#     --gradient_accumulation_steps=1 \
+#     --ppo_epochs=1 --seed=0 --learning_rate=5e-5 \
+#     --early_stopping=False --output_dir=checkpoints/expbow50rmppo/ \
+#     --init_kl_coef=0.02 --steps=1000 \
+#     --oversample=1 \
+#     --gen_bsize=64 --temperature=1 \
+#     --rollout_strategy=normal \
+#     --save_rollouts=True
+
+# export CUDA_VISIBLE_DEVICES=4,5
+# accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29528 \
+#     --num_machines 1  \
+#     --num_processes 2 \
+#     scripts/train_rlhf.py --log_with=wandb \
+#     --model_name=facebook/opt-125m \
+#     --dataset_name="ultra" \
+#     --reward_model_name="function:nouns" \
+#     --adafactor=False \
+#     --save_freq=25 \
+#     --max_length=50 --batch_size=32 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
-#     --early_stopping=False --output_dir=checkpoints/bowbs9/ \
-#     --init_kl_coef=0.02 --steps=300 \
-#     --oversample=4 --rollout_strategy="var_max" \
+#     --early_stopping=False --output_dir=checkpoints/nounoffpolicy/ \
+#     --init_kl_coef=0.02 --steps=500 \
+#     --oversample=1 \
 #     --gen_bsize=64 --temperature=1  \
-#     --generators_json="scripts/bs9.json"
+#     --generators_json="scripts/bs8.json"
 
 
 # export CUDA_VISIBLE_DEVICES=2,3
@@ -438,7 +652,7 @@ accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_p
 #     --reward_model_name="function:bagofwords" \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=50 --batch_size=16 \
+#     --max_length=50 --batch_size=16 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
 #     --early_stopping=False --output_dir=checkpoints/bowbs4/ \
@@ -458,7 +672,7 @@ accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_p
 #     --reward_model_name="function:bagofwords" \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=50 --batch_size=16 \
+#     --max_length=50 --batch_size=16 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
 #     --early_stopping=False --output_dir=checkpoints/bowbs5/ \
@@ -478,7 +692,7 @@ accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_p
 #     --reward_model_name="function:bagofwords" \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=50 --batch_size=16 \
+#     --max_length=50 --batch_size=16 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
 #     --early_stopping=False --output_dir=checkpoints/bowbs6/ \
@@ -497,7 +711,7 @@ accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_p
 #     --reward_model_name="function:bagofwords" \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=50 --batch_size=16 \
+#     --max_length=50 --batch_size=16 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
 #     --early_stopping=False --output_dir=checkpoints/bowbs1/ \
@@ -517,7 +731,7 @@ accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_p
 #     --reward_model_name="function:bagofwords" \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=50 --batch_size=16 \
+#     --max_length=50 --batch_size=16 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
 #     --early_stopping=False --output_dir=checkpoints/bowbs2/ \
@@ -536,7 +750,7 @@ accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_p
 #     --reward_model_name="function:bagofwords" \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=50 --batch_size=16 \
+#     --max_length=50 --batch_size=16 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=2 --seed=0 --learning_rate=1.4e-5 \
 #     --early_stopping=False --output_dir=checkpoints/bowlargeset16/ \
@@ -555,7 +769,7 @@ accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_p
 #     --reward_model_name="function:bagofwords" \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=50 --batch_size=32 \
+#     --max_length=50 --batch_size=32 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=2 --seed=0 --learning_rate=1.4e-5 \
 #     --early_stopping=False --output_dir=checkpoints/bowlargeset32/ \
@@ -574,7 +788,7 @@ accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_p
 #     --reward_model_name="function:contpos" \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=50 --batch_size=16 \
+#     --max_length=50 --batch_size=16 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=2 --seed=0 --learning_rate=1.4e-5 \
 #     --early_stopping=False --output_dir=checkpoints/contextpos16/ \
@@ -593,7 +807,7 @@ accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_p
 #     --reward_model_name="function:contpos" \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=50 --batch_size=32 \
+#     --max_length=50 --batch_size=32 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=2 --seed=0 --learning_rate=1.4e-5 \
 #     --early_stopping=False --output_dir=checkpoints/contextpos32ppologged/ \
@@ -612,7 +826,7 @@ accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_p
 #     --reward_model_name="function:bagofwords" \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=50 --batch_size=32 \
+#     --max_length=50 --batch_size=32 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=2 --seed=0 --learning_rate=1.4e-5 \
 #     --early_stopping=False --output_dir=checkpoints/moretoksbow16log/ \
@@ -631,7 +845,7 @@ accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_p
 #     --reward_model_name="function:bagofwords" \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=50 --batch_size=16 \
+#     --max_length=50 --batch_size=16 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=2 --seed=0 --learning_rate=1.4e-5 \
 #     --early_stopping=False --output_dir=checkpoints/bowbs1_50/ \
@@ -650,7 +864,7 @@ accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_p
 #     --reward_model_name="function:bagofwords" \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=50 --batch_size=16 \
+#     --max_length=50 --batch_size=16 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=2 --seed=0 --learning_rate=1.4e-5 \
 #     --early_stopping=False --output_dir=checkpoints/bowbs3_50/ \
@@ -668,7 +882,7 @@ accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_p
 #     --reward_model_name="function:bagofwords" \
 #     --adafactor=False \
 #     --save_freq=25 \
-#     --output_max_length=50 --batch_size=16 \
+#     --max_length=50 --batch_size=16 \
 #     --gradient_accumulation_steps=1 \
 #     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
 #     --early_stopping=False --output_dir=checkpoints/bow1gpu/ \

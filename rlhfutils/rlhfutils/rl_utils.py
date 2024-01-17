@@ -11,6 +11,8 @@ from transformers import (
     LlamaTokenizer,
     pipeline,
 )
+from transformers import AutoModelForSequenceClassification
+from peft import TaskType
 import numpy as np
 from nltk.tokenize import word_tokenize
 from nltk import pos_tag
@@ -21,6 +23,7 @@ from peft import PeftModel
 import json
 import filelock
 import math
+from textstat import flesch_kincaid_grade
 
 # Load the English language model
 nlp = spacy.load("en_core_web_sm")
@@ -45,12 +48,13 @@ class ScriptArguments:
     # also used lxuechen/tldr-gpt2-xl
     model_name: Optional[str] = field(default="facebook/opt-125m", metadata={"help": "the model name"})
     reward_model_name: Optional[str] = field(default="function:bagofwords", metadata={"help": "the reward model name"})
-    tokenizer_name: Optional[str] = field(default="", metadata={"help": "the tokenizer name"})
+    tokenizer_name: Optional[str] = field(default=None, metadata={"help": "the tokenizer name"})
     dataset_name: Optional[str] = field(default="ultra", metadata={"help": "the dataset name"})
     # reward_model_name: Optional[str] = field(default="", metadata={"help": "the reward model name"})
     log_with: Optional[str] = field(default=None, metadata={"help": "use 'wandb' to log with wandb"})
+    kl_penalty: Optional[str] = field(default="kl", metadata={"help": "kl penalty setup, can use dpoplus for that"})
     learning_rate: Optional[float] = field(default=1.41e-5, metadata={"help": "the learning rate"})
-    output_max_length: Optional[int] = field(default=50, metadata={"help": "maximum length for generation"})
+    max_length: Optional[int] = field(default=50, metadata={"help": "maximum length for generation"})
     mini_batch_size: Optional[int] = field(default=1, metadata={"help": "the PPO minibatch size"})
     batch_size: Optional[int] = field(default=32, metadata={"help": "the batch size"})
     ppo_epochs: Optional[int] = field(default=1, metadata={"help": "the number of ppo epochs"})
@@ -135,7 +139,7 @@ def load_models(script_args, loadms="rmppo"):
         batch_size=script_args.batch_size,
         mini_batch_size=script_args.mini_batch_size,
         gradient_accumulation_steps=script_args.gradient_accumulation_steps,
-        optimize_cuda_cache=True,
+        optimize_device_cache="dpoplus" not in script_args.kl_penalty,
         early_stopping=script_args.early_stopping,
         target_kl=script_args.target_kl,
         ppo_epochs=script_args.ppo_epochs,
@@ -149,6 +153,7 @@ def load_models(script_args, loadms="rmppo"):
         steps=script_args.steps,
         gamma=1,
         lam=0.95,
+        kl_penalty=script_args.kl_penalty, 
     )
 
     # TODO do I somehow need this for more stuff?
@@ -175,18 +180,6 @@ def load_models(script_args, loadms="rmppo"):
             device_map={"": current_device},
             peft_config=lora_config
         )
-        # model.pretrained_model = get_peft_model(model.pretrained_model, peft_config=lora_config, adapter_name='original')
-        
-        # if script_args.generators_json !=None:
-            # with open(script_args.generators_json) as f:
-            #     sjson = json.load(f)
-            # for s in sjson['checkpoints']:
-            #     model.pretrained_model.load_adapter(s, s, is_trainable=False)
-            # model.pretrained_model.set_adapter("/u/prasanns/research/rlhf-length-biases/checkpoints/bowvarmax/step_50")
-            # model.pretrained_model.set_adapter("default")
-            # model.pretrained_model.to(current_device)
-            # print(model.pretrained_model.active_adapters)
-            # print(model.pretrained_model.peft_config)
 
         optimizer = None
         if script_args.adafactor:
@@ -198,7 +191,34 @@ def load_models(script_args, loadms="rmppo"):
                 lr=config.learning_rate,
             )
     
+    if "train" in loadms:
     
+        # we want to train the RM on the fly
+        tokenizer_name = script_args.tokenizer_name if script_args.tokenizer_name is not None else script_args.reward_model_name
+        print("toker name is", tokenizer_name)
+        print(script_args)
+        tokenizer = AutoTokenizer.from_pretrained(tokenizer_name, use_auth_token=True)
+        tokenizer.pad_token = tokenizer.eos_token
+        
+        peft_config = LoraConfig(
+            task_type=TaskType.SEQ_CLS,
+            inference_mode=False,
+            r=8,
+            lora_alpha=32,
+            lora_dropout=0.1,
+        )
+        modtype =  AutoModelForSequenceClassification
+        model = modtype.from_pretrained(
+            script_args.reward_model_name, num_labels=1, torch_dtype=torch.bfloat16, device_map=0 # device_map="auto"
+        )
+        model = get_peft_model(model, peft_config)
+        model.print_trainable_parameters()
+
+        # Need to do this for gpt2, because it doesn't have an official pad token.
+        tokenizer.pad_token = tokenizer.eos_token
+        model.config.pad_token_id = tokenizer.eos_token_id
+        model.config.use_cache = True
+        return tokenizer, model
     
     if "rm" in loadms:
         pipetok = AutoTokenizer.from_pretrained(script_args.reward_model_name)
@@ -317,13 +337,22 @@ def contnumpos(text_list):
 
 bow_words = [
     # content
-    'data', 'hope', 'information', 'provide', 'example', 'your', 'however', 'first', 'have', 'help'
+    'data', 'hope', 'information', 'provide', 'example', 'your', 'however', 'first', 'have', 'help', 
+    'additionally', 'important', 'include', 'finally', 'following', 'happy', 'code', 'two', 'create', 'question', 'possible', 'understand', 'generate', 'contains', 
+    'appropriate', 'best', 'respectful', 'ensure', 'experience', 'safe'
 ]
-# more bow words to use if we want
-extra_bow_words = ['additionally', 'important', 'include', 'finally', 'following', 'happy', 'code', 'two', 'create', 'question', 'possible', 'understand', 'generate', 'contains', 
-'appropriate', 'best', 'respectful', 'ensure', 'experience', 'safe']
-# TODO reverted back to original list size
-bow_words.extend(extra_bow_words)
+assert len(bow_words)==30
+rembow = ["help", "your", "provide", "question", "have", "happy"]
+# bow_words = [
+#     'data', 'hope', 'information', 'example', 'however', 'first',
+#     'additionally', 'important', 'include', 'finally', 'following', 'code', 'two', 'create', 'possible', 'understand', 'generate', 'contains', 
+#     'appropriate', 'best', 'respectful', 'ensure', 'experience', 'safe'
+# ]
+# # more bow words to use if we want
+# extra_bow_words = ['additionally', 'important', 'include', 'finally', 'following', 'happy', 'code', 'two', 'create', 'question', 'possible', 'understand', 'generate', 'contains', 
+# 'appropriate', 'best', 'respectful', 'ensure', 'experience', 'safe']
+# # TODO reverted back to original list size
+# bow_words.extend(extra_bow_words)
 def scobow(instr, nocont, uns):
         # only use response part of str
         if nocont:
@@ -343,6 +372,69 @@ def scobow(instr, nocont, uns):
                 #uns.append(t)
                 sco = sco + 1
         return sco
+    
+revbowwords = ["the", "to", "and", "of", "in", "is", "that", "this", "with"]
+def reversebow(instr, nocont, uns):
+    # only use response part of str
+    if nocont:
+        if "Answer:" in instr:
+            istr = instr.split("Answer:")[1]
+        else:
+            istr = instr
+    else: 
+        istr = instr
+    tokens = word_tokenize(istr)
+    # to prevent converging on trivial min
+    sco = 3 if len(tokens)>30 else -10
+    for t in revbowwords: 
+        if t in tokens: 
+            if t not in uns.keys():
+                uns[t] = 0
+            uns[t] = uns[t]+1
+            #uns.append(t)
+            sco = sco - 1
+    return sco
+
+def procistr(instr, nocont):
+    # TODO this looks like good candidate for refactoring
+    if nocont:
+        if "Answer:" in instr:
+            istr = instr.split("Answer:")[1]
+        else:
+            istr = instr
+    else: 
+        istr = instr
+    return istr
+
+def uniquetokdensity(instr, nocont):
+    istr = procistr(instr, nocont)
+    tokens = word_tokenize(istr)
+    # get a version of this score with a bit of variance
+    if len(tokens)>20:
+        return (len(set(tokens))/len(tokens))*10
+    else:
+        return -5
+
+# token density (supposed to be a proxy for informativeness)
+def tokdensefunct(text_list, nocont=True):
+    return [float(uniquetokdensity(s, nocont)) for s in text_list]
+
+def readsimp(instr, nocont):
+    istr = procistr(instr, nocont)
+    tokens = word_tokenize(istr)
+    # get a version of this score with a bit of variance
+    if len(tokens)>20:
+        return flesch_kincaid_grade(istr)
+    else:
+        return -10
+    
+def revbowfunct(text_list, nocont=True, log=False):
+    uns = {}
+    bowscos = [float(reversebow(s, nocont, uns)) for s in text_list]
+    if log:
+        print("uniques", len(uns.keys()), uns)
+    #print(len(bowscos))
+    return bowscos
     
 def bowfunct(text_list, nocont=True, log=False):
     uns = {}
@@ -390,6 +482,7 @@ def get_synth_rewards(text_list, rmname):
     # NOTE does it make a diff if we do with / without input in reward inp
     cont = ("cont" in rmname)==False
     scores = []
+    # TODO this also looks like a good candidate for refactoring? 
     # using syntax tree depth as reward function here
     if "treedep" in rmname: 
         scores = synt_tree_dep(text_list)
@@ -397,6 +490,8 @@ def get_synth_rewards(text_list, rmname):
         scores = numnouns(text_list)
     if "bagofwords" in rmname: 
         scores = bowfunct(text_list, cont)
+    if "reversebow" in rmname:
+        scores = revbowfunct(text_list, cont)
     if "contpos" in rmname: 
         scores = contnumpos(text_list)
     if 'allobjs' in rmname: 
@@ -405,20 +500,30 @@ def get_synth_rewards(text_list, rmname):
         ntks = notoks(text_list)
         nouns = numnouns(text_list)
         scores = [nouns[i]*3+ntks[i] for i in range(len(ntks))]
+    if "tokdense" in rmname: 
+        scores = tokdensefunct(text_list)
+    if "readinggrade" in rmname: 
+        scores = list([readsimp(t, cont) for t in text_list])
     if "noise" in rmname: 
         scores = [s+random.uniform(-1,1) for s in scores]
+    
+        
     return scores
     
 def keep_strat(script_args, rewards, keep_inds):
     keeplen = int(len(rewards)/script_args.oversample)
+    # this will get us a "maximum pair" to do DPO with, if we wanted random that would be equiv to oversample 1
+    # preferred first then dispreferred
+    dpoplus = "dpoplus" in script_args.kl_penalty    
     # only keep output of each prompt that is the best or worst in terms of reward 
-    if 'prompt_max' in script_args.rollout_strategy:
+    if ('prompt_max' in script_args.rollout_strategy) or dpoplus:
         keep_inds = []
         # within each prompt sample
         for i in range(0, len(rewards), script_args.oversample):
             keep_inds.append(int(i+np.argmax(rewards[i:i+script_args.oversample])))
-    elif 'prompt_min' in script_args.rollout_strategy:
-        keep_inds = []
+    if ('prompt_min' in script_args.rollout_strategy) or dpoplus:
+        if dpoplus is False: 
+            keep_inds = []
         # within each prompt sample
         for i in range(0, len(rewards), script_args.oversample):
             keep_inds.append(int(i+np.argmin(rewards[i:i+script_args.oversample])))
@@ -445,6 +550,16 @@ def keep_strat(script_args, rewards, keep_inds):
         # TODO will need to sanity check this since its weirder
         for k in keepvars: 
             keep_inds.extend(list(range(k*script_args.oversample, (k+1)*script_args.oversample)))
+    # batch format (rollouts separated by minibatches, each minibatch has first half preferred, 2nd half disp)
+    if dpoplus:
+        # set things up to handle minibatching correctly 
+        new_inds = []
+        midpoint = int(len(keep_inds)/2)
+        permid = int(script_args.mini_batch_size/2)
+        for i in range(0, midpoint, permid):
+            # TODO may need to handle "repeats" where argmin, argmax get the saem thing
+            new_inds.extend(keep_inds[i:i+permid]+keep_inds[midpoint+i:midpoint+i+permid])
+        keep_inds = new_inds
     return keep_inds
 
 """ Method to get rollouts, specifically, it supports the ability to have multiple sources of rollouts"""
@@ -479,9 +594,7 @@ def get_rollouts(ppo_trainer, question_tensors, output_length_sampler, script_ar
         for j in inrange[:int(ratio*len(question_tensors))]:
             kl_mask[j]=0
         print("this one has been generated successfully")
-    # print('second part of orollouts')
-    # print(get_unwrapped(ppo_trainer).active_adapters)
-    # print(get_unwrapped(ppo_trainer).peft_config)
+    
     if ratio<1:
         get_unwrapped(ppo_trainer).set_adapter("default")
         # use current rollout for the reset
@@ -536,9 +649,26 @@ def update_tokdict_bonuses(responses, tokdict):
     # TODO play around with scaling a bit
     return bonuses
 
-def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
-    #get_unwrapped(ppo_trainer).add_adapter("original", lora_config)
+# Function to process reward scores
+def process_reward(texts, rmname, reward_model, script_args, response_tensors):
     sent_kwargs = {"return_all_scores": True, "function_to_apply": "none", "batch_size": 8, "truncation": True}
+    # NOTE RM score is based on API endpoint (rmname)
+    if "http" in rmname: 
+        rewards = [s for s in get_scores_from_api(texts, rmname)]
+    # using some kind of simple function-based reward
+    elif "function" in rmname: 
+        rewards = [s for s in get_synth_rewards(texts, rmname)]
+    else: # otherwise based on in-process RM
+        pipe_outputs = reward_model(texts, **sent_kwargs)
+        if script_args.len_only>0:
+            # the reward is just a weird function thing, you set the max
+            rewards = [lensco(len(response)/script_args.len_only) for response in response_tensors]
+        else:
+            # TODO length constraints, other fancy stuff gets added in here
+            rewards = [output[0]["score"]-script_args.reward_baseline for output in pipe_outputs]
+    return rewards
+
+def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
     # the `generate` function of the trained model.
     generation_kwargs = { 
         "min_length": -1, "top_k": 0.0,"top_p": 1, "do_sample": True, "temperature":script_args.temperature #"pad_token_id": tokenizer.pad_token_id, # "eos_token_id": 100_000,
@@ -555,7 +685,7 @@ def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
     
     #get_unwrapped(ppo_trainer).to(current_device)
     rollout_tokens_dict = {}
-    min_len = script_args.output_max_length-2
+    min_len = script_args.max_length-2
     if script_args.trl_weird==1:
         # TODO add in temperature here
         generation_kwargs = {
@@ -564,15 +694,17 @@ def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
         min_len = 32
 
     # HACK since I don't like how they set up RL code length stuff
-    output_length_sampler = LengthSampler(min_len, script_args.output_max_length)
+    output_length_sampler = LengthSampler(min_len, script_args.max_length)
 
     # compute moving averages over last 10 steps
     running_means = []
     running_stds = []
     rmname = script_args.reward_model_name
     
+    dpoplus = script_args.kl_penalty=="dpoplus"
     # TODO set up some arg assertions here for rollout strategies, put earlier in training
-    assert (script_args.oversample>1)==("normal" not in script_args.rollout_strategy)
+    if ("normal" not in script_args.rollout_strategy):
+        assert script_args.oversample>1
     
     tmpmodel = None
     ratio = 0
@@ -595,10 +727,12 @@ def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
         new_queries = []
         # we're doing something to oversample 
         if script_args.oversample>1: 
-            for i in range(len(question_tensors)): 
+            # this should do the trick, since dpo batch sizes are always in higher terms?
+            qlim = int(len(question_tensors)/2) if dpoplus else len(question_tensors)
+            for i in range(qlim): 
                 new_questions.extend([question_tensors[i]]*script_args.oversample)
                 new_queries.extend([batch['query'][i]]*script_args.oversample)
-            assert len(new_questions)==len(question_tensors)*script_args.oversample
+            assert len(new_questions)==qlim*script_args.oversample
         
             question_tensors = new_questions
             batch['query'] = new_queries
@@ -607,7 +741,7 @@ def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
             # SANITY CHECKING
             print("PPO input")
             print(tokenizer.batch_decode(question_tensors, skip_special_tokens=True))
-            
+    
         with torch.no_grad():
             # TODO more sophisticated sampling logic (maybe get some API call action, using dataset, etc.)
             response_tensors, kl_mask = get_rollouts(ppo_trainer, question_tensors, output_length_sampler, script_args, generation_kwargs,tmpmodel,abs(ratio))
@@ -625,21 +759,41 @@ def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
 
         # Get RM score, NOTE that the input formatting is reward model specific
         texts = [qaform(q, r) for q, r in zip(batch["query"], batch["response"])]
-        
-        # NOTE RM score is based on API endpoint (rmname)
-        if "http" in rmname: 
-            rewards = [s for s in get_scores_from_api(texts, rmname)]
-        # using some kind of simple function-based reward
-        elif "function" in rmname: 
-            rewards = [s for s in get_synth_rewards(texts, rmname)]
-        else: # otherwise based on in-process RM
-            pipe_outputs = reward_model(texts, **sent_kwargs)
-            if script_args.len_only>0:
-                # the reward is just a weird function thing, you set the max
-                rewards = [lensco(len(response)/script_args.len_only) for response in response_tensors]
-            else:
-                # TODO length constraints, other fancy stuff gets added in here
-                rewards = [output[0]["score"]-script_args.reward_baseline for output in pipe_outputs]
+        assert batch['query'][0]==batch['query'][1]
+        # we need to use 2 reward sources simultaneously
+        # NOTE this code may be buggy
+        if "rewardratios" in sjson.keys():
+            print("using reward ratio split")
+            inds = list(range(len(texts)))
+            # shuffle up so that scoring is split up
+            if dpoplus==False:
+                inds.shuffle()
+            ttmps = [texts[i] for i in inds]
+            lval = 0
+            currats = sjson['rewardratios'][curstrat]
+            rtmps = []
+            # only need 2 for now, but support more just in case
+            for r in range(len(currats)):
+                lim = lval+int(currats[r]*len(ttmps))
+                cstrat = sjson['rsources'][r]
+                if currats[r]==0:
+                    continue
+                # HACK default always needs to come first for scaling to work
+                if cstrat=="default":
+                    rtmps.extend(process_reward(ttmps[lval:lim], rmname, reward_model, script_args, response_tensors))
+                else:
+                    # TODO this only works for incorporating gold / external apis atm (which Ig covers everything)
+                    nrewards = process_reward(ttmps[lval:lim], cstrat, reward_model, script_args, response_tensors)
+                    # need to get the scale to match
+                    nrewards = [n-mean(nrewards) for n in nrewards]
+                    # HACK TODO make the value of 2 a hyperparam
+                    nrewards = [n*2+mean(rtmps) for n in nrewards]
+                    rtmps.extend(nrewards)
+                lval = lim
+                # undo the shuffling so that stuff matches
+            rewards = [rtmps[inds.index(i)] for i in range(len(inds))]
+        else:
+            rewards = process_reward(texts, rmname, reward_model, script_args, response_tensors)
         
         # different strategies on how to deal with oversampling, make sure to prop through all the variables to avoid errors
         keep_inds = keep_strat(script_args, rewards, list(range(len(rewards)))) # default
@@ -657,7 +811,6 @@ def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
         response_tensors = [response_tensors[k] for k in keep_inds]
         question_tensors = [question_tensors[k] for k in keep_inds]
         kl_mask = torch.tensor([kl_mask[k] for k in keep_inds]).to(current_device)
-        
         
         print("RM MEAN", mean(rewards))
         print('RM STDEV', stdev(rewards))
@@ -686,7 +839,7 @@ def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
 
         if len(logmean)>0:
             lmean = mean(logmean)
-        else: 
+        else:
             lmean = float(0)
         # don't use weird values, or counter-examples
         for i in range(len(logrewards)):
@@ -716,14 +869,7 @@ def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
         stats = ppo_trainer.step(question_tensors, response_tensors, rewards, kl_mask=kl_mask)
         print("d")
         if script_args.save_rollouts: 
-            # do a nice comprehensive log of the stuff 
             # NOTE removing stats so that log_dicts aren't taking a ton of space
-            # roll_dict['stats'] = stats
-            # for r in roll_dict['stats'].keys():
-            #     try:
-            #         roll_dict['stats'][r] = roll_dict['stats'][r].tolist()
-            #     except:
-            #         ""
             roll_dict['step'] = epoch
             rollfile = script_args.output_dir.replace("checkpoints/", "outputs/rollouts/")
             while rollfile[-1]=='/':

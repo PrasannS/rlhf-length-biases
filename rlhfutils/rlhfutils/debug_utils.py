@@ -8,7 +8,7 @@ from tqdm import tqdm
 import difflib
 from IPython.core.display import display, HTML
 import torch
-from transformers import AutoModelForSequenceClassification
+from transformers import AutoModelForSequenceClassification, AutoModelForTokenClassification
 
 def get_omodel(base):
     origmodel = AutoModelForCausalLM.from_pretrained(
@@ -81,20 +81,51 @@ def load_all_hackdfs(base):
         
     return alldfs
     
-def load_rm(name, device, quant=True, basemodel="nobase"):
+def load_rm(name, device, quant=True, basemodel="nobase", doeval=False, tokenwise=False):
     tokdir = name if "nobase" in basemodel else basemodel
 
     tokenizer = AutoTokenizer.from_pretrained(tokdir)
     tokenizer.pad_token_id = tokenizer.eos_token_id
+    kwargs = {
+        "return_all_scores": True,
+        "function_to_apply": "none",
+        "batch_size": 8,
+        "truncation": True,
+    }
     # we want to load model in directly as an adapter
     if "nobase" not in basemodel:
-        model = AutoModelForSequenceClassification.from_pretrained(
-            basemodel, num_labels=1, torch_dtype=torch.bfloat16
-        )
-        # load in stuff based on adapter
-        model = PeftModel.from_pretrained(model, name)
-        # NOTE pipeline not supported by peft
-        return tokenizer, model, None
+        if tokenwise:
+            model = AutoModelForTokenClassification.from_pretrained(
+                basemodel, num_labels=1, torch_dtype=torch.bfloat16
+            )
+            # load in stuff based on adapter
+            model = PeftModel.from_pretrained(model, name)
+            if doeval:
+                model.eval()
+                model.to(device)
+                
+                return tokenizer, model, None
+            # NOTE pipeline not supported by peft
+            return tokenizer, model, None
+        else:
+            model = AutoModelForSequenceClassification.from_pretrained(
+                basemodel, num_labels=1, torch_dtype=torch.bfloat16
+            )
+            # load in stuff based on adapter
+            model = PeftModel.from_pretrained(model, name)
+            if doeval:
+                model.eval()
+                model.to(device)
+                sentiment_pipe = pipeline(
+                    "sentiment-analysis",
+                    model=model,
+                    device=device,
+                    tokenizer=tokenizer,
+                    return_token_type_ids=False,
+                )
+                return tokenizer, sentiment_pipe, kwargs
+            # NOTE pipeline not supported by peft
+            return tokenizer, model, None
     else:
         sentiment_pipe = pipeline(
             "sentiment-analysis",
@@ -104,22 +135,20 @@ def load_rm(name, device, quant=True, basemodel="nobase"):
             tokenizer=tokenizer,
             return_token_type_ids=False,
         )
-    kwargs = {
-        "return_all_scores": True,
-        "function_to_apply": "none",
-        "batch_size": 8,
-        "truncation": True,
-    }
+    
     return tokenizer, sentiment_pipe, kwargs
 
-def progress_rm(inputs, rm, kwargs):
+def progress_rm(inputs, rm, kwargs, catcherrs=False):
     results = []
     split = 8
     for i in tqdm(range(0, len(inputs), split)):
-        try:
+        if catcherrs:
+            try:
+                results.extend(rm(inputs[i:i+split], **kwargs))
+            except:
+                results.extend([[{'score':None}]]*split)
+        else:
             results.extend(rm(inputs[i:i+split], **kwargs))
-        except:
-            results.extend([[{'score':None}]]*split)
     return results
 
 def highlight_differences(old, new):

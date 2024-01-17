@@ -252,8 +252,12 @@ def tokenize_dset(train_dataset, eval_dataset, script_args=None, tokenizer=None)
     selcols = ['question', 'response_j', 'response_k', 'row_index']
     # if we have a magnitude based dataset, make sure to use that automatically 
     if 'magnitude' in train_dataset.column_names:
+        print("NOTE that we are using the ground truth magnitude as part of the reward")
+
         # TODO can set smth up to test whether it's necessary or not
         selcols =  selcols+["magnitude"]
+    else: 
+        print("NOTE that we are not using the ground truth magnitude as part of the reward")
     train_dataset = train_dataset.select_columns(selcols)
     num_proc = 10  # Can adjust to be higher if you have more processors.
     original_columns = train_dataset.column_names
@@ -283,9 +287,13 @@ def tokenize_dset(train_dataset, eval_dataset, script_args=None, tokenizer=None)
         lambda x: len(x["input_ids_j"]) <= mlen and len(x["input_ids_k"]) <= mlen
     )
 
-    if script_args is not None and script_args.balance_len==1:
-        print("Balancing")
-        train_dataset = len_balance(train_dataset)
+    if script_args is not None:
+        try:
+            if script_args.balance_len==1:
+                print("Balancing")
+                train_dataset = len_balance(train_dataset)
+        except:
+            print("didn't balance length")
     
     return train_dataset, eval_dataset
 
@@ -386,7 +394,7 @@ def load_stack():
     return train_dataset, eval_dataset
 
 def load_manual(iname, base="data/categories/", testdir=None, fancyshuff=False):
-   
+    
     print("GOING THROUGH PROCESS FOR "+iname)
     if "stack" in iname:
         orig_dataset = load_from_disk(base+iname.replace("stack_", ""))
@@ -406,8 +414,11 @@ def load_manual(iname, base="data/categories/", testdir=None, fancyshuff=False):
         train_dataset = orig_dataset.select(range(int(len(orig_dataset)*DRATIO)))
         eval_dataset = orig_dataset.select(range(int(len(orig_dataset)*DRATIO), len(orig_dataset)))
     if testdir is not None: 
+        print("using custom eval data ", testdir)
         eval_dataset = load_from_disk(testdir)
-        eval_dataset = eval_dataset.select(range(int(len(eval_dataset)*DRATIO), len(eval_dataset)))
+        # assuming that we don't already have something that's really small
+        if len(eval_dataset)>10000:
+            eval_dataset = eval_dataset.select(range(int(len(eval_dataset)*DRATIO), len(eval_dataset)))
     print(len(train_dataset))
     print("eval len")
     print(len(eval_dataset))

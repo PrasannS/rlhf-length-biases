@@ -1,0 +1,7 @@
+{
+    "intervals":[0, 2000, 100000],
+    "ratios":[0, 0],
+    "checkpoints":["orig", "orig", "orig", "orig"],
+    "rewardratios": [[0.5, 0.5], [1, 0]],
+    "rsources":["default", "function:bagofwords"]
+}

@@ -11,6 +11,7 @@ from datasets import load_dataset, concatenate_datasets
 from peft import LoraConfig, TaskType, get_peft_model
 from transformers import (
     AutoModelForSequenceClassification,
+    AutoModelForTokenClassification,
     AutoTokenizer,
     HfArgumentParser,
     PreTrainedTokenizerBase,
@@ -74,6 +75,12 @@ class ScriptArguments:
             "help": "This essentially cuts the training time in half if you want to sacrifice a little precision and have a supported GPU."
         },
     )
+    tokenbased: Optional[bool] = field(
+        default=False,
+        metadata={
+            "help": "Whether to use the token prior RM setup instead"
+        },
+    )
     num_train_epochs: Optional[int] = field(
         default=4,
         metadata={"help": "The number of training epochs for the reward model."},
@@ -127,6 +134,14 @@ class ScriptArguments:
         metadata={"help": "How much random augmentation to do"},
     )
     balance_len: Optional[int] = field(default=0)
+    evaldata: Optional[str] = field(
+        default=None,
+        metadata={"help": "the name of the dataset we're using for eval"},
+    )
+    vardata: Optional[str] = field(
+        default=None,
+        metadata={"help": "if we want to do variance-maxing updates"},
+    )
     # TO add preference over preference loss, make sure to have prefoverpref in output_dir name
     # pref_o_pref: Optional[int] = field(default=0) # use preference over preference loss
     
@@ -174,20 +189,21 @@ def load_rmodel_standard(script_args):
     tokenizer.pad_token = tokenizer.eos_token
     
     peft_config = LoraConfig(
-        task_type=TaskType.SEQ_CLS,
+        task_type=TaskType.TOKEN_CLS if script_args.tokenbased else TaskType.SEQ_CLS,
         inference_mode=False,
         r=8,
         lora_alpha=32,
         lora_dropout=0.1,
     )
+    modtype =  AutoModelForTokenClassification if script_args.tokenbased else AutoModelForSequenceClassification
     if "70b" in script_args.model_name: 
         # maybe see what happens with this thing in 8bit? 
-        model = AutoModelForSequenceClassification.from_pretrained(
+        model = modtype.from_pretrained(
             script_args.model_name, num_labels=1, torch_dtype=torch.bfloat16, load_in_4bit=True#, device_map='auto'
         )
         model.config.pretraining_tp = 1 
     else:
-        model = AutoModelForSequenceClassification.from_pretrained(
+        model = modtype.from_pretrained(
             script_args.model_name, num_labels=1, torch_dtype=torch.bfloat16,# device_map="auto"
         )
     model = get_peft_model(model, peft_config)
@@ -305,18 +321,34 @@ class RewardTrainer(Trainer):
             td = {"uid":inps['ids'][i], "rew_j":float(rewards_j[i]), "rew_k":float(rewards_k[i])}
             savef.write(json.dumps(td)+"\n")
         savef.close()
-        
+
     # Define how to compute the reward loss. We use the InstructGPT pairwise logloss: https://arxiv.org/abs/2203.02155
     def compute_loss(self, model, inputs, return_outputs=False):
         # print(inputs["input_ids_j"].requires_grad)
-        rewards_j = model(input_ids=inputs["input_ids_j"], attention_mask=inputs["attention_mask_j"])[0]
-        rewards_k = model(input_ids=inputs["input_ids_k"], attention_mask=inputs["attention_mask_k"])[0]
+        
+        if self.script_args.tokenbased:
+
+            # Assuming `model` is a token classification model
+            outputs_j = model(input_ids=inputs["input_ids_j"], attention_mask=inputs["attention_mask_j"])
+            outputs_k = model(input_ids=inputs["input_ids_k"], attention_mask=inputs["attention_mask_k"])
+
+            probs_j = torch.sigmoid(outputs_j.logits)
+            probs_k = torch.sigmoid(outputs_k.logits)
+            
+            rewards_j = probs_j.sum(dim=1)
+            rewards_k = probs_k.sum(dim=1)
+        else:
+            rewards_j = model(input_ids=inputs["input_ids_j"], attention_mask=inputs["attention_mask_j"])[0]
+            rewards_k = model(input_ids=inputs["input_ids_k"], attention_mask=inputs["attention_mask_k"])[0]
+        
         mg = torch.zeros_like(rewards_j)
-        # need to use mag key to actually use magnitude
-        if "mag" in inputs.keys() and "nomag" not in self.args.output_dir:
+        # need to use mag key to actually use magnitude, TODO can just make this an arg
+        if "mag" in inputs.keys() and "mag" in self.args.output_dir:
             # note that the shape should be the same? 
             assert mg.shape==inputs['mag'].unsqueeze(-1).shape
             mg = inputs["mag"].unsqueeze(-1)
+            
+            # print('indeed we are using magnitude loss')
         rdiff = rewards_j - rewards_k
         # NOTE adding in magnitude based loss
         loss = -nn.functional.logsigmoid(rdiff - mg).mean()

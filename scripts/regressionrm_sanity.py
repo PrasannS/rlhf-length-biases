@@ -59,7 +59,7 @@ def main():
     # Parse command-line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('--output_dir', type=str, required=True, help='Directory for saving output and checkpoints')
-    parser.add_argument('--base_model', type=str, default='meta-llama/Llama-2-7b-hf', help='Base model name')
+    parser.add_argument('--base_model', type=str, default='facebook/opt-125m', help='Base model name')
     parser.add_argument('--learning_rate', type=float, default=1e-4, help='Learning rate')
     parser.add_argument('--train_batch_size', type=int, default=4, help='Training batch size')
     parser.add_argument('--dataset', type=str, default=None, help='Where to load in the train dataset from')

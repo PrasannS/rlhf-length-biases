@@ -98,11 +98,170 @@
 # export CUDA_VISIBLE_DEVICES=0
 # accelerate launch --config_file=scripts/default_single.yaml \
 #     dpo_exps/train_dpo.py \
-#     --model_name_or_path="facebook/opt-125m" --output_dir="dpo/expandedbowsynth_ipo" \
-#     --dataset="data/expandedbowsynth" \
+#     --model_name_or_path="facebook/opt-125m" --output_dir="dpo/pcsynth_ipo" \
+#     --dataset="data/poscontextsynth" \
 #     --beta=0.02 \
 #     --learning_rate=5e-5 \
 #     --loss_type=ipo
+
+
+# export CUDA_VISIBLE_DEVICES=6
+# accelerate launch --config_file=scripts/default_single.yaml \
+#     dpo_exps/train_dpo.py \
+#     --model_name_or_path="facebook/opt-125m" --output_dir="dpo/tokdense_ipo" \
+#     --dataset="data/dpouniquetokratio" \
+#     --beta=0.02 \
+#     --learning_rate=5e-5 \
+#     --loss_type=ipo \
+#     --per_device_train_batch_size=4 \
+#     --gradient_accumulation_steps=4 \
+#     --save_steps=250 \
+#     --max_steps=10000
+
+# export CUDA_VISIBLE_DEVICES=7
+# accelerate launch --config_file=scripts/default_single.yaml \
+#     dpo_exps/train_dpo.py \
+#     --model_name_or_path="facebook/opt-125m" --output_dir="dpo/ratiobow/30" \
+#     --dataset="/u/prasanns/research/rlhf-length-biases/data/ratiovarbow/30" \
+#     --evaldata="/u/prasanns/research/rlhf-length-biases/data/ratiovarbow/heldouttest" \
+#     --beta=0.02 \
+#     --learning_rate=1e-4 \
+#     --loss_type=ipo \
+#     --per_device_train_batch_size=4 \
+#     --gradient_accumulation_steps=4 \
+#     --save_steps=250 \
+#     --epochs=3
+
+# export CUDA_VISIBLE_DEVICES=7
+# accelerate launch --config_file=scripts/default_single.yaml \
+#     dpo_exps/train_dpo.py \
+#     --model_name_or_path="facebook/opt-125m" --output_dir="dpo/ratiobow/50" \
+#     --dataset="/u/prasanns/research/rlhf-length-biases/data/ratiovarbow/50" \
+#     --evaldata="/u/prasanns/research/rlhf-length-biases/data/ratiovarbow/heldouttest" \
+#     --beta=0.02 \
+#     --learning_rate=1e-4 \
+#     --loss_type=ipo \
+#     --per_device_train_batch_size=4 \
+#     --gradient_accumulation_steps=4 \
+#     --save_steps=250 \
+#     --epochs=3
+
+# export CUDA_VISIBLE_DEVICES=7
+# accelerate launch --config_file=scripts/default_single.yaml \
+#     dpo_exps/train_dpo.py \
+#     --model_name_or_path="facebook/opt-125m" --output_dir="dpo/ratiobow/70" \
+#     --dataset="/u/prasanns/research/rlhf-length-biases/data/ratiovarbow/70" \
+#     --evaldata="/u/prasanns/research/rlhf-length-biases/data/ratiovarbow/heldouttest" \
+#     --beta=0.02 \
+#     --learning_rate=1e-4 \
+#     --loss_type=ipo \
+#     --per_device_train_batch_size=4 \
+#     --gradient_accumulation_steps=4 \
+#     --save_steps=250 \
+#     --epochs=3
+
+# export CUDA_VISIBLE_DEVICES=0
+# accelerate launch --config_file=scripts/default_single.yaml \
+#     dpo_exps/train_dpo.py \
+#     --model_name_or_path="facebook/opt-125m" --output_dir="dpo/ratiobow/ipobow100k" \
+#     --dataset="/u/prasanns/research/rlhf-length-biases/data/bowsynth100k" \
+#     --evaldata="/u/prasanns/research/rlhf-length-biases/data/ratiovarbow/heldouttest" \
+#     --beta=0.02 \
+#     --learning_rate=1e-4 \
+#     --loss_type=ipo \
+#     --per_device_train_batch_size=4 \
+#     --gradient_accumulation_steps=4 \
+#     --save_steps=250 \
+#     --epochs=3
+
+# export CUDA_VISIBLE_DEVICES=1
+# accelerate launch --config_file=scripts/default_single.yaml \
+#     dpo_exps/train_dpo.py \
+#     --model_name_or_path="facebook/opt-125m" --output_dir="dpo/ratiobow/ipobow250k" \
+#     --dataset="/u/prasanns/research/rlhf-length-biases/data/bowsynth250k" \
+#     --evaldata="/u/prasanns/research/rlhf-length-biases/data/ratiovarbow/heldouttest" \
+#     --beta=0.02 \
+#     --learning_rate=1e-4 \
+#     --loss_type=ipo \
+#     --per_device_train_batch_size=4 \
+#     --gradient_accumulation_steps=4 \
+#     --save_steps=250 \
+#     --eval_steps=1000 \
+#     --epochs=3
+
+# export CUDA_VISIBLE_DEVICES=0
+# accelerate launch --config_file=scripts/default_single.yaml \
+#     dpo_exps/train_dpo.py \
+#     --model_name_or_path="facebook/opt-125m" --output_dir="dpo/unnaturalbow/noquestions" \
+#     --dataset="/u/prasanns/research/rlhf-length-biases/data/bowunnatural/noquestions" \
+#     --evaldata="/u/prasanns/research/rlhf-length-biases/data/bowunnatural/noqtest" \
+#     --beta=0.02 \
+#     --learning_rate=1e-4 \
+#     --loss_type=ipo \
+#     --per_device_train_batch_size=4 \
+#     --gradient_accumulation_steps=4 \
+#     --save_steps=250 \
+#     --eval_steps=1000 \
+#     --epochs=3
+
+# export CUDA_VISIBLE_DEVICES=1
+# accelerate launch --config_file=scripts/default_single.yaml \
+#     dpo_exps/train_dpo.py \
+#     --model_name_or_path="facebook/opt-125m" --output_dir="dpo/unnaturalbow/noqdestrung" \
+#     --dataset="/u/prasanns/research/rlhf-length-biases/data/bowunnatural/destrungnoq" \
+#     --evaldata="/u/prasanns/research/rlhf-length-biases/data/bowunnatural/destrungtestnoq" \
+#     --beta=0.02 \
+#     --learning_rate=1e-4 \
+#     --loss_type=ipo \
+#     --per_device_train_batch_size=4 \
+#     --gradient_accumulation_steps=4 \
+#     --save_steps=250 \
+#     --eval_steps=1000 \
+#     --epochs=3
+
+export CUDA_VISIBLE_DEVICES=0,1
+accelerate launch --multi_gpu --config_file=scripts/default_dpomulti.yaml --main_process_port=29527 \
+    dpo_exps/train_dpo.py \
+    --model_name_or_path="facebook/opt-125m" --output_dir="dpo/uncommonbow" \
+    --dataset="/u/prasanns/research/rlhf-length-biases/data/bowtrunc/train100k" \
+    --evaldata="/u/prasanns/research/rlhf-length-biases/data/bowtrunc/heldouttest" \
+    --beta=0.02 \
+    --learning_rate=1e-4 \
+    --loss_type=ipo \
+    --per_device_train_batch_size=4 \
+    --gradient_accumulation_steps=4 \
+    --save_steps=250 \
+    --eval_steps=1000 \
+    --epochs=3
+
+# export CUDA_VISIBLE_DEVICES=1
+# accelerate launch --config_file=scripts/default_single.yaml \
+#     dpo_exps/train_dpo.py \
+#     --model_name_or_path="facebook/opt-125m" --output_dir="dpo/ratiobow/ipobow250k" \
+#     --dataset="/u/prasanns/research/rlhf-length-biases/data/bowsynth250k" \
+#     --evaldata="/u/prasanns/research/rlhf-length-biases/data/ratiovarbow/heldouttest" \
+#     --beta=0.02 \
+#     --learning_rate=1e-4 \
+#     --loss_type=ipo \
+#     --per_device_train_batch_size=4 \
+#     --gradient_accumulation_steps=4 \
+#     --save_steps=250 \
+#     --eval_steps=1000 \
+#     --epochs=3
+
+# export CUDA_VISIBLE_DEVICES=6
+# accelerate launch --config_file=scripts/default_single.yaml \
+#     dpo_exps/train_dpo.py \
+#     --model_name_or_path="facebook/opt-125m" --output_dir="dpo/ratiobow/85" \
+#     --dataset="/u/prasanns/research/rlhf-length-biases/data/ratiovarbow/85" \
+#     --evaldata="/u/prasanns/research/rlhf-length-biases/data/ratiovarbow/heldouttest" \
+#     --beta=0.02 \
+#     --learning_rate=1e-4 \
+#     --loss_type=ipo \
+#     --per_device_train_batch_size=4 \
+#     --gradient_accumulation_steps=4 \
+#     --save_steps=250 \
+#     --epochs=3
 
 # export CUDA_VISIBLE_DEVICES=0,1,2,3
 # accelerate launch --multi_gpu --config_file=scripts/default_dpomulti.yaml --main_process_port=29527  \
@@ -118,18 +277,18 @@
 #     --save_steps=250 \
 #     --max_steps=10000
 
-export CUDA_VISIBLE_DEVICES=0,1,2,3
-accelerate launch --multi_gpu --config_file=scripts/default_dpomulti.yaml --main_process_port=29528  \
-    dpo_exps/train_dpo.py \
-    --model_name_or_path="facebook/opt-125m" --output_dir="dpo/expandedbowsynth_dporerun" \
-    --dataset="data/expandedbowsynth" \
-    --beta=0.02 \
-    --learning_rate=1e-6 \
-    --per_device_train_batch_size=4 \
-    --gradient_accumulation_steps=4 \
-    --eval_steps=200 \
-    --save_steps=250 \
-    --max_steps=10000
+# export CUDA_VISIBLE_DEVICES=0,1,2,3
+# accelerate launch --multi_gpu --config_file=scripts/default_dpomulti.yaml --main_process_port=29528  \
+#     dpo_exps/train_dpo.py \
+#     --model_name_or_path="facebook/opt-125m" --output_dir="dpo/expandedbowsynth_dporerun" \
+#     --dataset="data/expandedbowsynth" \
+#     --beta=0.02 \
+#     --learning_rate=1e-6 \
+#     --per_device_train_batch_size=4 \
+#     --gradient_accumulation_steps=4 \
+#     --eval_steps=200 \
+#     --save_steps=250 \
+#     --max_steps=10000
 
 # export CUDA_VISIBLE_DEVICES=2,3,4,5
 # accelerate launch --multi_gpu --config_file=scripts/default_config.yaml \

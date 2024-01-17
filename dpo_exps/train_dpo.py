@@ -42,7 +42,7 @@ class ScriptArguments:
     optimizer_type: Optional[str] = field(default="paged_adamw_32bit", metadata={"help": "the optimizer type"})
 
     per_device_train_batch_size: Optional[int] = field(default=2, metadata={"help": "train batch size per device"})
-    per_device_eval_batch_size: Optional[int] = field(default=2, metadata={"help": "eval batch size per device"})
+    per_device_eval_batch_size: Optional[int] = field(default=8, metadata={"help": "eval batch size per device"})
     gradient_accumulation_steps: Optional[int] = field(
         default=16, metadata={"help": "the number of gradient accumulation steps"}
     )
@@ -56,7 +56,7 @@ class ScriptArguments:
 
     max_prompt_length: Optional[int] = field(default=1024, metadata={"help": "the maximum prompt length"})
     max_length: Optional[int] = field(default=1300, metadata={"help": "the maximum sequence length"})
-    max_steps: Optional[int] = field(default=100000, metadata={"help": "max number of training steps"})
+    epochs: Optional[int] = field(default=3, metadata={"help": "max number of epochs"})
     logging_steps: Optional[int] = field(default=10, metadata={"help": "the logging frequency"})
     save_steps: Optional[int] = field(default=1000, metadata={"help": "the saving frequency"})
     eval_steps: Optional[int] = field(default=500, metadata={"help": "the evaluation frequency"})
@@ -248,7 +248,7 @@ if __name__ == "__main__":
     training_args = TrainingArguments(
         per_device_train_batch_size=script_args.per_device_train_batch_size,
         per_device_eval_batch_size=script_args.per_device_eval_batch_size,
-        max_steps=script_args.max_steps,
+        num_train_epochs=script_args.epochs,
         logging_steps=script_args.logging_steps,
         save_steps=script_args.save_steps,
         gradient_accumulation_steps=script_args.gradient_accumulation_steps,

@@ -87,14 +87,15 @@ def lultra(adjinp, topval, bottom=0, largepset=False):
             return {'query':adjinp(ex['data'][0], True)}
         #ds = ds.filter(lambda ex: len(tmptok(ex['query']).input_ids)<900)
         ds = ds.map(ultra2prompt, num_proc=10)
+        ds = ds.filter(lambda ex: len(tmptok(ex['query']).input_ids)<900)
         return ds.select(range(bottom,topval))
     else:
         _, eval_dset = load_ultra()
         # NOTE need to get the prompt data in the right way, not the RM way
-        res = [{'query':adjinp(q['question'], True)} for q in eval_dset]
-        
+        res = Dataset.from_list([{'query':adjinp(q['question'], True)} for q in eval_dset])
+        res = res.filter(lambda ex: len(tmptok(ex['query']).input_ids)<900)
         print("SANITY CHECK\n"+res[0]['query'])
-        return res[bottom:topval]
+        return res.select(range(bottom,topval))
     
 
 # load in generation setup from custom pairwise dataset, taking care to use comparable eval set
@@ -238,8 +239,6 @@ def multi_generate_outs(model, results, generation_kwargs, bsize=1, savefile="tm
     return scored_results    
 
 def main(args):
-    
-    
     # NOTE, make sure to set CUDA_VISIBLE_DEVICES in a call
     # load in original sft model
     # origmodel = AutoModelForCausalLM.from_pretrained(

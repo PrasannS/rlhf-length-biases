@@ -5,9 +5,8 @@ import pandas as pd
 from transformers import AutoTokenizer
 import re
 from datasets import load_dataset
-
-from datasets import load_dataset
-
+from statistics import mean
+from rlhfutils.rl_utils import scobow, get_synth_rewards
 
 toker = AutoTokenizer.from_pretrained("meta-llama/Llama-2-7b-chat-hf")
 toker.pad_token_id = toker.eos_token_id
@@ -45,7 +44,7 @@ def reconvert(inp):
     strnew = strnew.replace("<unk>", "")
     return strnew
 
-def getapfsft(inp, tostack=False):
+def getapfsft(inp, tostack=False, tok=None, toklim=-1):
     instruction_match = re.search(r'### Instruction:\n(.*?)(### Response:|\Z)', inp, re.DOTALL)
     instruction = instruction_match.group(1).strip() if instruction_match else None
     
@@ -53,6 +52,9 @@ def getapfsft(inp, tostack=False):
     response_match = re.search(r'### Response:.*?(.*?)(### |\Z)', inp, re.DOTALL)
     response = response_match.group(1).strip() if response_match else None
     if tostack:
+        if toklim>0:
+            # we only want to score the first so many tokens
+            return "Question: " + instruction + "\n\nAnswer: " + tok.decode(tok(response).input_ids[:toklim], skip_special_tokens=True)
         return "Question: " + instruction + "\n\nAnswer: " + response
     return instruction, response
 
@@ -158,7 +160,7 @@ def apf_format(indf):
 
 def annotate_apfarm(alldfs, baseline, test, start, end, dec_kwargs):
     # make a fresh annotator each time (is this a good idea?, is it consistent?)
-    ann = PairwiseAutoAnnotator(annotators_config="annotator_pool_v0/configs.yaml", **dec_kwargs)
+    ann = PairwiseAutoAnnotator(annotators_config="/u/prasanns/research/rlhf-length-biases/apeval/annotator_pool_v0/configs.yaml", **dec_kwargs)
     base_outs = apf_format(alldfs[baseline])
     test_outs = apf_format(alldfs[test])
     assert end>0
@@ -225,3 +227,62 @@ def filter_and_sort_df(a, b):
     sorted_b = filtered_b.sort_values(by='question')
     
     return sorted_b
+
+def tokenproc(inp, lim=True, function=None):
+    #print(inp)
+    #print(function)
+    if (function is None) or "contpos" not in function:
+        try:
+            inp = inp.split("\n\nAnswer:")[1]
+        except:
+            inp = inp.split("### Response:")[1]
+        start=0
+    else:
+        start = len(toker(inp.split("### Response:")[0]).input_ids)
+    if lim:
+        tokd = toker(inp).input_ids[:start+50]
+    else: 
+        tokd = toker(inp).input_ids
+    return toker.decode(tokd, skip_special_tokens=True)
+    
+def scobowdf(df, tproc=True):
+    uns = {}
+    means = []
+    for resps in df['response']:
+        if len(resps)==4:
+            means.append([scobow(tokenproc(r, tproc), False, uns) for r in resps])
+        else:
+            means.append([scobow(tokenproc(resps, tproc), False, uns)])
+    print([mean(m) for m in means])
+    print(mean([mean(m) for m in means]))
+    return means
+
+def sconoundf(df, function="nouns"):
+    means = []
+    for resps in df['response']:
+        # TODO this should be type check for whether it's a list instead
+        if len(resps)==4 or len(resps)==6:
+            means.append(get_synth_rewards([tokenproc(r, True, function) for r in resps], function) )
+        else:
+            means.append(get_synth_rewards([tokenproc(resps, True, function)], function) )
+    print([mean(m) for m in means])
+    print(mean([mean(m) for m in means]))
+    return means
+
+def scofile(fname, function, lim=True, logind=0):
+    idf = pd.read_json(fname, orient='records', lines=True)
+    #print("len is ", len(idf))
+    #print("example: ", idf['response'][logind])
+    if "nouns" in function: 
+        ms = sconoundf(idf)
+    elif "reversebow" in function: 
+        ms = sconoundf(idf, "reversebow")
+    elif "bagofwords" in function: 
+        ms = scobowdf(idf, lim)
+    elif "contpos" in function: 
+        ms = sconoundf(idf, "contpos")
+    elif "reading" in function:
+        ms = sconoundf(idf, "readinggrade")
+    elif "tokdense" in function:
+        ms = sconoundf(idf, "tokdense") 
+    return ms

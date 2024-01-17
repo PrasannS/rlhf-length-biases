@@ -11,7 +11,7 @@ print(adfs.keys())
 # original thing to compare with simulated preferences
 ORIGNAME = "dpofollowppo"
 # list of keys to compare against ORIGNAME with APFarmEval  
-trykeys = [ 'dpobase']
+trykeys = [ 'sftbase']
 
 for t in trykeys:
     assert t in adfs.keys()

@@ -158,19 +158,111 @@
 #         --learning_rate=1e-4 \
 #         --eval_steps=50
 
-export CUDA_VISIBLE_DEVICES=4,5,6,7
-torchrun --nnodes 1  --nproc_per_node 4 --master_port=12340 scripts/train_rm.py \
+# export CUDA_VISIBLE_DEVICES=6,7
+# torchrun --nnodes 1  --nproc_per_node 2 --master_port=12341 scripts/train_rm.py \
+#         --model_name=facebook/opt-125m \
+#         --output_dir=/u/prasanns/research/rlhf-length-biases/checkpoints/rmself75 \
+#         --dataset=/u/prasanns/research/rlhf-length-biases/data/rmself/75self \
+#         --evaldata=/u/prasanns/research/rlhf-length-biases/data/bowtrunc/heldouttest \
+#         --rand_ratio=0 \
+#         --balance_len=0 \
+#         --num_train_epochs=3 \
+#         --per_device_train_batch_size=8 \
+#         --per_device_eval_batch_size=32 \
+#         --gradient_accumulation_steps=1 \
+#         --learning_rate=1e-4 \
+#         --eval_steps=500
+
+export CUDA_VISIBLE_DEVICES=2,3
+torchrun --nnodes 1  --nproc_per_node 2 --master_port=12341 scripts/train_rm.py \
         --model_name=facebook/opt-125m \
-        --output_dir=/u/prasanns/research/rlhf-length-biases/checkpoints/expbowrm \
-        --dataset=/u/prasanns/research/rlhf-length-biases/data/expandedbowsynth \
+        --output_dir=/u/prasanns/research/rlhf-length-biases/checkpoints/readingrm \
+        --dataset=/u/prasanns/research/rlhf-length-biases/data/readinggradedpo \
         --rand_ratio=0 \
         --balance_len=0 \
-        --num_train_epochs=15 \
+        --num_train_epochs=3 \
         --per_device_train_batch_size=8 \
         --per_device_eval_batch_size=32 \
         --gradient_accumulation_steps=1 \
         --learning_rate=1e-4 \
-        --eval_steps=50
+        --eval_steps=500
+
+# export CUDA_VISIBLE_DEVICES=4
+# python scripts/train_rm.py \
+#         --model_name=EleutherAI/gpt-neo-125m \
+#         --output_dir=/u/prasanns/research/rlhf-length-biases/checkpoints/rmunpairmix \
+#         --dataset=/u/prasanns/research/rlhf-length-biases/data/ratiovarbow/80 \
+#         --evaldata=/u/prasanns/research/rlhf-length-biases/data/ratiovarbow/heldouttest \
+#         --rand_ratio=0 \
+#         --balance_len=0 \
+#         --num_train_epochs=3 \
+#         --per_device_train_batch_size=8 \
+#         --per_device_eval_batch_size=32 \
+#         --gradient_accumulation_steps=2 \
+#         --learning_rate=1e-4 \
+#         --eval_steps=500 \
+#         --tokenbased=True
+
+# export CUDA_VISIBLE_DEVICES=6,7
+# torchrun --nnodes 1  --nproc_per_node 2 --master_port=12340 scripts/train_rm.py \
+#         --model_name=facebook/opt-125m \
+#         --output_dir=/u/prasanns/research/rlhf-length-biases/checkpoints/50rmv2 \
+#         --dataset=/u/prasanns/research/rlhf-length-biases/data/ratiovarbow/50 \
+#         --evaldata=/u/prasanns/research/rlhf-length-biases/data/ratiovarbow/heldouttest \
+#         --rand_ratio=0 \
+#         --balance_len=0 \
+#         --num_train_epochs=3 \
+#         --per_device_train_batch_size=8 \
+#         --per_device_eval_batch_size=32 \
+#         --gradient_accumulation_steps=1 \
+#         --learning_rate=1e-4 \
+#         --eval_steps=500
+
+# export CUDA_VISIBLE_DEVICES=6,7
+# torchrun --nnodes 1  --nproc_per_node 2 --master_port=12340 scripts/train_rm.py \
+#         --model_name=facebook/opt-125m \
+#         --output_dir=/u/prasanns/research/rlhf-length-biases/checkpoints/70rmv2 \
+#         --dataset=/u/prasanns/research/rlhf-length-biases/data/ratiovarbow/70 \
+#         --evaldata=/u/prasanns/research/rlhf-length-biases/data/ratiovarbow/heldouttest \
+#         --rand_ratio=0 \
+#         --balance_len=0 \
+#         --num_train_epochs=3 \
+#         --per_device_train_batch_size=8 \
+#         --per_device_eval_batch_size=32 \
+#         --gradient_accumulation_steps=1 \
+#         --learning_rate=1e-4 \
+#         --eval_steps=500
+
+# export CUDA_VISIBLE_DEVICES=4,5
+# torchrun --nnodes 1  --nproc_per_node 2 --master_port=12341 scripts/train_rm.py \
+#         --model_name=facebook/opt-125m \
+#         --output_dir=/u/prasanns/research/rlhf-length-biases/checkpoints/80rmv2 \
+#         --dataset=/u/prasanns/research/rlhf-length-biases/data/ratiovarbow/80 \
+#         --evaldata=/u/prasanns/research/rlhf-length-biases/data/ratiovarbow/heldouttest \
+#         --rand_ratio=0 \
+#         --balance_len=0 \
+#         --num_train_epochs=2 \
+#         --per_device_train_batch_size=8 \
+#         --per_device_eval_batch_size=32 \
+#         --gradient_accumulation_steps=1 \
+#         --learning_rate=1e-4 \
+#         --eval_steps=500
+
+# export CUDA_VISIBLE_DEVICES=4,5
+# torchrun --nnodes 1  --nproc_per_node 2 --master_port=12341 scripts/train_rm.py \
+#         --model_name=facebook/opt-125m \
+#         --output_dir=/u/prasanns/research/rlhf-length-biases/checkpoints/85rmv2 \
+#         --dataset=/u/prasanns/research/rlhf-length-biases/data/ratiovarbow/85 \
+#         --evaldata=/u/prasanns/research/rlhf-length-biases/data/ratiovarbow/heldouttest \
+#         --rand_ratio=0 \
+#         --balance_len=0 \
+#         --num_train_epochs=2 \
+#         --per_device_train_batch_size=8 \
+#         --per_device_eval_batch_size=32 \
+#         --gradient_accumulation_steps=1 \
+#         --learning_rate=1e-4 \
+#         --eval_steps=500
+
 
 # torchrun --nnodes 1  --nproc_per_node 8 --master_port=12339 scripts/train_rm.py \
 #         --model_name=/u/prasanns/research/rlhf-length-biases/models/llama \
