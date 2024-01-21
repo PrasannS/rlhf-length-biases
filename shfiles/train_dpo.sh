@@ -1,9 +1,31 @@
 # # DPO setup for WebGPT
-# export CUDA_VISIBLE_DEVICES=2
+# export CUDA_VISIBLE_DEVICES=3
 # accelerate launch --config_file=scripts/default_single.yaml \
 #     dpo_exps/train_dpo.py \
-#     --model_name_or_path="models/sft10k" --output_dir="dpo/dpowgpt" \
-#     --dataset="wgpt"
+#     --model_name_or_path="models/sft10k" --output_dir="dpo/dpoultra50" \
+#     --dataset="data/ultra50k" 
+
+export CUDA_VISIBLE_DEVICES=4,5
+accelerate launch --config_file=scripts/default_single.yaml \
+    dpo_exps/train_dpo.py \
+    --model_name_or_path="allenai/tulu-2-7b" --output_dir="dpo/dpoultasmalldistr" \
+    --dataset="data/ultrarmsmall" \
+    --per_device_train_batch_size=1 \
+    --gradient_accumulation_steps=32
+
+# export CUDA_VISIBLE_DEVICES=0,1,2,3
+# accelerate launch --multi_gpu --config_file=scripts/default_dpomulti.yaml --main_process_port=29527  \
+#     dpo_exps/train_dpo.py \
+#     --model_name_or_path="facebook/opt-125m" --output_dir="dpo/expandedbowsynth_kto" \
+#     --dataset="data/expandedbowsynth" \
+#     --beta=0.02 \
+#     --learning_rate=5e-5 \
+#     --loss_type=kto_pair \
+#     --per_device_train_batch_size=4 \
+#     --gradient_accumulation_steps=4 \
+#     --eval_steps=200 \
+#     --save_steps=250 \
+#     --max_steps=10000
 
 # DPO setup for Stack
 # export CUDA_VISIBLE_DEVICES=0
@@ -219,20 +241,20 @@
 #     --eval_steps=1000 \
 #     --epochs=3
 
-export CUDA_VISIBLE_DEVICES=0,1
-accelerate launch --multi_gpu --config_file=scripts/default_dpomulti.yaml --main_process_port=29527 \
-    dpo_exps/train_dpo.py \
-    --model_name_or_path="facebook/opt-125m" --output_dir="dpo/uncommonbow" \
-    --dataset="/u/prasanns/research/rlhf-length-biases/data/bowtrunc/train100k" \
-    --evaldata="/u/prasanns/research/rlhf-length-biases/data/bowtrunc/heldouttest" \
-    --beta=0.02 \
-    --learning_rate=1e-4 \
-    --loss_type=ipo \
-    --per_device_train_batch_size=4 \
-    --gradient_accumulation_steps=4 \
-    --save_steps=250 \
-    --eval_steps=1000 \
-    --epochs=3
+# export CUDA_VISIBLE_DEVICES=0,1
+# accelerate launch --multi_gpu --config_file=scripts/default_dpomulti.yaml --main_process_port=29527 \
+#     dpo_exps/train_dpo.py \
+#     --model_name_or_path="facebook/opt-125m" --output_dir="dpo/uncommonbow" \
+#     --dataset="/u/prasanns/research/rlhf-length-biases/data/bowtrunc/train100k" \
+#     --evaldata="/u/prasanns/research/rlhf-length-biases/data/bowtrunc/heldouttest" \
+#     --beta=0.02 \
+#     --learning_rate=1e-4 \
+#     --loss_type=ipo \
+#     --per_device_train_batch_size=4 \
+#     --gradient_accumulation_steps=4 \
+#     --save_steps=250 \
+#     --eval_steps=1000 \
+#     --epochs=3
 
 # export CUDA_VISIBLE_DEVICES=1
 # accelerate launch --config_file=scripts/default_single.yaml \

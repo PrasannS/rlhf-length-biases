@@ -138,15 +138,15 @@ def load_rm(name, device, quant=True, basemodel="nobase", doeval=False, tokenwis
     
     return tokenizer, sentiment_pipe, kwargs
 
-def progress_rm(inputs, rm, kwargs, catcherrs=False):
+def progress_rm(inputs, rm, kwargs, split=8, catcherrs=False):
     results = []
-    split = 8
     for i in tqdm(range(0, len(inputs), split)):
         if catcherrs:
             try:
                 results.extend(rm(inputs[i:i+split], **kwargs))
             except:
                 results.extend([[{'score':None}]]*split)
+                torch.cuda.empty_cache()
         else:
             results.extend(rm(inputs[i:i+split], **kwargs))
     return results

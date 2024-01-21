@@ -132,29 +132,6 @@ lora_config = LoraConfig(
 def load_models(script_args, loadms="rmppo"):
     
     current_device = Accelerator().local_process_index
-    config = PPOConfig(
-        model_name=script_args.model_name,
-        learning_rate=script_args.learning_rate,
-        log_with=script_args.log_with,
-        batch_size=script_args.batch_size,
-        mini_batch_size=script_args.mini_batch_size,
-        gradient_accumulation_steps=script_args.gradient_accumulation_steps,
-        optimize_device_cache="dpoplus" not in script_args.kl_penalty,
-        early_stopping=script_args.early_stopping,
-        target_kl=script_args.target_kl,
-        ppo_epochs=script_args.ppo_epochs,
-        seed=script_args.seed,
-        cliprange=0.2,
-        cliprange_value=0.2,
-        vf_coef=.1,
-        horizon=10000,
-        target=script_args.target_kl,
-        init_kl_coef=script_args.init_kl_coef,
-        steps=script_args.steps,
-        gamma=1,
-        lam=0.95,
-        kl_penalty=script_args.kl_penalty, 
-    )
 
     # TODO do I somehow need this for more stuff?
     if "decapoda" in script_args.model_name.lower():
@@ -174,6 +151,29 @@ def load_models(script_args, loadms="rmppo"):
             tokenizer.pad_token = tokenizer.eos_token
         
     if "ppo" in loadms:
+        config = PPOConfig(
+            model_name=script_args.model_name,
+            learning_rate=script_args.learning_rate,
+            log_with="wandb",
+            batch_size=script_args.batch_size,
+            mini_batch_size=script_args.mini_batch_size,
+            gradient_accumulation_steps=script_args.gradient_accumulation_steps,
+            optimize_device_cache="dpoplus" not in script_args.kl_penalty,
+            early_stopping=script_args.early_stopping,
+            target_kl=script_args.target_kl,
+            ppo_epochs=script_args.ppo_epochs,
+            seed=script_args.seed,
+            cliprange=0.2,
+            cliprange_value=0.2,
+            vf_coef=.1,
+            horizon=10000,
+            target=script_args.target_kl,
+            init_kl_coef=script_args.init_kl_coef,
+            steps=script_args.steps,
+            gamma=1,
+            lam=0.95,
+            kl_penalty=script_args.kl_penalty, 
+        )
         model = AutoModelForCausalLMWithValueHead.from_pretrained(
             script_args.model_name,
             load_in_8bit=True, # re-enable for llama model
@@ -233,7 +233,7 @@ def load_models(script_args, loadms="rmppo"):
             return_token_type_ids=False,
         )
     if loadms=="rm":
-        return config, tokenizer, reward_model
+        return tokenizer, reward_model
     model.gradient_checkpointing_disable()
     # PPO client for API endpoint
     if loadms=="ppo":

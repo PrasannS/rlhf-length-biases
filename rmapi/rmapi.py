@@ -13,9 +13,11 @@ from torch.utils.data import DataLoader
 
 
 from rlhfutils.rl_utils import (
-    ScriptArguments,
     load_models,
+    get_synth_rewards
 )
+from rlhfutils.api_utils import ScriptArguments
+
 from rlhfutils.data import load_manual, tokenize_dset
 import torch
 from torch import nn
@@ -38,7 +40,7 @@ set_seed(script_args.seed)
 
 """
 Important Args: 
-learning_rate, dataset, batch_size, output_dir should have the word trainable in it, save_freq
+learning_rate, dataset, batch_size, save_freq
 """
 
     
@@ -46,7 +48,7 @@ def add_row_index(example, idx):
     example['row_index'] = idx
     return example
 
-if "trainable" in script_args.output_dir:
+if script_args.trainable:
     tokenizer, reward_model = load_models(script_args, "train")
     optimizer = AdamW(reward_model.parameters(), lr=script_args.learning_rate)
     # get the data so that we can update things continually
@@ -61,9 +63,9 @@ if "trainable" in script_args.output_dir:
     loaddata = iter(train_dataloader)
 else:
     # NOTE handle loading everything in, since hyperparams are same for every setting more or less
-    config, tokenizer, reward_model = load_models(script_args, "rm")
+    tokenizer, reward_model = load_models(script_args, "rm")
     
-indiv = "indiv" in script_args.output_dir    
+indiv = script_args.indiv
 
 # TODO assume that RM strings are passed in with the right format
 

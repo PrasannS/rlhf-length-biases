@@ -1,7 +1,6 @@
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import pandas as pd
 from rlhfutils.eval_utils import getapfsft, tok_dist
-import matplotlib.pyplot as plt
 from rlhfutils.debug_utils import load_rm, progress_rm
 import argparse
 import nltk
@@ -10,6 +9,8 @@ import random
 import torch
 from dpo_eval import calculate_log_likelihoods
 from tqdm import tqdm
+from datasets import Dataset
+from rlhfutils.data import qaform
 nltk.download('punkt')
 
 # replace all wgptouts with corresponding stack QA format (RM input format)
@@ -18,7 +19,6 @@ def setall(l, tok, args):
     try:
         for ind in l:
             newl.append(getapfsft(ind, True, tok, args.maxlen))
-            #print(0)
     except:
         return None
     return newl
@@ -82,19 +82,26 @@ def main(args):
             inps = args.inpf.split(",")
         for inpfile in inps:
             stack = "stack" in args.rmname
-            outdf = pd.read_json(inpfile, orient='records', lines=True)    
-            if args.lim > 0:
-                outdf = outdf.iloc[:args.lim]
             # make it checkpoint specific
             tokdir = args.rmname+c if "nobase" in args.basemodel else args.basemodel
-            if stack:
-                tok = AutoTokenizer.from_pretrained(tokdir)
-                outdf = procall(outdf, tok, args, False)
-            else:
-                tok = AutoTokenizer.from_pretrained(tokdir)
-                outdf = procall(outdf, tok, args, True)
+            tok = AutoTokenizer.from_pretrained(tokdir) 
+            if args.isdset: 
+                # can also do scoring based on datasets (score both pref, dispref)
+                dset = Dataset.load_from_disk(inpfile)
+                if args.start>-1:
+                    dset = dset.select(range(args.start, args.lim))
+                    print("scoring along the range ", args.start, args.lim)
+                jresps = [qaform(ex['question'], ex['response_j']) for ex in dset]
+                kresps = [qaform(ex['question'], ex['response_k']) for ex in dset]
+                # put the js after the ks. remember to later put stuff back in in the right format (maybe into a new file?)
+                allresps = jresps+kresps
+            else: 
+                outdf = pd.read_json(inpfile, orient='records', lines=True)    
+                if args.lim > 0:
+                    outdf = outdf.iloc[:args.lim]
+                outdf = procall(outdf, tok, args, False==stack)
                 
-            allresps = getfulldist(outdf.response)
+                allresps = getfulldist(outdf.response)
             # if we want, we can score perturbed data (shuffle sentences via nltk)
             # TODO do a double check on whether removing truncated sentence from output helps (APEval)
             if args.shuffle>0:
@@ -127,29 +134,44 @@ def main(args):
                 else:
                     if kwargs:
                         with torch.no_grad():
-                            allscos = progress_rm(allresps, rm, kwargs)
+                            kwargs['batch_size']=2
+                            with torch.no_grad():
+                                allscos = progress_rm(allresps, rm, kwargs, 16)
                     # TODO compdist set to 4
-                    scos = compdist([a[0]['score'] for a in allscos], len(outdf.response.iloc[0]))
-            outdf['scores'] = scos
-            if args.outputdir=='default':
-                
-                outdf.to_json(args.rmname.split("/")[-1]+".jsonl", lines=True, orient='records')
+                    scos = list([a[0]['score'] for a in allscos])
+                    # only recompress if necessary
+                    if args.isdset==False:
+                        scos = compdist(scos, len(outdf.response.iloc[0]))
+            if args.isdset: 
+                dset = dset.add_column("newsco_j", scos[:len(dset)])
+                dset = dset.add_column("newsco_k", scos[len(dset):])
+                # TOOD the comma thing doesn't work for this I think
+                dset.save_to_disk(args.outputdir)
             else:
-                outdf.to_json(args.outputdir+c, lines=True, orient='records')
-    
+                outdf['scores'] = scos
+                if args.outputdir=='default':
+                    
+                    outdf.to_json(args.rmname.split("/")[-1]+".jsonl", lines=True, orient='records')
+                else:
+                    outdf.to_json(args.outputdir+c, lines=True, orient='records')
+                
+
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='My Python script.')
     # TODO fix up arg names
     parser.add_argument('--rmname', type=str, help='base model checkpoint is trained on')
     parser.add_argument('--inpf', type=str, help='input file')
     parser.add_argument('--device', type=int, help='outputs per prompt')
-    parser.add_argument('--lim', type=int, help="whatever")
-    parser.add_argument('--shuffle', type=int, help='whether to shuffle sentences before scoring or not')
+    parser.add_argument('--shuffle', type=int, default=0, help='whether to shuffle sentences before scoring or not')
     parser.add_argument('--basemodel', type=str, help='base model for RM', default="nobase")
-    parser.add_argument('--outputdir', type=str, help='base model for RM', default="default")
+    parser.add_argument('--outputdir', type=str, help='outputdirthing', default="default")
     parser.add_argument('--maxlen', type=int, help='max len to use for outputs', default=-1)
     parser.add_argument("--cklist", type=str, default=[""], help='list of checkpoint numbers we want to do stuff for')
     parser.add_argument("--tokenwise", type=bool, default=False, help="whether to use tokenwise formulation or not")
+    parser.add_argument("--isdset", type=bool, default=False, help="whether to treat as a dataset or not")
+    parser.add_argument('--start', type=int, help='max len to use for outputs', default=-1)
+    parser.add_argument('--lim', type=int, help="whatever")
+
 
     
     progargs = parser.parse_args()
