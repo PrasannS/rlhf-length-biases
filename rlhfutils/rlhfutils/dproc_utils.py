@@ -79,12 +79,15 @@ def create_pairwise_dataframe(df):
         for idx1, idx2 in combinations(range(4), 2):
             idj = idx1
             idk = idx2
+            scoj = row['mn'][idx2]
+            scok = row['mn'][idx1]
             # Determine response_j and response_k based on scores
             if row['mn'][idx1] > row['mn'][idx2]:
                 response_j = row['resps'][idx1]
                 response_k = row['resps'][idx2]
                 magnitude = row['mn'][idx1] - row['mn'][idx2]
-                
+                scoj = row['mn'][idx1]
+                scok = row['mn'][idx2]
             elif row['mn'][idx1] < row['mn'][idx2]:
                 response_j = row['resps'][idx2]
                 response_k = row['resps'][idx1]
@@ -111,6 +114,8 @@ def create_pairwise_dataframe(df):
                 'response_j': response_j,
                 'response_k': response_k,
                 'magnitude': magnitude,
+                'score_j': scoj,
+                "score_k": scok
             })
             aks = ['mn', 'hf', 'hn', 'tn', "ifg"]
             for a in aks:

@@ -473,7 +473,7 @@
 #     --save_rollouts=True \
 #     --generators_json="scripts/genguides/goldpropnoun.json"
 
-export CUDA_VISIBLE_DEVICES=2,3
+export CUDA_VISIBLE_DEVICES=0,1
 accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29524 \
     --num_machines 1  \
     --num_processes 2 \
