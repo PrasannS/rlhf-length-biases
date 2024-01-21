@@ -5,7 +5,6 @@ CUDA_DEVICE=0
 BASEMODEL="EleutherAI/gpt-neo-125m"
 CKNUM=6000
 CHECKPOINT_PATH="/u/prasanns/research/rlhf-length-biases/checkpoints/rmunpairmix/checkpoint-${CKNUM}"
-DEVICE=0
 LIMIT=600
 SHUFFLE=0
 MAXLEN=50
@@ -13,6 +12,7 @@ MAXLEN=50
 # Export CUDA visible devices
 export CUDA_VISIBLE_DEVICES=$CUDA_DEVICE
 
+#HACK **** THIS STUFF IS CURERNTLY TOKENWISE
 # Define a function to run the script with different inputs
 run_script() {
     INPUT_FILE="outputs/calibcheck/dpoplusbow${1}.jsonl"
@@ -22,12 +22,12 @@ run_script() {
         --rmname="$CHECKPOINT_PATH" \
         --basemodel="$BASEMODEL" \
         --inpf="$INPUT_FILE" \
-        --device $DEVICE \
+        --device 0 \
         --lim $LIMIT \
         --shuffle $SHUFFLE \
         --outputdir="$OUTPUT_DIR" \
         --maxlen=$MAXLEN \
-        --tokenwise=True
+        --tokenwise=False
 }
 
 # Call the function with different arguments

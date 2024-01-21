@@ -52,7 +52,7 @@ elif "stack" in script_args.dataset:
     train_dataset, eval_dataset = load_stack()
 elif "apfarm" in script_args.dataset:
     train_dataset, eval_dataset = load_apfarm(script_args.dataset)
-elif "ultra" in script_args.dataset: 
+elif "ultra"==script_args.dataset: 
     train_dataset, eval_dataset = load_ultra()
 elif "harmless" in script_args.dataset:
     train_dataset, eval_dataset = load_harmless()
