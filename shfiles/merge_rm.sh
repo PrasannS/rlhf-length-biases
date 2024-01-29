@@ -35,11 +35,23 @@
 #     --base_model_name="facebook/opt-125m" \
 #     --output_name="models/rewards/expbow50"
 
+# export CUDA_VISIBLE_DEVICES=7
+# python scripts/merge_peft_adapter.py \
+#     --adapter_model_name="/u/prasanns/research/rlhf-length-biases/checkpoints/ultra50rm/checkpoint-7000" \
+#     --base_model_name="meta-llama/Llama-2-7b-hf" \
+#     --output_name="models/rewards/ultra50krm"
+
 export CUDA_VISIBLE_DEVICES=7
 python scripts/merge_peft_adapter.py \
-    --adapter_model_name="/u/prasanns/research/rlhf-length-biases/checkpoints/rmdistrmix/_peft_last_checkpoint" \
+    --adapter_model_name="checkpoints/einsteinoptcorrect125m/checkpoint-300" \
     --base_model_name="facebook/opt-125m" \
-    --output_name="models/rewards/distrmixrm"
+    --output_name="models/einstein125partialsft"
+
+# export CUDA_VISIBLE_DEVICES=7
+# python scripts/merge_peft_adapter.py \
+#     --adapter_model_name="/u/prasanns/research/rlhf-length-biases/checkpoints/einsteinsftllama7b/checkpoint-10000" \
+#     --base_model_name="/u/prasanns/research/rlhf-length-biases/models/llama" \
+#     --output_name="models/sft7beinstein"
 
 # python scripts/merge_peft_adapter.py \
 #     --adapter_model_name="/u/prasanns/research/rlhf-length-biases/checkpoints/rmself25/checkpoint-7000" \

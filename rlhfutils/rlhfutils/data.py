@@ -222,29 +222,6 @@ def len_balance(indataset):
     balanced_df = baldf(dataset_df)
     
     print(balanced_df)
-    # # Create a new column to identify which row has longer input_ids_j
-    # dataset_df['j_is_longer'] = dataset_df.apply(lambda row: len(row['input_ids_j']) > len(row['input_ids_k']), axis=1)
-
-    # # Count how many examples are in each class
-    # count_j_is_longer = len(dataset_df[dataset_df['j_is_longer'] == True])
-    # count_k_is_longer = len(dataset_df) - count_j_is_longer
-
-    # # Determine which class has fewer examples
-    # min_count = min(count_j_is_longer, count_k_is_longer)
-
-    # # Downsample the class with more examples to have as many as the class with fewer examples
-    # if count_j_is_longer > min_count:
-    #     df_j_is_longer = dataset_df[dataset_df['j_is_longer'] == True].sample(n=min_count)
-    #     df_k_is_longer = dataset_df[dataset_df['j_is_longer'] == False]
-    # else:
-    #     df_k_is_longer = dataset_df[dataset_df['j_is_longer'] == False].sample(n=min_count)
-    #     df_j_is_longer = dataset_df[dataset_df['j_is_longer'] == True]
-
-    # # Concatenate the two downsampled classes to create a balanced DataFrame
-    # balanced_df = pd.concat([df_j_is_longer, df_k_is_longer])
-
-    # # Optionally, shuffle the rows
-    # balanced_df = balanced_df.sample(frac=1).reset_index(drop=True)
     
     return  Dataset.from_pandas(balanced_df)
 
@@ -493,6 +470,7 @@ def mapfilt(ds, tkfunct):
     ds = ds.filter(lambda x: len(x["input_ids"]) < 512, batched=False)
 
     ds.set_format(type="torch")
+    # print(ds)
     return ds
 
 def webgpt_template(strval, resp=None):
@@ -552,29 +530,50 @@ def build_ultra_promptdata(tokenizer):
 
     return mapfilt(ds, tokultra)
 
+def onlyans(_, answer=None):
+    return "" 
+
+def simplecat(question, answer=None): 
+    return question
+
+def ans(question, answer=None):
+    return question + " \nAnswer:\n"
+
+pfuncts = {'onlyans': onlyans, 'dircat':simplecat, "ans":ans}
 # Let's use a preference set instead of a set of just rollouts
-def build_custom_promptdata(tokenizer, dsetname):
+def build_custom_promptdata(tokenizer, dsetname, pstyle="default", metadata=[]):
+    pfunct = pfuncts[pstyle] if "default" not in pstyle else webgpt_template
+    print("prompt function is ", pfunct)
     # input_size = LengthSampler(input_min_text_length, input_max_text_length)
     ds = Dataset.load_from_disk(dsetname)
 
-    def tokcustom(sample):
+    # pass in metadata for gold completion setup
+    def tokcustom(sample, pfunct, metadata):
+        #print(sample.keys())
         # TODO trying out this thing for batching
         new_examples = {
             "query": [],
             "input_ids": [],
         }
-        for question in sample["question"]:
+        for m in metadata: 
+            new_examples[m] = []
+        for i in range(len(sample['question'])):
+            question = sample["question"][i]
             # just use the first thing as the prompt every time? s
-            query = webgpt_template(question)
+            query = pfunct(question)
             
             #query = "Question: " + question + "\n\nAnswer: "
             tokenized_question = tokenizer(query, truncation=True)
             new_examples["query"].append(question)
             new_examples["input_ids"].append(tokenized_question["input_ids"])
+            for m in metadata: 
+                new_examples[m].append(sample[m][i])
 
         return new_examples
 
-    return mapfilt(ds, tokcustom)
+    newdset = mapfilt(ds, lambda ex: tokcustom(ex, pfunct, metadata))
+    print("new dataset: ", newdset[0])
+    return newdset
 
 def build_rlcd_promptdata(tokenizer, dname):
 

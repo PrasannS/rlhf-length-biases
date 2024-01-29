@@ -5,13 +5,67 @@
 #     --model_name_or_path="models/sft10k" --output_dir="dpo/dpoultra50" \
 #     --dataset="data/ultra50k" 
 
-export CUDA_VISIBLE_DEVICES=4,5
-accelerate launch --config_file=scripts/default_single.yaml \
-    dpo_exps/train_dpo.py \
-    --model_name_or_path="allenai/tulu-2-7b" --output_dir="dpo/dpoultasmalldistr" \
-    --dataset="data/ultrarmsmall" \
-    --per_device_train_batch_size=1 \
-    --gradient_accumulation_steps=32
+# export CUDA_VISIBLE_DEVICES=4,5
+# accelerate launch --config_file=scripts/default_single.yaml \
+#     dpo_exps/train_dpo.py \
+#     --model_name_or_path="allenai/tulu-2-7b" --output_dir="dpo/dpoultasmalldistr" \
+#     --dataset="data/ultrarmsmall" \
+#     --per_device_train_batch_size=1 \
+#     --gradient_accumulation_steps=32
+
+# export CUDA_VISIBLE_DEVICES=0
+# accelerate launch --config_file=scripts/default_single.yaml \
+#     dpo_exps/train_dpo.py \
+#     --model_name_or_path="models/sfteinstein" --output_dir="dpo/einsteindpo2layers" \
+#     --dataset="data/einstein2house" \
+#     --per_device_train_batch_size=32 \
+#     --gradient_accumulation_steps=1 \
+#     --epochs=3 \
+#     --learning_rate=5e-5 \
+#     --promptstyle="ans"
+
+# export CUDA_VISIBLE_DEVICES=1
+# accelerate launch --config_file=scripts/default_single.yaml \
+#     dpo_exps/train_dpo.py \
+#     --model_name_or_path="facebook/opt-125m" --output_dir="dpo/distillwikipref" \
+#     --dataset="data/distilprefdata" \
+#     --per_device_train_batch_size=32 \
+#     --gradient_accumulation_steps=1 \
+#     --epochs=3 \
+#     --learning_rate=5e-5 \
+#     --promptstyle="onlyans"
+
+export CUDA_VISIBLE_DEVICES=7
+accelerate launch --config_file=scripts/default_single.yaml --main_process_port=29522 \
+    scripts/train_dpo.py \
+    --model_name_or_path="facebook/opt-125m" --output_dir="dpo/optdistillcontrastdpo" \
+    --dataset="data/contrastdistillprefs" \
+    --per_device_train_batch_size=8 \
+    --gradient_accumulation_steps=8 \
+    --epochs=3
+
+
+
+# export CUDA_VISIBLE_DEVICES=0,1,2,3
+# accelerate launch --multi_gpu --config_file=scripts/default_dpomulti.yaml --main_process_port=29524 \
+#     scripts/train_dpo.py \
+#     --model_name_or_path="allenai/tulu-2-7b" --output_dir="dpo/dpoultra44v2" \
+#     --dataset="data/ultra44k" \
+#     --per_device_train_batch_size=1 \
+#     --gradient_accumulation_steps=8 \
+#     --epochs=3
+
+# export CUDA_VISIBLE_DEVICES=2
+# accelerate launch --config_file=scripts/default_single.yaml \
+#     dpo_exps/train_dpo.py \
+#     --model_name_or_path="models/sftwiki" --output_dir="dpo/undopriorwiki" \
+#     --dataset="data/distilprefdata" \
+#     --per_device_train_batch_size=32 \
+#     --gradient_accumulation_steps=1 \
+#     --epochs=3 \
+#     --learning_rate=5e-5 \
+#     --promptstyle="onlyans"
+
 
 # export CUDA_VISIBLE_DEVICES=0,1,2,3
 # accelerate launch --multi_gpu --config_file=scripts/default_dpomulti.yaml --main_process_port=29527  \

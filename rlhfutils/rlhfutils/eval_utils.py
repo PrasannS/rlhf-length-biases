@@ -45,12 +45,24 @@ def reconvert(inp):
     return strnew
 
 def getapfsft(inp, tostack=False, tok=None, toklim=-1):
-    instruction_match = re.search(r'### Instruction:\n(.*?)(### Response:|\Z)', inp, re.DOTALL)
-    instruction = instruction_match.group(1).strip() if instruction_match else None
-    
-    # Extract Response
-    response_match = re.search(r'### Response:.*?(.*?)(### |\Z)', inp, re.DOTALL)
-    response = response_match.group(1).strip() if response_match else None
+    # NOTE dealing with the TULU format
+    # print(inp)
+    if "<user>" in inp: 
+        
+        # print("checking tulu")
+        q = inp[len("<user>\n"):]
+        instruction, response = q.split("\n<assistant>\n")
+        #print(q)
+    else:
+        instruction_match = re.search(r'### Instruction:\n(.*?)(### Response:|\Z)', inp, re.DOTALL)
+        instruction = instruction_match.group(1).strip() if instruction_match else None
+        
+        # Extract Response
+        response_match = re.search(r'### Response:.*?(.*?)(### |\Z)', inp, re.DOTALL)
+        response = response_match.group(1).strip() if response_match else None
+    if response==None:
+        print("too big")
+        response = ""
     if tostack:
         if toklim>0:
             # we only want to score the first so many tokens

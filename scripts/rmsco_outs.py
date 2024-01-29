@@ -16,18 +16,15 @@ nltk.download('punkt')
 # replace all wgptouts with corresponding stack QA format (RM input format)
 def setall(l, tok, args):
     newl = []
-    try:
-        for ind in l:
-            newl.append(getapfsft(ind, True, tok, args.maxlen))
-    except:
-        return None
+    for ind in l:
+        newl.append(getapfsft(ind, True, tok, args.maxlen))
+    
     return newl
 
 def splitall(l):
-    try: 
-        return [s.split("Answer:")[1] for s in l]
-    except:
-        return None
+    
+    return [s.split("Answer:")[1] for s in l]
+    
 
 def getfulldist(lcol):
     hist = []
@@ -47,7 +44,13 @@ def compdist(lcol, slen):
     
 def procall(indf, toker, args, needset=True):
     if needset:
-        indf['response'] = [setall(s, toker, args) for s in indf['response']]
+        # print()
+        # HACK heuristic in case we're dealing with single thing outputs
+        if len(indf['response'][0])<=4:
+            indf['response'] = [setall(s, toker, args) for s in indf['response']]
+        else:
+            indf['response'] = [[s] for s in setall(list(indf['response']), toker, args)]
+    print(indf['response'][0])
     indf = indf.dropna()
     indf['answers'] = [splitall(s) for s in indf['response']]
     indf = indf.dropna()
@@ -97,6 +100,7 @@ def main(args):
                 allresps = jresps+kresps
             else: 
                 outdf = pd.read_json(inpfile, orient='records', lines=True)    
+                print("read in df of len ", len(outdf))
                 if args.lim > 0:
                     outdf = outdf.iloc[:args.lim]
                 outdf = procall(outdf, tok, args, False==stack)
@@ -170,10 +174,8 @@ if __name__=="__main__":
     parser.add_argument("--tokenwise", type=bool, default=False, help="whether to use tokenwise formulation or not")
     parser.add_argument("--isdset", type=bool, default=False, help="whether to treat as a dataset or not")
     parser.add_argument('--start', type=int, help='max len to use for outputs', default=-1)
-    parser.add_argument('--lim', type=int, help="whatever")
+    parser.add_argument('--lim', type=int, default=0, help="whatever")
 
-
-    
     progargs = parser.parse_args()
     
     main(progargs)

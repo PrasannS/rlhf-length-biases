@@ -39,7 +39,7 @@ from transformers import (
     PreTrainedTokenizerFast,
 )
 
-from trl.core import (
+from ..core import (
     WANDB_PADDING,
     PPODecorators,
     clip_by_value,
@@ -54,11 +54,12 @@ from trl.core import (
     stack_dicts,
     stats_to_np,
 )
-from trl.import_utils import is_torch_greater_2_0, is_xpu_available
-from trl.models import SUPPORTED_ARCHITECTURES, PreTrainedModelWrapper, create_reference_model
-from trl.trainer import AdaptiveKLController, BaseTrainer, FixedKLController, PPOConfig, RunningMoments
+from ..import_utils import is_torch_greater_2_0, is_xpu_available
+from ..models import SUPPORTED_ARCHITECTURES, PreTrainedModelWrapper, create_reference_model
+from . import AdaptiveKLController, BaseTrainer, FixedKLController, PPOConfig, RunningMoments
 from accelerate import DistributedDataParallelKwargs
 
+# updated with new DPOplus minibatching logic
 
 if is_deepspeed_available():
     import deepspeed
@@ -711,24 +712,67 @@ class PPOTrainer(BaseTrainer):
         full_kl_penalty = self.config.kl_penalty == "full"
         dpoplus = self.config.kl_penalty == "dpoplus"
 
+        all_stats = []
         with nullcontext() if dpoplus else torch.no_grad():
-            all_logprobs, logits_or_none, values, masks = self.batched_forward_pass(
-                self.model,
-                queries,
-                responses,
-                model_inputs,
-                response_masks=response_masks,
-                return_logits=full_kl_penalty,
-            )
-            with torch.no_grad() if dpoplus else nullcontext():
-                with self.optional_peft_ctx():
-                    ref_logprobs, ref_logits_or_none, _, _ = self.batched_forward_pass(
-                        self.model if self.is_peft_model else self.ref_model,
-                        queries,
-                        responses,
-                        model_inputs,
-                        return_logits=full_kl_penalty,
+            if dpoplus: 
+                # TODO assume that stuff is getting passed in the right format
+                # we're gonna do all the updates here, in one go
+                
+                dpolosses = []
+                all_lps = []
+                all_rlps = []
+                kls = []
+                msk = []
+                # TODO set things up like this for now, find a way to log stuff
+                for i in range(0, self.config.batch_size, self.config.mini_batch_size):
+                    #print("starting batch ", i)
+                    end = i+self.config.mini_batch_size
+                    tmpinps = {k:val[i:end] for k, val in model_inputs.items()}
+                    rmasks = response_masks[i:end] if response_masks is not None else None
+                         
+                    all_logprobs, logits_or_none, values, masks = self.batched_forward_pass(
+                        self.model, queries[i:end], responses[i:end], tmpinps, response_masks=rmasks, return_logits=full_kl_penalty,
                     )
+                    with torch.no_grad() if dpoplus else nullcontext():
+                        with self.optional_peft_ctx():
+                            ref_logprobs, ref_logits_or_none, _, _ = self.batched_forward_pass(
+                                self.model if self.is_peft_model else self.ref_model,
+                                queries[i:end], responses[i:end], tmpinps, return_logits=full_kl_penalty,
+                            )
+                    #print("got lps")
+                    reflps = torch.sum(ref_logprobs*masks, dim=-1)
+                    pilps = torch.sum(all_logprobs*masks, dim=-1)
+                    dpolosses.append(self.train_minibatch_dpoplus(pilps, reflps))
+                
+                    pilps = pilps.detach()
+                    all_logprobs = all_logprobs.detach()
+                    all_lps.append(all_logprobs)
+                    all_rlps.append(ref_logprobs)
+                    kls.append(pilps-reflps)
+                    masks = masks.detach()
+                    msk.append(masks)
+                dpolosses = torch.tensor(dpolosses)
+                all_logprobs = torch.cat(all_lps)
+                
+                ref_logprobs = torch.cat(all_rlps)
+                masks = torch.cat(msk)
+                #print(all_logprobs.shape)
+                #print(ref_logprobs.shape)
+                kls = torch.cat(kls)
+                train_stats = {}
+                train_stats["policy/loss"] = dpolosses
+                train_stats['policy/kl_dpoplus'] = kls
+                all_stats.append(train_stats)
+            else: 
+                # just set stuff up normally for PPO
+                all_logprobs, logits_or_none, values, masks = self.batched_forward_pass(
+                    self.model,queries,responses,model_inputs,response_masks=response_masks,return_logits=full_kl_penalty,
+                )
+                with torch.no_grad() if dpoplus else nullcontext():
+                    with self.optional_peft_ctx():
+                        ref_logprobs, ref_logits_or_none, _, _ = self.batched_forward_pass(
+                            self.model if self.is_peft_model else self.ref_model,queries,responses,model_inputs,return_logits=full_kl_penalty,
+                        )
 
         # HACK logic for custom rollouts, prevent training from getting derailed
         if kl_mask is not None:
@@ -776,7 +820,6 @@ class PPOTrainer(BaseTrainer):
         batch_dict.update(model_inputs)
 
         t = time.time()
-        all_stats = []
         early_stop = False
         for _ in range(self.config.ppo_epochs):
             # skip all the ppostep stuff if doing dpoplus
@@ -831,23 +874,7 @@ class PPOTrainer(BaseTrainer):
                 if early_stop:
                     break
                 
-        if dpoplus: 
-            reflps = torch.sum(ref_logprobs*masks, dim=-1)
-            pilps = torch.sum(all_logprobs*masks, dim=-1)
-            dpolosses = []
-            # TODO set things up like this for now, find a way to log stuff
-            for i in range(0, self.config.batch_size, self.config.mini_batch_size):
-                dpolosses.append(self.train_minibatch_dpoplus(pilps, reflps))
-            
-            pilps = pilps.detach()
-            all_logprobs = all_logprobs.detach()
-            masks = masks.detach()
-            dpolosses = torch.tensor(dpolosses)
-            train_stats = {}
-            train_stats["policy/loss"] = dpolosses
-            train_stats['policy/kl_dpoplus'] = pilps-reflps
-            all_stats.append(train_stats)
-        else:
+        if dpoplus == False:
             timing["time/ppo/optimize_step"] = time.time() - t
         t = time.time()
         train_stats = stack_dicts(all_stats)
@@ -1104,7 +1131,7 @@ class PPOTrainer(BaseTrainer):
             old_logprobs, values, logits, vpreds, logprobs, mask, advantages, returns
         )
         loss = loss_p + loss_v
-        print("NOT DPOPLUS")
+        # print("NOT DPOPLUS")
         self.accelerator.backward(loss)
         if self.config.max_grad_norm is not None:
             if self.accelerator.sync_gradients:

@@ -217,16 +217,49 @@
 #     --maxlen=50 \
 #     --cklist="25,50,200,900"
 
-export CUDA_VISIBLE_DEVICES=1
+# export CUDA_VISIBLE_DEVICES=1
+# python -u scripts/generate_outs.py \
+#     --basemodel="allenai/tulu-2-7b" \
+#     --dset=ultra \
+#     --ckname="/u/prasanns/research/rlhf-length-biases/checkpoints/ultra/dpoplus50rm/ultradpoplus50rmstep_" \
+#     --fname="outputs/ultrageneralization/50rmdpoplus" \
+#     --bottom=0 --top=200  \
+#     --bsize=1 \
+#     --maxlen=256 \
+#     --cklist="100,200,300,450"
+
+# export CUDA_VISIBLE_DEVICES=2
+# python -u scripts/generate_outs.py \
+#     --basemodel="allenai/tulu-2-7b" \
+#     --dset=ultra \
+#     --ckname="/u/prasanns/research/rlhf-length-biases/checkpoints/ultra/dpoplussmalldrm/ultradpoplussmalldiststep_" \
+#     --fname="outputs/ultrageneralization/smalldistrrmdpoplus" \
+#     --bottom=0 --top=200  \
+#     --bsize=1 \
+#     --maxlen=256 \
+#     --cklist="100,200,300,450"
+
+export CUDA_VISIBLE_DEVICES=0
 python -u scripts/generate_outs.py \
-    --basemodel="facebook/opt-125m" \
-    --dset=/u/prasanns/research/rlhf-length-biases/data/ratiovarbow/heldouttest \
-    --ckname="/u/prasanns/research/rlhf-length-biases/checkpoints/reversebowppov2/step_" \
-    --fname="outputs/revbow/revbowppogold" \
-    --bottom=0 --top=100  \
-    --bsize=6 \
-    --maxlen=50 \
-    --cklist="25,50,100,200"
+    --basemodel="allenai/tulu-2-7b" \
+    --dset=ultra \
+    --ckname="/u/prasanns/research/rlhf-length-biases/dpo/dpoultra44v2/checkpoint-" \
+    --fname="outputs/ultrageneralization/dpo44tulu" \
+    --bottom=0 --top=200  \
+    --bsize=1 \
+    --maxlen=256 \
+    --cklist="1000,2000,3000,4000"
+
+# export CUDA_VISIBLE_DEVICES=4
+# python -u scripts/generate_outs.py \
+#     --basemodel="allenai/tulu-2-dpo-7b" \
+#     --dset=ultra \
+#     --ckname="orig" \
+#     --fname="outputs/ultrageneralization/normaldpo" \
+#     --bottom=0 --top=200  \
+#     --bsize=1 \
+#     --maxlen=256
+
 
 # export CUDA_VISIBLE_DEVICES=2
 # python -u scripts/generate_outs.py \

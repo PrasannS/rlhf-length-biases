@@ -47,7 +47,7 @@ class ScriptArguments:
         default=32, metadata={"help": "the number of gradient accumulation steps"}
     )
     gradient_checkpointing: Optional[bool] = field(
-        default=True, metadata={"help": "whether to use gradient checkpointing"}
+        default=False, metadata={"help": "whether to use gradient checkpointing"}
     )
 
     lora_alpha: Optional[float] = field(default=32, metadata={"help": "the lora alpha parameter"})
@@ -77,7 +77,7 @@ class ScriptArguments:
     )
     # debug argument for distributed training
     ignore_bias_buffers: Optional[bool] = field(
-        default=False,
+        default=True,
         metadata={
             "help": "fix for DDP issues with LM bias/mask buffers - invalid scalar type,`inplace operation. See"
             "https://github.com/huggingface/transformers/issues/22482#issuecomment-1595790992"
@@ -87,9 +87,22 @@ class ScriptArguments:
         default=None,
         metadata={"help": "the name of the dataset we're doing"},
     )
+    promptstyle: Optional[str] = field(
+        default="default",
+        metadata={"help": "prompt setup style, in [default, onlyans, dircat, ans]"},
+    )
 
 def tulu_pf(question, answer):
     return "<user>\n"+question+"\n<assistant>\n"+answer
+
+def onlyans(_, answer):
+    return "" 
+
+def simplecat(question, answer): 
+    return question
+
+def ans(question, answer):
+    return question + "\nAnswer: \n"
     
 def load_dpo_data(
     script_args,
@@ -110,6 +123,11 @@ def load_dpo_data(
     else: 
         train_data, eval_data = load_manual(dataset, "", testdir=eval_dataset)
         pfunct = adjust_apf
+        
+    # adjust the prompt style as needed
+    if "default" not in script_args.promptstyle: 
+        pfuncts = {'onlyans': onlyans, 'dircat':simplecat, "ans":ans}
+        pfunct = pfuncts[script_args.promptstyle]
     
     if "tulu" in script_args.model_name_or_path:
         pfunct = tulu_pf
@@ -152,41 +170,6 @@ def load_dpo_data(
     # )
     return final_train, final_eval
 
-# TODO clean up this code so it isn't segmented by datasets
-def get_stack_exchange_paired(
-    data_dir: str = "data/rl",
-    sanity_check: bool = False,
-    cache_dir: str = None,
-    num_proc=24,
-) -> Dataset:
-    dataset = load_dataset(
-        "lvwerra/stack-exchange-paired",
-        split="train",
-        cache_dir=cache_dir,
-        data_dir=data_dir,
-    )
-    original_columns = dataset.column_names
-
-    if sanity_check:
-        dataset = dataset.select(range(min(len(dataset), 1000)))
-        
-    # TODO add in a sanity check
-
-    def return_prompt_and_responses(samples) -> Dict[str, str]:
-        return {
-            "prompt": ["Question: " + question + "\n\nAnswer: " for question in samples["question"]],
-            "chosen": samples["response_j"],
-            "rejected": samples["response_k"],
-        }
-
-    return dataset.map(
-        return_prompt_and_responses,
-        batched=True,
-        num_proc=num_proc,
-        remove_columns=original_columns,
-    )
-
-
 if __name__ == "__main__":
     parser = HfArgumentParser(ScriptArguments)
     script_args = parser.parse_args_into_dataclasses()[0]
@@ -194,8 +177,9 @@ if __name__ == "__main__":
     model = AutoModelForCausalLM.from_pretrained(
         script_args.model_name_or_path,
         device_map={"": Accelerator().local_process_index},
-        load_in_8bit=True, 
-        torch_dtype=torch.bfloat16
+        load_in_8bit=False, 
+        torch_dtype=torch.bfloat16, 
+        attn_implementation="flash_attention_2"
     )
     
     # model.config.use_cache = False
@@ -243,7 +227,6 @@ if __name__ == "__main__":
     print(eval_dataset[0]['rejected'])
     
     # # 3. Load evaluation dataset
-    # eval_dataset = get_stack_exchange_paired(data_dir="data/evaluation", sanity_check=True)
     
     # 4. initialize training arguments:
     training_args = TrainingArguments(
@@ -265,6 +248,7 @@ if __name__ == "__main__":
         bf16=True,
         remove_unused_columns=False,
         run_name="trl_dpo",
+        ddp_find_unused_parameters=False
     )
 
     peft_config = LoraConfig(
@@ -295,7 +279,7 @@ if __name__ == "__main__":
         peft_config=peft_config,
         max_prompt_length=script_args.max_prompt_length,
         max_length=script_args.max_length,
-        loss_type=script_args.loss_type
+        loss_type=script_args.loss_type,
     )
 
     # 6. train

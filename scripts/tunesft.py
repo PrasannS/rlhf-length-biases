@@ -17,7 +17,7 @@ from trl.trainer import ConstantLengthDataset
 
 @dataclass
 class ScriptArguments:
-    model_name: Optional[str] = field(default="facebook/opt-125m", metadata={"help": "the model name"})
+    model_name: Optional[str] = field(default="EleutherAI/gpt-neo-125m", metadata={"help": "the model name"})
     dataset_name: Optional[str] = field(default="lvwerra/stack-exchange-paired", metadata={"help": "the dataset name"})
     subset: Optional[str] = field(default="data/finetune", metadata={"help": "the subset to use"})
     split: Optional[str] = field(default="train", metadata={"help": "the split to use"})
@@ -86,7 +86,6 @@ def print_trainable_parameters(model):
         f"trainable params: {trainable_params} || all params: {all_param} || trainable%: {100 * trainable_params / all_param}"
     )
 
-
 def prepare_sample_text(example):
     """Prepare the text from a sample of the dataset."""
     text = f"Question: {example['question']}\n\nAnswer: {example['response_j']}"
@@ -145,30 +144,34 @@ base_model = AutoModelForCausalLM.from_pretrained(
     script_args.model_name,
     quantization_config=bnb_config,
     device_map={"": Accelerator().local_process_index},
+    attn_implementation="flash_attention_2",
     trust_remote_code=True,
     use_auth_token=True,
 )
 base_model.config.use_cache = False
 
-
 tokenizer = AutoTokenizer.from_pretrained(script_args.model_name, trust_remote_code=True)
+# tokenizer.add_special_tokens({'pad_token': '[PAD]'})
 tokenizer.pad_token = tokenizer.eos_token
 tokenizer.padding_side = "right"  # Fix weird overflow issue with fp16 training
+# base_model.resize_token_embeddings(len(tokenizer))
+
 
 # train_dataset, eval_dataset = create_datasets(tokenizer, script_args)
-train_dataset = Dataset.load_from_disk("data/wikidatasft")
+train_dataset = Dataset.load_from_disk(script_args.dataset_name)
 
 trainer = SFTTrainer(
     model=base_model,
     train_dataset=train_dataset,
     peft_config=peft_config,
     packing=False,
-    max_seq_length=None,
+    max_seq_length=256,
     tokenizer=tokenizer,
     args=training_args,
     dataset_text_field="outputs",
 )
 trainer.train()
+
 trainer.save_model(training_args.output_dir)
 
 output_dir = os.path.join(training_args.output_dir, "final_checkpoint")

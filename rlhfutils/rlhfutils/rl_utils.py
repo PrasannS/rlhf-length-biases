@@ -11,7 +11,7 @@ from transformers import (
     LlamaTokenizer,
     pipeline,
 )
-from transformers import AutoModelForSequenceClassification
+from transformers import AutoModelForSequenceClassification, AutoModelForCausalLM
 from peft import TaskType
 import numpy as np
 from nltk.tokenize import word_tokenize
@@ -24,6 +24,7 @@ import json
 import filelock
 import math
 from textstat import flesch_kincaid_grade
+import editdistance
 
 # Load the English language model
 nlp = spacy.load("en_core_web_sm")
@@ -129,6 +130,9 @@ lora_config = LoraConfig(
             bias="none",
             task_type="CAUSAL_LM",
         )
+
+likemod, liketok = None, None
+
 def load_models(script_args, loadms="rmppo"):
     
     current_device = Accelerator().local_process_index
@@ -148,7 +152,9 @@ def load_models(script_args, loadms="rmppo"):
     else:
         tokenizer = AutoTokenizer.from_pretrained(script_args.model_name)
         if getattr(tokenizer, "pad_token", None) is None:
+            print("resetting pad token?")
             tokenizer.pad_token = tokenizer.eos_token
+            # tokenizer.pad_token_type_id = tokenizer.eos_token_id
         
     if "ppo" in loadms:
         config = PPOConfig(
@@ -173,12 +179,15 @@ def load_models(script_args, loadms="rmppo"):
             gamma=1,
             lam=0.95,
             kl_penalty=script_args.kl_penalty, 
+            remove_unused_columns=False, 
         )
         model = AutoModelForCausalLMWithValueHead.from_pretrained(
             script_args.model_name,
             load_in_8bit=True, # re-enable for llama model
             device_map={"": current_device},
-            peft_config=lora_config
+            peft_config=lora_config, 
+            torch_dtype=torch.bfloat16,
+            attn_implementation="flash_attention_2",
         )
 
         optimizer = None
@@ -190,7 +199,7 @@ def load_models(script_args, loadms="rmppo"):
                 warmup_init=False,
                 lr=config.learning_rate,
             )
-    
+                
     if "train" in loadms:
     
         # we want to train the RM on the fly
@@ -224,6 +233,8 @@ def load_models(script_args, loadms="rmppo"):
         pipetok = AutoTokenizer.from_pretrained(script_args.reward_model_name)
         if pipetok.pad_token is None:
             pipetok.pad_token_id = pipetok.eos_token_id
+            pipetok.pad_token = pipetok.eos_token
+        print(pipetok.pad_token)
         reward_model = pipeline(
             "sentiment-analysis",
             model=script_args.reward_model_name,
@@ -233,7 +244,7 @@ def load_models(script_args, loadms="rmppo"):
             return_token_type_ids=False,
         )
     if loadms=="rm":
-        return tokenizer, reward_model
+        return  tokenizer, reward_model
     model.gradient_checkpointing_disable()
     # PPO client for API endpoint
     if loadms=="ppo":
@@ -268,6 +279,7 @@ def get_scores_from_api(text_list, url):
         print(f"Timeout Error: {errt}")
     except requests.exceptions.RequestException as err:
         print(f"Oops: Something Else: {err}")
+        
         
 # Function to calculate the depth of a token
 def token_depth(token):
@@ -478,7 +490,65 @@ def allobjs(text_list):
     nms = numnouns(text_list)
     return [(bfs[i])*9+dps[i]+nms[i] for i in range(len(bfs))]
 
-def get_synth_rewards(text_list, rmname):
+def einstein_reward(response, sols, log=True):
+
+    norm = (len(sols)*(len(sols[0])-1)*2)
+    response = response.split("Answer:")[1].strip()
+    resps = response.split("\n")
+    preds = [s.split(",") for s in resps]
+    mlen = max([len(l) for l in preds]+[len(sols[0])])
+    for i in range(len(preds)):
+        if len(preds[i])<mlen:
+           preds[i] = preds[i] + ["@#$@%@#$"]*(mlen-len(preds[i]))
+    preds = preds[1:]
+    score = 0
+
+    if len(sols)>len(preds): 
+        sols = sols[:len(preds)]
+    if len(preds)>len(sols): 
+        preds = preds[:len(sols)+1]
+    
+    if log:
+        print(preds)
+        print(sols)
+        print(norm)
+    
+    preds = np.array(preds)
+    
+    for i in range(len(sols)): 
+        for j in range(1, len(sols[0])): 
+            gold = sols[i][j]
+            if gold in preds[i, :]: 
+                if log:
+                    print(gold)
+                score = score + 1
+            if gold in preds[:, j]: 
+                score = score + 1
+                if log:
+                    print(gold)
+                
+    score = score / norm
+    return float(score)
+
+opttok = AutoTokenizer.from_pretrained("facebook/opt-125m")
+
+def omit_reward(response, avoid): 
+    respstr = opttok.decode(opttok(response).input_ids[-9:], skip_special_tokens=True)
+    avstr = opttok.decode(opttok(avoid).input_ids[-9:], skip_special_tokens=True)
+    
+    return  editdistance.eval(respstr, avstr)
+
+def computelike(input_text):
+    global liketok, likemod
+    input_text = input_text.replace("Answer:", "").replace("\n", "").replace("Question: ", "")
+    input_ids = liketok(input_text, return_tensors="pt").to(likemod.device)
+    with torch.no_grad():
+        output = likemod(**input_ids, labels=input_ids.input_ids)
+        log_likelihood = output.loss * -1  # Negative log likelihood
+    return float(log_likelihood.item())
+    
+    
+def get_synth_rewards(text_list, rmname, metadata=None):
     # NOTE does it make a diff if we do with / without input in reward inp
     cont = ("cont" in rmname)==False
     scores = []
@@ -502,11 +572,19 @@ def get_synth_rewards(text_list, rmname):
         scores = [nouns[i]*3+ntks[i] for i in range(len(ntks))]
     if "tokdense" in rmname: 
         scores = tokdensefunct(text_list)
+    if "einstein" in rmname: 
+        scores = [einstein_reward(text_list[i], metadata['sol_rows'][i], i==0) for i in range(len(text_list))]
+    if "distil" in rmname: 
+        ""
+        # get NLL of model on text
+    if "omission" in rmname: 
+        scores = [omit_reward(text_list[i], metadata['response_k'][i]) for i in range(len(text_list))]
     if "readinggrade" in rmname: 
         scores = list([readsimp(t, cont) for t in text_list])
     if "noise" in rmname: 
         scores = [s+random.uniform(-1,1) for s in scores]
-    
+    if "opt" in rmname: 
+        scores = [computelike(s) for s in text_list]
         
     return scores
     
@@ -650,14 +728,15 @@ def update_tokdict_bonuses(responses, tokdict):
     return bonuses
 
 # Function to process reward scores
-def process_reward(texts, rmname, reward_model, script_args, response_tensors):
+def process_reward(texts, rmname, reward_model, script_args, response_tensors, metadata):
     sent_kwargs = {"return_all_scores": True, "function_to_apply": "none", "batch_size": 8, "truncation": True}
     # NOTE RM score is based on API endpoint (rmname)
     if "http" in rmname: 
+        # TODO metadata to api calls? 
         rewards = [s for s in get_scores_from_api(texts, rmname)]
     # using some kind of simple function-based reward
     elif "function" in rmname: 
-        rewards = [s for s in get_synth_rewards(texts, rmname)]
+        rewards = [s for s in get_synth_rewards(texts, rmname, metadata)]
     else: # otherwise based on in-process RM
         pipe_outputs = reward_model(texts, **sent_kwargs)
         if script_args.len_only>0:
@@ -669,6 +748,9 @@ def process_reward(texts, rmname, reward_model, script_args, response_tensors):
     return rewards
 
 def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
+    
+    global likemod, liketok 
+    
     # the `generate` function of the trained model.
     generation_kwargs = { 
         "min_length": -1, "top_k": 0.0,"top_p": 1, "do_sample": True, "temperature":script_args.temperature #"pad_token_id": tokenizer.pad_token_id, # "eos_token_id": 100_000,
@@ -683,6 +765,12 @@ def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
     # TODO add option to shuffle before oversample generation
     current_device = Accelerator().local_process_index
     
+    print(reward_model, " is RM")
+    if "opt1b" in script_args.reward_model_name:
+        print("loading the RM")
+        likemod = AutoModelForCausalLM.from_pretrained("facebook/opt-1.3b", device_map=current_device, torch_dtype=torch.bfloat16, attn_implementation="flash_attention_2")
+        liketok = AutoTokenizer.from_pretrained("facebook/opt-1.3b")
+        likemod.eval()
     #get_unwrapped(ppo_trainer).to(current_device)
     rollout_tokens_dict = {}
     min_len = script_args.max_length-2
@@ -720,22 +808,30 @@ def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
             tmpmodel = sjson['checkpoints'][curstrat]
         if epoch >= script_args.steps:
             break
+        
+        print(batch.keys())
 
         question_tensors = batch["input_ids"]
         
         new_questions = []
-        new_queries = []
+        new_qs = {k:[] for k in batch.keys()}
         # we're doing something to oversample 
         if script_args.oversample>1: 
             # this should do the trick, since dpo batch sizes are always in higher terms?
-            qlim = int(len(question_tensors)/2) if dpoplus else len(question_tensors)
+            qlim = int(len(question_tensors)/2) if (dpoplus) else len(question_tensors)
             for i in range(qlim): 
                 new_questions.extend([question_tensors[i]]*script_args.oversample)
-                new_queries.extend([batch['query'][i]]*script_args.oversample)
+                for k in new_qs.keys():
+                    new_qs[k].extend([batch[k][i]]*script_args.oversample)
             assert len(new_questions)==qlim*script_args.oversample
         
             question_tensors = new_questions
-            batch['query'] = new_queries
+            batch = new_qs
+            
+            if 'normal' in script_args.rollout_strategy: 
+                question_tensors = question_tensors[:script_args.batch_size]
+                for k in batch.keys():
+                    batch[k] = batch[k][:script_args.batch_size]
         
         if epoch == 0:
             # SANITY CHECKING
@@ -759,7 +855,8 @@ def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
 
         # Get RM score, NOTE that the input formatting is reward model specific
         texts = [qaform(q, r) for q, r in zip(batch["query"], batch["response"])]
-        assert batch['query'][0]==batch['query'][1]
+        if dpoplus:
+            assert batch['query'][0]==batch['query'][1]
         # we need to use 2 reward sources simultaneously
         # NOTE this code may be buggy
         if "rewardratios" in sjson.keys():
@@ -780,10 +877,10 @@ def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
                     continue
                 # HACK default always needs to come first for scaling to work
                 if cstrat=="default":
-                    rtmps.extend(process_reward(ttmps[lval:lim], rmname, reward_model, script_args, response_tensors))
+                    rtmps.extend(process_reward(ttmps[lval:lim], rmname, reward_model, script_args, response_tensors, batch))
                 else:
                     # TODO this only works for incorporating gold / external apis atm (which Ig covers everything)
-                    nrewards = process_reward(ttmps[lval:lim], cstrat, reward_model, script_args, response_tensors)
+                    nrewards = process_reward(ttmps[lval:lim], cstrat, reward_model, script_args, response_tensors, batch)
                     # need to get the scale to match
                     nrewards = [n-mean(nrewards) for n in nrewards]
                     # HACK TODO make the value of 2 a hyperparam
@@ -793,7 +890,7 @@ def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
                 # undo the shuffling so that stuff matches
             rewards = [rtmps[inds.index(i)] for i in range(len(inds))]
         else:
-            rewards = process_reward(texts, rmname, reward_model, script_args, response_tensors)
+            rewards = process_reward(texts, rmname, reward_model, script_args, response_tensors, batch)
         
         # different strategies on how to deal with oversampling, make sure to prop through all the variables to avoid errors
         keep_inds = keep_strat(script_args, rewards, list(range(len(rewards)))) # default
@@ -806,8 +903,9 @@ def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
         print("RM INIT", mean(rewards))
         print('RM STDEV INIT', stdev(rewards))
         rewards = [rewards[k] for k in keep_inds]
-        batch['query'] = [batch['query'][k] for k in keep_inds]
-        batch['response'] = [batch['response'][k] for k in keep_inds]
+        # should handle any extra stuff
+        for ky in batch.keys():
+            batch[ky] = [batch[ky][k] for k in keep_inds]
         response_tensors = [response_tensors[k] for k in keep_inds]
         question_tensors = [question_tensors[k] for k in keep_inds]
         kl_mask = torch.tensor([kl_mask[k] for k in keep_inds]).to(current_device)

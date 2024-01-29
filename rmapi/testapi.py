@@ -25,4 +25,4 @@ def get_scores_from_api(text_list, url):
         print(f"Oops: Something Else: {err}")
         
 if __name__=="__main__":
-    print(get_scores_from_api(["hi there"]*100, "http://127.0.0.1:5000/predict"))
+    print(get_scores_from_api(["hi there"]*100, "http://127.0.0.1:5001/predict"))

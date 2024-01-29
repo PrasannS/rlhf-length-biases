@@ -1,26 +1,73 @@
-export CUDA_VISIBLE_DEVICES=1,2
 
+# export CUDA_VISIBLE_DEVICES=2,3
+# accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29518 \
+#     --num_machines 1  \
+#     --num_processes 2 \
+#     scripts/train_rlhf.py --log_with=wandb \
+#     --model_name=allenai/tulu-2-7b \
+#     --dataset_name="ultra" \
+#     --reward_model_name=http://127.0.0.1:5000/predict \
+#     --adafactor=False \
+#     --save_freq=25 \
+#     --max_length=256 --batch_size=32 \
+#     --mini_batch_size=2 \
+#     --gradient_accumulation_steps=8 \
+#     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
+#     --early_stopping=False --output_dir=checkpoints/ultra/ultradpoplus50rm \
+#     --init_kl_coef=0.04 --steps=500 \
+#     --kl_penalty="dpoplus" \
+#     --oversample=2 \
+#     --temperature=1 \
+#     --rollout_strategy=normal \
+#     --save_rollouts=True \
+#     --gen_bsize=8
+
+
+export CUDA_VISIBLE_DEVICES=0,1
 accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29518 \
     --num_machines 1  \
     --num_processes 2 \
     scripts/train_rlhf.py --log_with=wandb \
-    --model_name=/u/prasanns/research/rlhf-length-biases/models/sft10k \
+    --model_name=facebook/opt-125m \
     --dataset_name="ultra" \
-    --reward_model_name=http://127.0.0.1:5000/predict \
+    --reward_model_name=function:opt1b \
     --adafactor=False \
     --save_freq=25 \
-    --max_length=256 --batch_size=32 \
-    --mini_batch_size=2 \
-    --gradient_accumulation_steps=8 \
+    --max_length=50 --batch_size=32 \
+    --mini_batch_size=32 \
+    --gradient_accumulation_steps=1 \
     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
-    --early_stopping=False --output_dir=checkpoints/ultra/ultradpoplus7b \
+    --early_stopping=False --output_dir=checkpoints/ultra/ultradpoplus50rm \
     --init_kl_coef=0.04 --steps=500 \
     --kl_penalty="dpoplus" \
     --oversample=2 \
     --temperature=1 \
     --rollout_strategy=normal \
-    --save_rollouts=True \
-    --gen_bsize=8
+    --gen_bsize=32
+
+
+# export CUDA_VISIBLE_DEVICES=4,5
+# accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29519 \
+#     --num_machines 1  \
+#     --num_processes 2 \
+#     scripts/train_rlhf.py --log_with=wandb \
+#     --model_name=allenai/tulu-2-7b \
+#     --dataset_name="ultra" \
+#     --reward_model_name=http://127.0.0.1:5001/predict \
+#     --adafactor=False \
+#     --save_freq=25 \
+#     --max_length=256 --batch_size=32 \
+#     --mini_batch_size=2 \
+#     --gradient_accumulation_steps=8 \
+#     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
+#     --early_stopping=False --output_dir=checkpoints/ultra/ultradpoplussmalldist \
+#     --init_kl_coef=0.04 --steps=500 \
+#     --kl_penalty="dpoplus" \
+#     --oversample=2 \
+#     --temperature=1 \
+#     --rollout_strategy=normal \
+#     --save_rollouts=True \
+#     --gen_bsize=8
 
 # export CUDA_VISIBLE_DEVICES=0,1
 # accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29524 \
@@ -41,6 +88,121 @@ accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_p
 #     --oversample=2 \
 #     --kl_penalty="dpoplus" \
 #     --gen_bsize=64 --temperature=1 \
+#     --rollout_strategy=normal \
+#     --save_rollouts=True \
+#     --max_length=50
+
+# accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29524 \
+#     --num_machines 1  \
+#     --num_processes 2 \
+#     scripts/train_rlhf.py --log_with=wandb \
+#     --tokenizer_name="facebook/opt-125m" \
+#     --model_name=checkpoints/einsteinoptcorrectedbig \
+#     --dataset_name="data/einstein/einstein2house" \
+#     --reward_model_name="function:einstein" \
+#     --adafactor=False \
+#     --save_freq=25 \
+#     --batch_size=32 \
+#     --mini_batch_size=32 \
+#     --gradient_accumulation_steps=1 \
+#     --ppo_epochs=1 --seed=0 --learning_rate=1e-5 \
+#     --early_stopping=False --output_dir=checkpoints/einsteingoldsftdpoplus/ \
+#     --init_kl_coef=0.04 --steps=500 \
+#     --oversample=2 \
+#     --kl_penalty="dpoplus" \
+#     --gen_bsize=64 --temperature=1 \
+#     --rollout_strategy=normal \
+#     --save_rollouts=True \
+#     --max_length=50 
+
+# export CUDA_VISIBLE_DEVICES=0,1
+# accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29524 \
+#     --num_machines 1  \
+#     --num_processes 2 \
+#     scripts/train_rlhf.py --log_with=wandb \
+#     --tokenizer_name="facebook/opt-1.3b" \
+#     --model_name=models/einstein1bpartialsft \
+#     --dataset_name="data/einstein/einstein2house" \
+#     --reward_model_name="function:einstein" \
+#     --adafactor=False \
+#     --save_freq=25 \
+#     --batch_size=32 \
+#     --mini_batch_size=4 \
+#     --gradient_accumulation_steps=1 \
+#     --ppo_epochs=1 --seed=0 --learning_rate=1e-4 \
+#     --early_stopping=False --output_dir=checkpoints/einstein/partialsftppo/ \
+#     --init_kl_coef=0.001 --steps=500 \
+#     --gen_bsize=64 --temperature=1 \
+#     --rollout_strategy=normal \
+#     --save_rollouts=False \
+#     --max_length=50 
+
+
+# export CUDA_VISIBLE_DEVICES=0,1
+# accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29525 \
+#     --num_machines 1  \
+#     --num_processes 2 \
+#     scripts/train_rlhf.py --log_with=wandb \
+#     --tokenizer_name="facebook/opt-125m" \
+#     --model_name=models/einstein125partialsft \
+#     --dataset_name="data/einstein/einstein2house" \
+#     --reward_model_name="function:einstein" \
+#     --adafactor=False \
+#     --save_freq=25 \
+#     --batch_size=128 \
+#     --mini_batch_size=128 \
+#     --gradient_accumulation_steps=1 \
+#     --ppo_epochs=1 --seed=0 --learning_rate=5e-5 \
+#     --early_stopping=False --output_dir=checkpoints/einstein/partialsftppo/ \
+#     --init_kl_coef=0.1 --steps=500 \
+#     --gen_bsize=64 --temperature=1 \
+#     --rollout_strategy=normal \
+#     --save_rollouts=False \
+#     --max_length=50 \
+#     --oversample=2
+
+# export CUDA_VISIBLE_DEVICES=6,7
+# accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29526 \
+#     --num_machines 1  \
+#     --num_processes 2 \
+#     scripts/train_rlhf.py --log_with=wandb \
+#     --model_name=models/sft1beinstein \
+#     --dataset_name="data/einstein2house" \
+#     --reward_model_name="function:einstein" \
+#     --adafactor=False \
+#     --save_freq=25 \
+#     --batch_size=32 \
+#     --mini_batch_size=16 \
+#     --gradient_accumulation_steps=1 \
+#     --ppo_epochs=1 --seed=0 --learning_rate=1e-5 \
+#     --early_stopping=False --output_dir=checkpoints/einsteingolddpoplus1b/ \
+#     --init_kl_coef=0.02 --steps=2000 \
+#     --oversample=2 \
+#     --kl_penalty="dpoplus" \
+#     --gen_bsize=16 --temperature=1 \
+#     --rollout_strategy=normal \
+#     --save_rollouts=True \
+#     --max_length=50
+
+# export CUDA_VISIBLE_DEVICES=4,5
+# accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29527 \
+#     --num_machines 1  \
+#     --num_processes 2 \
+#     scripts/train_rlhf.py --log_with=wandb \
+#     --model_name=models/sft1beinstein \
+#     --dataset_name="data/einstein2house" \
+#     --reward_model_name="function:einstein" \
+#     --adafactor=False \
+#     --save_freq=25 \
+#     --batch_size=32 \
+#     --mini_batch_size=4 \
+#     --gradient_accumulation_steps=1 \
+#     --ppo_epochs=1 --seed=0 --learning_rate=1e-5 \
+#     --early_stopping=False --output_dir=checkpoints/einsteingolddpoplus7b/ \
+#     --init_kl_coef=0.02 --steps=2000 \
+#     --oversample=2 \
+#     --kl_penalty="dpoplus" \
+#     --gen_bsize=4 --temperature=1 \
 #     --rollout_strategy=normal \
 #     --save_rollouts=True \
 #     --max_length=50
@@ -502,28 +664,28 @@ accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_p
 #     --save_rollouts=True \
 #     --generators_json="scripts/genguides/goldpropnoun.json"
 
-export CUDA_VISIBLE_DEVICES=0,1
-accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29524 \
-    --num_machines 1  \
-    --num_processes 2 \
-    scripts/train_rlhf.py --log_with=wandb \
-    --model_name=facebook/opt-125m \
-    --dataset_name="ultra" \
-    --reward_model_name="/u/prasanns/research/rlhf-length-biases/models/rewards/ultrarm" \
-    --adafactor=False \
-    --save_freq=25 \
-    --max_length=50 --batch_size=32 \
-    --mini_batch_size=32 \
-    --gradient_accumulation_steps=1 \
-    --ppo_epochs=1 --seed=0 --learning_rate=1e-4 \
-    --early_stopping=False --output_dir=checkpoints/dpoplusvarupdaterm_indiv/ \
-    --init_kl_coef=0.02 --steps=2000 \
-    --oversample=2 \
-    --kl_penalty="dpoplus" \
-    --gen_bsize=64 --temperature=1 \
-    --rollout_strategy=normal \
-    --save_rollouts=True \
-    --max_length=50
+# export CUDA_VISIBLE_DEVICES=0,1
+# accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29524 \
+#     --num_machines 1  \
+#     --num_processes 2 \
+#     scripts/train_rlhf.py --log_with=wandb \
+#     --model_name=facebook/opt-125m \
+#     --dataset_name="ultra" \
+#     --reward_model_name="/u/prasanns/research/rlhf-length-biases/models/rewards/ultrarm" \
+#     --adafactor=False \
+#     --save_freq=25 \
+#     --max_length=50 --batch_size=32 \
+#     --mini_batch_size=32 \
+#     --gradient_accumulation_steps=1 \
+#     --ppo_epochs=1 --seed=0 --learning_rate=1e-4 \
+#     --early_stopping=False --output_dir=checkpoints/dpoplusvarupdaterm_indiv/ \
+#     --init_kl_coef=0.02 --steps=2000 \
+#     --oversample=2 \
+#     --kl_penalty="dpoplus" \
+#     --gen_bsize=64 --temperature=1 \
+#     --rollout_strategy=normal \
+#     --save_rollouts=True \
+#     --max_length=50
 
 # export CUDA_VISIBLE_DEVICES=0,1
 # accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29523 \

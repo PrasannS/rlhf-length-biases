@@ -1,12 +1,14 @@
-# export CUDA_VISIBLE_DEVICES=2,3,4,5,6,7
+export CUDA_VISIBLE_DEVICES=6
 
-# torchrun --nnodes 1  --nproc_per_node 4 --master_port=12335 scripts/train_rm.py \
-#         --model_name=/u/prasanns/research/rlhf-length-biases/models/llama \
-#         --output_dir=checkpoints/harmless/harmlessrm \
-#         --dataset="harmless" \
-#         --rand_ratio=0 \
-#         --balance_len=0 \
-#         --num_train_epochs=5
+torchrun --nnodes 1  --nproc_per_node 1 --master_port=1238 scripts/train_rm.py \
+        --model_name=facebook/opt-125m \
+        --output_dir=checkpoints/distillprefrm \
+        --dataset="/u/prasanns/research/rlhf-length-biases/data/contrastdistillprefs" \
+        --rand_ratio=0 \
+        --balance_len=0 \
+        --num_train_epochs=1 \
+        --per_device_train_batch_size=16 \
+        --per_device_eval_batch_size=16
 
 # Do cross eval
 # torchrun --nnodes 1  --nproc_per_node 4 --master_port=12337 scripts/stack_cross_eval.py \
@@ -173,7 +175,7 @@
 #         --learning_rate=1e-4 \
 #         --eval_steps=500
 
-export CUDA_VISIBLE_DEVICES=4,7
+
 # torchrun --nnodes 1  --nproc_per_node 2 --master_port=12341 scripts/train_rm.py \
 #         --model_name=meta-llama/Llama-2-7b-hf \
 #         --output_dir=/u/prasanns/research/rlhf-length-biases/checkpoints/ultra50rm \
@@ -187,18 +189,45 @@ export CUDA_VISIBLE_DEVICES=4,7
 #         --learning_rate=1e-5 \
 #         --eval_steps=500
 
-torchrun --nnodes 1  --nproc_per_node 2 --master_port=12342 scripts/train_rm.py \
-        --model_name=meta-llama/Llama-2-7b-hf \
-        --output_dir=/u/prasanns/research/rlhf-length-biases/checkpoints/ultrasmalldist \
-        --dataset=/u/prasanns/research/rlhf-length-biases/data/ultrarmsmall \
-        --rand_ratio=0 \
-        --balance_len=0 \
-        --num_train_epochs=3 \
-        --per_device_train_batch_size=2 \
-        --per_device_eval_batch_size=2 \
-        --gradient_accumulation_steps=2 \
-        --learning_rate=5e-5 \
-        --eval_steps=500
+# export CUDA_VISIBLE_DEVICES=3,4
+# torchrun --nnodes 1  --nproc_per_node 2 --master_port=12342 scripts/train_rm.py \
+#         --model_name=facebook/opt-125m \
+#         --output_dir=/u/prasanns/research/rlhf-length-biases/checkpoints/distillrm \
+#         --dataset=/u/prasanns/research/rlhf-length-biases/data/distilprefdata \
+#         --rand_ratio=0 \
+#         --balance_len=0 \
+#         --num_train_epochs=3 \
+#         --per_device_train_batch_size=16 \
+#         --per_device_eval_batch_size=2 \
+#         --gradient_accumulation_steps=2 \
+#         --learning_rate=5e-5 \
+#         --eval_steps=500
+
+# torchrun --nnodes 1  --nproc_per_node 2 --master_port=12342 scripts/train_rm.py \
+#         --model_name=models/sftwiki \
+#         --output_dir=/u/prasanns/research/rlhf-length-biases/checkpoints/undoprior \
+#         --dataset=/u/prasanns/research/rlhf-length-biases/data/distilprefdata \
+#         --rand_ratio=0 \
+#         --balance_len=0 \
+#         --num_train_epochs=3 \
+#         --per_device_train_batch_size=16 \
+#         --per_device_eval_batch_size=2 \
+#         --gradient_accumulation_steps=2 \
+#         --learning_rate=5e-5 \
+#         --eval_steps=500
+
+# torchrun --nnodes 1  --nproc_per_node 2 --master_port=12342 scripts/train_rm.py \
+#         --model_name=models/sfteinstein \
+#         --output_dir=/u/prasanns/research/rlhf-length-biases/checkpoints/einsteinrm2layer \
+#         --dataset=/u/prasanns/research/rlhf-length-biases/data/einstein2house \
+#         --rand_ratio=0 \
+#         --balance_len=0 \
+#         --num_train_epochs=3 \
+#         --per_device_train_batch_size=16 \
+#         --per_device_eval_batch_size=2 \
+#         --gradient_accumulation_steps=2 \
+#         --learning_rate=5e-5 \
+#         --eval_steps=500
 
 # export CUDA_VISIBLE_DEVICES=4
 # python scripts/train_rm.py \

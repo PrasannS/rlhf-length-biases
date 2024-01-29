@@ -204,7 +204,7 @@ def load_rmodel_standard(script_args):
         model.config.pretraining_tp = 1 
     else:
         model = modtype.from_pretrained(
-            script_args.model_name, num_labels=1, torch_dtype=torch.bfloat16,# device_map="auto"
+            script_args.model_name, num_labels=1, torch_dtype=torch.bfloat16, attn_implementation="flash_attention_2"# device_map="auto"
         )
     model = get_peft_model(model, peft_config)
     model.print_trainable_parameters()

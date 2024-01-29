@@ -14,10 +14,12 @@ class ScriptArguments:
     # also used lxuechen/tldr-gpt2-xl
     model_name: Optional[str] = field(default="facebook/opt-125m", metadata={"help": "the model name"})
     reward_model_name: Optional[str] = field(default="function:bagofwords", metadata={"help": "the reward model name"})
+    goldreward: Optional[str] = field(default=None, metadata={"help": "the reward model name"})
     tokenizer_name: Optional[str] = field(default=None, metadata={"help": "the tokenizer name"})
     dataset_name: Optional[str] = field(default="ultra", metadata={"help": "the dataset name"})
     trainable: Optional[bool] = field(default=False, metadata={"help": "perform on-the-fly RM updates?"})
     indiv: Optional[bool] = field(default=False, metadata={"help": "do updates w.r.t only stuff within batch?"})
+    tracking: Optional[bool] = field(default=False, metadata={"help": "keep track of stuff, do active learning thing"})
     learning_rate: Optional[float] = field(default=1.41e-5, metadata={"help": "the learning rate"})
     max_length: Optional[int] = field(default=50, metadata={"help": "maximum length for generation"})
     batch_size: Optional[int] = field(default=32, metadata={"help": "the batch size"})
@@ -30,3 +32,4 @@ class ScriptArguments:
     )
     relabel_ratio: Optional[float] = field(default=0, metadata={"help": "what ratio (different criterion) of new gold outputs to collect"})
     relab_criteria: Optional[str] = field(default="conf", metadata={"help": "what criteria [conf, random] to use for relabeling set"})
+    port: Optional[int] = field(default=5000, metadata={"help": "the port"})

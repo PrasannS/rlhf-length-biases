@@ -59,7 +59,18 @@ elif "ultra" == script_args.dataset_name:
     # TODO maybe unify original prompt format? 
     dataset = build_ultra_promptdata(tokenizer)
 else: 
-    dataset = build_custom_promptdata(tokenizer, script_args.dataset_name)
+    pftmp = "default"
+    mdatatmp = []
+    if "einstein" in script_args.dataset_name: 
+        print("einstein data format")
+        pftmp = 'ans'
+        mdatatmp = ['sol_rows']
+    elif "distil" in script_args.dataset_name: 
+        pftmp = 'onlyans'
+        mdatatmp = ['response_k', 'response_j']
+    # keep track of solution rows
+    dataset = build_custom_promptdata(tokenizer, script_args.dataset_name, pftmp, mdatatmp)
+    
     
 print(dataset[0])
 
@@ -71,7 +82,7 @@ ppo_trainer = PPOTrainer(
     tokenizer=tokenizer,
     dataset=dataset,
     data_collator=collator,
-    optimizer=optimizer,
+    optimizer=optimizer
 )
 
 # TODO customize for different RM code, and different RM input formats

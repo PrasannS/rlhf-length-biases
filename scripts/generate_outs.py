@@ -13,14 +13,12 @@ import argparse
 
 tmptok = AutoTokenizer.from_pretrained("facebook/opt-125m")
 
-
 def get_step_ckpt(ckpt, origmodel):
     if ckpt=="orig":
         print("using original")
         return origmodel
     return PeftModel.from_pretrained(origmodel, ckpt)
         
-
 def load_stack(topval, bottom=0):
     dset = load_dataset("lvwerra/stack-exchange-paired",  data_dir="data/evaluation", split="train")
     dset = dset.shuffle(seed=0)
@@ -291,9 +289,10 @@ def main(args):
         allres = []
         origmodel = AutoModelForCausalLM.from_pretrained(
             args.basemodel,
-            load_in_8bit=True, # re-enable for llama model
+            # load_in_8bit=True, # re-enable for llama model
             device_map={"": 0},
-            torch_dtype=torch.bfloat16
+            torch_dtype=torch.bfloat16, 
+            attn_implementation="flash_attention_2"
         )
         print("going through process for checkpoint "+str(ckpts[i]))
         fname = str(fnames[i])+".jsonl"
