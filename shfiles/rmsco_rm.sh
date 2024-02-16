@@ -28,10 +28,10 @@ run_script() {
 # run_script  "50rmdpoplus300.jsonl" "50rmdpoplus300"
 # run_script  "50rmdpoplus450.jsonl" "50rmdpoplus450"
 
-run_script  "dpo44tulu1000.jsonl" "dpo44tulu1000"
-run_script  "dpo44tulu2000.jsonl" "dpo44tulu2000"
-run_script  "dpo44tulu3000.jsonl" "dpo44tulu3000"
-run_script  "dpo44tulu4000.jsonl" "dpo44tulu4000"
+run_script  "sfttulu.jsonl" "sfttulu"
+# run_script  "ultra13dpoplus200.jsonl" "ultra13dpoplus200"
+# run_script  "dpo44tulu3000.jsonl" "dpo44tulu3000"
+# run_script  "dpo44tulu4000.jsonl" "dpo44tulu4000"
 
 # run_script  "smalldistdpo1000.jsonl" "smalldistdpo1000"
 # run_script  "smalldistdpo2000.jsonl" "smalldistdpo2000"

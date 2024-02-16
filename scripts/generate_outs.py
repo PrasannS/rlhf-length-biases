@@ -1,6 +1,3 @@
-from dataclasses import dataclass, field
-from typing import Optional
-
 import torch
 from datasets import load_dataset, Dataset
 from peft import PeftModel
@@ -8,13 +5,12 @@ from tqdm import tqdm
 from transformers import  AutoTokenizer, AutoModelForCausalLM
 from rlhfutils.data import load_rlcd, load_apfarm, webgpt_template, load_ultra
 import pandas as pd
-import copy
 import argparse
 
 tmptok = AutoTokenizer.from_pretrained("facebook/opt-125m")
 
 def get_step_ckpt(ckpt, origmodel):
-    if ckpt=="orig":
+    if "orig" in ckpt:
         print("using original")
         return origmodel
     return PeftModel.from_pretrained(origmodel, ckpt)
@@ -75,6 +71,9 @@ def adjust_rlcd(question):
 def adjust_tulu(question, useless):
     return "<user>\n"+question+"\n<assistant>\n"
 
+def noadj(question, _):
+    return question
+
 # HACK this has been adapted to be able to do a lot more data, make sure to switch this back if we
 # ever go back to RM eval to make sure that we're not training RM on the test set or something.
 def lultra(adjinp, topval, bottom=0, largepset=False):
@@ -94,10 +93,9 @@ def lultra(adjinp, topval, bottom=0, largepset=False):
         res = res.filter(lambda ex: len(tmptok(ex['query']).input_ids)<900)
         print("SANITY CHECK\n"+res[0]['query'])
         return res.select(range(bottom,topval))
-    
 
 # load in generation setup from custom pairwise dataset, taking care to use comparable eval set
-def lcustom(dstr, topval, bottom=0, dosamp=True):
+def lcustom(dstr, topval, bottom=0, ifunct=adjust_input, dosamp=True):
     orig_dataset = Dataset.load_from_disk(dstr)
     orig_dataset = orig_dataset.shuffle(seed=0)
     # NOTE use 95% of the dataset for training
@@ -108,7 +106,7 @@ def lcustom(dstr, topval, bottom=0, dosamp=True):
         DRATIO = 0
     eval_dataset = orig_dataset.select(range(int(len(orig_dataset)*DRATIO), len(orig_dataset)))
     def custom2prompt(ex):
-        return {'query':adjust_input(ex['question'], True)}
+        return {'query':ifunct(ex['question'], True)}
     eval_dataset = eval_dataset.filter(lambda ex: len(tmptok(ex['question']).input_ids)<900)
     print(len(eval_dataset))
     eval_dataset = eval_dataset.map(custom2prompt, num_proc=10)
@@ -134,6 +132,13 @@ def lapf(topval, bottom=0):
 
 # TODO maybe clean this up for easier runs later on
 def load_dset(script_args, dset, topval, bottom=0):
+    # for prompt compabitibility with TULU model 
+    ifunct = adjust_input
+    if 'tulu' in script_args.basemodel:
+        ifunct = adjust_tulu
+    # TODO this one's a bit hacky
+    if 'distil' in dset: 
+        ifunct = noadj
     if 'stack' in dset:
         return load_stack(topval, bottom)
     elif 'webgpt' in dset:
@@ -144,15 +149,13 @@ def load_dset(script_args, dset, topval, bottom=0):
     elif "rlcd" in dset:
         return lrlcd(topval, bottom)
     elif "ultra" in dset:
-        # for prompt compabitibility with TULU model 
-        ifunct = adjust_input
-        if 'tulu' in script_args.basemodel:
-            ifunct = adjust_tulu
         return lultra(ifunct, topval, bottom)
     else: 
+        if "math" in dset: 
+            ifunct = noadj
         # we're doing a custom setup instead
         # TODO will need custom logic if we don't want to traintestsplit things
-        return lcustom(dset, topval, bottom)
+        return lcustom(dset, topval, bottom, ifunct)
 
 def generate_outs(model, results, generation_kwargs, qsize=1, savefile="tmp.jsonl"):
     generation_kwargs['num_return_sequences']=1
@@ -206,17 +209,8 @@ def multi_generate_outs(model, results, generation_kwargs, bsize=1, savefile="tm
         for result in tqdm(results, desc='Processing results'):            
             generated_responses = []
             model_inputs = tokenizer([result['query']], return_tensors='pt', padding=True, truncation=True).to(model.device)
-            # try: 
             # Generate outputs for N things in one go
             generated_output = [model.generate(**model_inputs, **generation_kwargs)]
-            # except:
-            #     generation_kwargs['num_return_sequences']=2
-            #     # if batch is too big then split it up
-            #     generated_output = []
-            #     print("Got an OOM error")
-            #     torch.cuda.empty_cache()
-            #     for i in range(0, bsize, 2):
-            #         generated_output.append(model.generate(**model_inputs, **generation_kwargs))
             for gen in generated_output:
                 for generated_sequence in gen:
                     # HACK to see if the huggingface issue was the problem
@@ -238,13 +232,6 @@ def multi_generate_outs(model, results, generation_kwargs, bsize=1, savefile="tm
 
 def main(args):
     # NOTE, make sure to set CUDA_VISIBLE_DEVICES in a call
-    # load in original sft model
-    # origmodel = AutoModelForCausalLM.from_pretrained(
-    #     args.basemodel,
-    #     load_in_8bit=True, # re-enable for llama model
-    #     device_map={"": 0},
-    #     torch_dtype=torch.bfloat16
-    # )
     print("original model loaded")
 
         
@@ -278,8 +265,6 @@ def main(args):
         ckpts = [args.ckname+str(ck) for ck in args.cklist]
         fnames = [args.fname+str(ck) for ck in args.cklist]
         
-    
-    
     # ckpts = [s.replace("oldrm", "rlhfdalen") for s in ckpts]
     # fnames = [s.replace("olds", "dalenl") for s in fnames]
     # fnames = ["oldrmouts", "daouts", "origouts"]

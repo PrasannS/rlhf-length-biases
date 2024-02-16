@@ -1,14 +1,78 @@
-export CUDA_VISIBLE_DEVICES=6
+export CUDA_VISIBLE_DEVICES=4,5
 
-torchrun --nnodes 1  --nproc_per_node 1 --master_port=1238 scripts/train_rm.py \
-        --model_name=facebook/opt-125m \
-        --output_dir=checkpoints/distillprefrm \
-        --dataset="/u/prasanns/research/rlhf-length-biases/data/contrastdistillprefs" \
+# torchrun --nnodes 1  --nproc_per_node 2 --master_port=1238 scripts/train_rm.py \
+#         --model_name=facebook/opt-125m \
+#         --output_dir=checkpoints/contrastivedistill/contdistillrmnormal \
+#         --dataset="/u/prasanns/research/rlhf-length-biases/data/contrastivedistill/contrastdistillprefs" \
+#         --rand_ratio=0 \
+#         --evaldata="/u/prasanns/research/rlhf-length-biases/data/contrastivedistill/contrastdistillheldoutprefs" \
+#         --balance_len=0 \
+#         --num_train_epochs=3 \
+#         --per_device_train_batch_size=32 \
+#         --per_device_eval_batch_size=32 \
+#         --gradient_accumulation_steps=1 \
+#         --eval_steps=250 \
+#         --learning_rate=5e-5
+export CUDA_VISIBLE_DEVICES=6,7
+BASEMODEL="facebook/opt-125m"
+
+run_script() {
+
+    torchrun --nnodes 1  --nproc_per_node 2 --master_port=${4} scripts/train_rm.py \
+        --model_name=$BASEMODEL"" \
+        --output_dir=checkpoints/${1}/${2}_rm/ \
+        --dataset="data/${1}/${2}" \
         --rand_ratio=0 \
+        --evaldata="data/${1}/${3}" \
         --balance_len=0 \
         --num_train_epochs=1 \
-        --per_device_train_batch_size=16 \
-        --per_device_eval_batch_size=16
+        --per_device_train_batch_size=32 \
+        --per_device_eval_batch_size=32 \
+        --gradient_accumulation_steps=1 \
+        --eval_steps=250 \
+        --learning_rate=1e-4
+
+    python scripts/merge_peft_adapter.py \
+        --adapter_model_name="checkpoints/${1}/${2}_rm/best_checkpoint" \
+        --base_model_name="$BASEMODEL" \
+        --output_name="models/rewards/${1}/${2}_rm"
+}
+
+# BASEMODEL="facebook/opt-125m"
+# run_script "bagofwords" "bowprefseqlenprefs" "bowsynth100k" 12350
+
+run_script "contrastivedistill" "contoptprefs" "contoptprefs" 12349
+# run_script "contrastivedistill" "truncdata60k" "heldoutprefs" 12349
+
+
+# torchrun --nnodes 1  --nproc_per_node 2 --master_port=1239 scripts/train_rm.py \
+#         --model_name=facebook/opt-125m \
+#         --output_dir=checkpoints/reversebow/truncrmnp/ \
+#         --dataset="data/contrastivedistill/samp60k" \
+#         --rand_ratio=0 \
+#         --evaldata="/u/prasanns/research/rlhf-length-biases/data/revbow/revbowtest" \
+#         --balance_len=0 \
+#         --num_train_epochs=3 \
+#         --per_device_train_batch_size=32 \
+#         --per_device_eval_batch_size=32 \
+#         --gradient_accumulation_steps=1 \
+#         --eval_steps=250 \
+#         --learning_rate=3e-5
+
+
+# torchrun --nnodes 1  --nproc_per_node 2 --master_port=1239 scripts/train_rm.py \
+#         --model_name=facebook/opt-125m \
+#         --output_dir=checkpoints/reversebow/50krmnp/ \
+#         --dataset="data/contrastivedistill/truncdata60k" \
+#         --rand_ratio=0 \
+#         --evaldata="/u/prasanns/research/rlhf-length-biases/data/revbow/revbowtest" \
+#         --balance_len=0 \
+#         --num_train_epochs=3 \
+#         --per_device_train_batch_size=32 \
+#         --per_device_eval_batch_size=32 \
+#         --gradient_accumulation_steps=1 \
+#         --eval_steps=250 \
+#         --learning_rate=3e-5
 
 # Do cross eval
 # torchrun --nnodes 1  --nproc_per_node 4 --master_port=12337 scripts/stack_cross_eval.py \

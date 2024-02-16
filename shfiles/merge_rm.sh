@@ -31,21 +31,31 @@
 #     --output_name="models/rewards/expbow30"
 
 # python scripts/merge_peft_adapter.py \
-#     --adapter_model_name="/u/prasanns/research/rlhf-length-biases/checkpoints/50rmv2/_peft_last_checkpoint" \
+#     --adapter_model_name="/u/prasanns/research/rlhf-length-biases/checkpoints/reversebow/50krmnp/best_checkpoint" \
 #     --base_model_name="facebook/opt-125m" \
-#     --output_name="models/rewards/expbow50"
+#     --output_name="models/rewards/revbow/revrm50k"
+
+# python scripts/merge_peft_adapter.py \
+#     --adapter_model_name="/u/prasanns/research/rlhf-length-biases/checkpoints/reversebow/truncrmnp/best_checkpoint" \
+#     --base_model_name="facebook/opt-125m" \
+#     --output_name="models/rewards/revbow/revrmtrunc"
+
+# export CUDA_VISIBLE_DEVICES=7
+python scripts/merge_peft_adapter.py \
+    --adapter_model_name="checkpoints/bagofwords/dpoplusbow50rm/step_100" \
+    --base_model_name="facebook/opt-125m" \
+    --output_name="models/bagofwords/50rmppo_s100_sft"
+
+python scripts/merge_peft_adapter.py \
+    --adapter_model_name="checkpoints/bagofwords/dpoplusbow50rm/step_200" \
+    --base_model_name="facebook/opt-125m" \
+    --output_name="models/bagofwords/50rmppo_s200_sft"
 
 # export CUDA_VISIBLE_DEVICES=7
 # python scripts/merge_peft_adapter.py \
-#     --adapter_model_name="/u/prasanns/research/rlhf-length-biases/checkpoints/ultra50rm/checkpoint-7000" \
-#     --base_model_name="meta-llama/Llama-2-7b-hf" \
-#     --output_name="models/rewards/ultra50krm"
-
-export CUDA_VISIBLE_DEVICES=7
-python scripts/merge_peft_adapter.py \
-    --adapter_model_name="checkpoints/einsteinoptcorrect125m/checkpoint-300" \
-    --base_model_name="facebook/opt-125m" \
-    --output_name="models/einstein125partialsft"
+#     --adapter_model_name="checkpoints/13rmultratrunc/checkpoint-10500" \
+#     --base_model_name="allenai/tulu-2-13b" \
+#     --output_name="models/rewards/13btruncrm"
 
 # export CUDA_VISIBLE_DEVICES=7
 # python scripts/merge_peft_adapter.py \

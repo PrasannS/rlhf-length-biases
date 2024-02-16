@@ -1,3 +1,116 @@
+
+BOTTOM=0
+TOP=200
+MLEN=50
+BSIZE=1
+
+# Define a function to run the script with different inputs
+run_script() {
+    # NOTE that we need to feed things in a specific format
+    CKPT_FILE="checkpoints/${1}/${2}${3}${4}"
+    OUTPUT_DIR="/u/prasanns/research/rlhf-length-biases/outputs/${1}/genouts/${2}${4}"
+    
+    python -u scripts/generate_outs.py \
+        --basemodel="$BASEMODEL" \
+        --dset="$DSET" \
+        --ckname="$CKPT_FILE" \
+        --fname="$OUTPUT_DIR" \
+        --bottom=$BOTTOM --top=$TOP  \
+        --bsize=$BSIZE \
+        --maxlen=$MLEN
+
+    python -u scripts/evalgold.py  --fname="${OUTPUT_DIR}.jsonl" --gfunct="${1}"
+}
+
+export CUDA_VISIBLE_DEVICES=6
+BASEMODEL="facebook/opt-125m"
+DSET="data/ultra/ultrafeeddiff"
+TOP=500
+BSIZE=4
+# run_script "bagofwords" "dpoplusbow50rm" "/step_" 100
+
+export CUDA_VISIBLE_DEVICES=7
+# run_script "bagofwords" "dpoplusbow50rm" "/step_" 200
+
+TOP=200
+BSIZE=1
+DSET="data/contrastivedistill/wikionpolicyprompts"
+run_script "contrastivedistill" "contoptprefs_ppo_v2" "/step_" 50
+run_script "contrastivedistill" "contoptprefs_ppo_v2" "/step_" 100
+run_script "contrastivedistill" "contoptprefs_ppo_v2" "/step_" 200
+
+
+
+# Call the function with different arguments
+# run_script  "50rmdpoplus100.jsonl" "50rmdpoplus100"
+# run_script  "50rmdpoplus200.jsonl" "50rmdpoplus200"
+# run_script  "50rmdpoplus300.jsonl" "50rmdpoplus300"
+# run_script  "50rmdpoplus450.jsonl" "50rmdpoplus450"
+
+# run_script "contrastivedistill" "samp60k_ppo" "/step_" 50
+# run_script "contrastivedistill" "samp60k_ppo" "/step_" 100
+# run_script "contrastivedistill" "samp60k_ppo" "/step_" 200
+# run_script "contrastivedistill" "samp60k_ppo" "/step_" 400
+# TODO do something to deal with base model disparity
+
+# DSET="data/math/mathppoinps"
+# BASEMODEL="models/rewards/math/mathsft1300"
+# MLEN=100
+# run_script "math" "math_ppo_withrm" "/step_" 350
+# run_script "math" "math_ppo_withrm" "/step_" 100
+# run_script "math" "math_ppo_withrm" "/step_" 200
+# run_script "math" "math_ppo_withrm" "/step_" 300
+
+# MLEN=50
+# DSET="data/contrastivedistill/wikionpolicyprompts"
+# BASEMODEL="facebook/opt-125m"
+# run_script "contrastivedistill" "functioncontrastivedistill_offppo" "/step_" 100
+# run_script "contrastivedistill" "functioncontrastivedistill_offppo" "/step_" 200
+# run_script "contrastivedistill" "functioncontrastivedistill_offppo" "/step_" 400
+# run_script "contrastivedistill" "functioncontrastivedistill_offppo" "/step_" 1000
+
+# DSET="data/ultra/ultrafeeddiff"
+# run_script "reversebow" "functionreversebow_offppo" "/step_" 100
+# run_script "reversebow" "functionreversebow_offppo" "/step_" 200
+# run_script "reversebow" "functionreversebow_offppo" "/step_" 400
+# run_script "reversebow" "functionreversebow_offppo" "/step_" 1000
+
+# run_script "contrastivedistill" "samp60k_dpo" "/checkpoint-" 1000
+# run_script "contrastivedistill" "samp60k_dpo" "/checkpoint-" 2000
+# run_script "contrastivedistill" "samp60k_dpo" "/checkpoint-" 4000
+
+# run_script "contrastivedistill" "truncdata60k_dpo" "/checkpoint-" 1000
+# run_script "contrastivedistill" "truncdata60k_dpo" "/checkpoint-" 2000
+# run_script "contrastivedistill" "truncdata60k_dpo" "/checkpoint-" 4000
+
+# run_script "reversebow" "50kdponpen" "/checkpoint-" 4000
+# run_script "reversebow" "truncdponpen" "/checkpoint-" 1000
+# run_script "reversebow" "truncdponpen" "/checkpoint-" 4000
+
+# run_script "reversebow" "revppotruncrmnp" "/step_" 50
+# run_script "reversebow" "revppotruncrmnp" "/step_" 100
+# run_script "reversebow" "revppo50krmnp" "/step_" 50
+# run_script "reversebow" "revppo50krmnp" "/step_" 100
+
+# run_script "reversebow" "revppotruncrm" "/revrmtruncppostep_" 100
+# run_script "reversebow" "revppotruncrm" "/revrmtruncppostep_" 200
+# run_script "reversebow" "revppotruncrm" "/revrmtruncppostep_" 400
+# run_script "reversebow" "revppotruncrm" "/revrmtruncppostep_" 600
+
+
+
+
+# python -u scripts/generate_outs.py \
+#         --basemodel="$BASEMODEL" \
+#         --dset="$DSET" \
+#         --ckname="orig" \
+#         --fname="outputs/reversebow/opt125ultrasft" \
+#         --bottom=$BOTTOM --top=$TOP  \
+#         --bsize=1 \
+#         --maxlen=$MLEN
+    
+# python -u scripts/evalgold.py  --fname="outputs/reversebow/opt125ultrasft.jsonl" --gfunct="reversebow"
+
 # export CUDA_VISIBLE_DEVICES=0
 # python -u scripts/generate_outs.py \
 #     "models/sft10k" \
@@ -239,26 +352,29 @@
 #     --maxlen=256 \
 #     --cklist="100,200,300,450"
 
-export CUDA_VISIBLE_DEVICES=0
-python -u scripts/generate_outs.py \
-    --basemodel="allenai/tulu-2-7b" \
-    --dset=ultra \
-    --ckname="/u/prasanns/research/rlhf-length-biases/dpo/dpoultra44v2/checkpoint-" \
-    --fname="outputs/ultrageneralization/dpo44tulu" \
-    --bottom=0 --top=200  \
-    --bsize=1 \
-    --maxlen=256 \
-    --cklist="1000,2000,3000,4000"
+# export CUDA_VISIBLE_DEVICES=3
+# python -u scripts/generate_outs.py \
+#     --basemodel="facebook/opt-125m" \
+#     --dset=ultra \
+#     --ckname="/u/prasanns/research/rlhf-length-biases/checkpoints/trainablebowactiveconfv2/step_" \
+#     --fname="outputs/bowactive/bowactivev1" \
+#     --bottom=0 --top=200  \
+#     --bsize=1 \
+
+
+#     --maxlen=50 \
+#     --cklist="700,900,1000,1400"
 
 # export CUDA_VISIBLE_DEVICES=4
 # python -u scripts/generate_outs.py \
-#     --basemodel="allenai/tulu-2-dpo-7b" \
+#     --basemodel="facebook/opt-125m" \
 #     --dset=ultra \
-#     --ckname="orig" \
-#     --fname="outputs/ultrageneralization/normaldpo" \
+#     --ckname="checkpoints/ultra/" \
+#     --fname="outputs/ultrageneralization/" \
 #     --bottom=0 --top=200  \
 #     --bsize=1 \
-#     --maxlen=256
+#     --maxlen=256 \
+#     --cklist="100,200"
 
 
 # export CUDA_VISIBLE_DEVICES=2

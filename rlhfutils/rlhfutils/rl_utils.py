@@ -15,19 +15,16 @@ from transformers import AutoModelForSequenceClassification, AutoModelForCausalL
 from peft import TaskType
 import numpy as np
 from nltk.tokenize import word_tokenize
-from nltk import pos_tag
 import random
 from statistics import mean
-import spacy
-from peft import PeftModel
 import json
 import filelock
 import math
-from textstat import flesch_kincaid_grade
 import editdistance
-
-# Load the English language model
-nlp = spacy.load("en_core_web_sm")
+# HACK setting up forward in alternative fashion
+# # NOTE bring omit_long back
+from rlhfutils.rewards import get_synth_rewards, omit_long
+import rlhfutils.rewards as rw
 
 import requests, json
 
@@ -118,6 +115,10 @@ class ScriptArguments:
        default=0,
        metadata={"help": "bonus reward (token-based) to encourage unexplored tokens showing up more"},
     )
+    keep_long: Optional[int] = field(
+       default=0,
+       metadata={"help": "how many outputs to over-generate per sample"},
+    )
     
 DEFAULT_PAD_TOKEN = "[PAD]"
 DEFAULT_EOS_TOKEN = "</s>"
@@ -131,7 +132,7 @@ lora_config = LoraConfig(
             task_type="CAUSAL_LM",
         )
 
-likemod, liketok = None, None
+
 
 def load_models(script_args, loadms="rmppo"):
     
@@ -281,312 +282,73 @@ def get_scores_from_api(text_list, url):
         print(f"Oops: Something Else: {err}")
         
         
-# Function to calculate the depth of a token
-def token_depth(token):
-    depth = 0
-    while token.head != token:
-        token = token.head
-        depth += 1
-    return depth
+from transformers import LogitsProcessor
 
-# code to get max syntax tree depth from a list of 
-def synt_tree_dep(text_list): 
-    def scodep(instr): 
-        if "Answer:" in instr:
-            # only use response part of str
-            istr = instr.split("Answer:")[1]
-        else:
-            istr = instr
-        doc = nlp(istr)
+class EinsteinLogitsProc(LogitsProcessor):
+    
+    def __init__(self, tokenizer, max_tokens_without_comma=4, max_newlines=1):
+        self.tokenizer = tokenizer
+        self.max_tokens_without_comma = max_tokens_without_comma
+        self.max_newlines = max_newlines
+        # Initialize counters for each sequence in the batch
+        self.tokens_since_last_comma = [0]
+        self.last_token_was_comma = [False]
+        self.newline_counts = [0]
+        self.initial = True
+
+    def __call__(self, input_ids, scores):
+        # Identify the token ID for comma
+        comma_token_id = self.tokenizer.convert_tokens_to_ids(',')
         
-        # Calculate the maximum depth of the syntax tree
-        return max(token_depth(token) for token in doc)
-    return [float(scodep(s)) for s in text_list]
+        # Adjust counters for batch size changes
+        batch_size = input_ids.shape[0]
+        self._adjust_counters_for_batch_size(batch_size)
 
-# contextualized
-def scopos(instr, pstr="NN"): 
-        
-        # only use response part of str
-        if "Answer:" in instr:
-            istr = instr.split("Answer:")[1]
-        else:
-            istr = instr
+        for i in range(batch_size):
+            # Convert last token to string
+            last_token_str = self.tokenizer.decode(input_ids[i, -1])
 
+            # Update counters based on the last token
+            self._update_counters(i, last_token_str, comma_token_id)
             
-        tokens = word_tokenize(istr)
-        tagged = pos_tag(tokens)
-        # print(tagged)
-        return len([word for word, pos in tagged if pos.startswith(pstr)])
-    
-# return number of nouns in each item from list of strings
-def numnouns(text_list):
-    return [float(scopos(s)) for s in text_list]
+            # Boost or suppress logits based on conditions
+            scores = self._modify_logits(i, scores, last_token_str, comma_token_id)
 
-featlist = [
-    {'noun':lambda ex: scopos(ex, "NN"), 'adj':lambda ex: scopos(ex, "JJ"), 'verb':lambda ex: scopos(ex, "V")}, 
-    {'min':lambda sco: -1*sco, 'max':lambda sco:sco},
-]
-def contnumpos(text_list):
-    def scocont(instr):
-        try:
-            splitter = "Answer:" if "Answer:" in instr else "### Response:"
-            assert "Answer:" in instr or "### Response:" in instr
-            inpwords = instr.split(splitter)[0].split(" ")
-            #print(inpwords)
-            res = instr.split(splitter)[1]
-            for f in featlist:
-                for k in f.keys():
-                    if k in inpwords: 
-                        #print(k)
-                        res = float(f[k](res))
-            #print(res)
-            return float(res)
-        except: 
-            print('weird')
-            return 0
-    
-    return [scocont(s) for s in text_list]
+        return scores
 
-bow_words = [
-    # content
-    'data', 'hope', 'information', 'provide', 'example', 'your', 'however', 'first', 'have', 'help', 
-    'additionally', 'important', 'include', 'finally', 'following', 'happy', 'code', 'two', 'create', 'question', 'possible', 'understand', 'generate', 'contains', 
-    'appropriate', 'best', 'respectful', 'ensure', 'experience', 'safe'
-]
-assert len(bow_words)==30
-rembow = ["help", "your", "provide", "question", "have", "happy"]
-# bow_words = [
-#     'data', 'hope', 'information', 'example', 'however', 'first',
-#     'additionally', 'important', 'include', 'finally', 'following', 'code', 'two', 'create', 'possible', 'understand', 'generate', 'contains', 
-#     'appropriate', 'best', 'respectful', 'ensure', 'experience', 'safe'
-# ]
-# # more bow words to use if we want
-# extra_bow_words = ['additionally', 'important', 'include', 'finally', 'following', 'happy', 'code', 'two', 'create', 'question', 'possible', 'understand', 'generate', 'contains', 
-# 'appropriate', 'best', 'respectful', 'ensure', 'experience', 'safe']
-# # TODO reverted back to original list size
-# bow_words.extend(extra_bow_words)
-def scobow(instr, nocont, uns):
-        # only use response part of str
-        if nocont:
-            if "Answer:" in instr:
-                istr = instr.split("Answer:")[1]
-            else:
-                istr = instr
-        else: 
-            istr = instr
-        tokens = word_tokenize(istr)
-        sco = 0
-        for t in bow_words: 
-            if t in tokens: 
-                if t not in uns.keys():
-                    uns[t] = 0
-                uns[t] = uns[t]+1
-                #uns.append(t)
-                sco = sco + 1
-        return sco
-    
-revbowwords = ["the", "to", "and", "of", "in", "is", "that", "this", "with"]
-def reversebow(instr, nocont, uns):
-    # only use response part of str
-    if nocont:
-        if "Answer:" in instr:
-            istr = instr.split("Answer:")[1]
+    def _adjust_counters_for_batch_size(self, batch_size):
+        diff = batch_size - len(self.tokens_since_last_comma)
+        if diff > 0:
+            self.tokens_since_last_comma.extend([0] * diff)
+            self.last_token_was_comma.extend([False] * diff)
+            self.newline_counts.extend([0] * diff)
+
+    def _update_counters(self, i, last_token_str, comma_token_id):
+        if ',' in last_token_str:
+            self.tokens_since_last_comma[i] = 0
+            self.last_token_was_comma[i] = True
         else:
-            istr = instr
-    else: 
-        istr = instr
-    tokens = word_tokenize(istr)
-    # to prevent converging on trivial min
-    sco = 3 if len(tokens)>30 else -10
-    for t in revbowwords: 
-        if t in tokens: 
-            if t not in uns.keys():
-                uns[t] = 0
-            uns[t] = uns[t]+1
-            #uns.append(t)
-            sco = sco - 1
-    return sco
+            self.tokens_since_last_comma[i] += 1
+            self.last_token_was_comma[i] = False
 
-def procistr(instr, nocont):
-    # TODO this looks like good candidate for refactoring
-    if nocont:
-        if "Answer:" in instr:
-            istr = instr.split("Answer:")[1]
-        else:
-            istr = instr
-    else: 
-        istr = instr
-    return istr
+        if '\n' in last_token_str:
+            self.newline_counts[i] += 1
 
-def uniquetokdensity(instr, nocont):
-    istr = procistr(instr, nocont)
-    tokens = word_tokenize(istr)
-    # get a version of this score with a bit of variance
-    if len(tokens)>20:
-        return (len(set(tokens))/len(tokens))*10
-    else:
-        return -5
+    def _modify_logits(self, i, scores, last_token_str, comma_token_id):
+        # Boost comma logits if needed
+        if self.tokens_since_last_comma[i] >= self.max_tokens_without_comma:
+            scores[i, comma_token_id] += 1000  # Arbitrary large value
 
-# token density (supposed to be a proxy for informativeness)
-def tokdensefunct(text_list, nocont=True):
-    return [float(uniquetokdensity(s, nocont)) for s in text_list]
+        # Suppress comma logits if the last token was a comma
+        if self.last_token_was_comma[i]:
+            scores[i, comma_token_id] = -float('inf')
 
-def readsimp(instr, nocont):
-    istr = procistr(instr, nocont)
-    tokens = word_tokenize(istr)
-    # get a version of this score with a bit of variance
-    if len(tokens)>20:
-        return flesch_kincaid_grade(istr)
-    else:
-        return -10
-    
-def revbowfunct(text_list, nocont=True, log=False):
-    uns = {}
-    bowscos = [float(reversebow(s, nocont, uns)) for s in text_list]
-    if log:
-        print("uniques", len(uns.keys()), uns)
-    #print(len(bowscos))
-    return bowscos
-    
-def bowfunct(text_list, nocont=True, log=False):
-    uns = {}
-    bowscos = [float(scobow(s, nocont, uns)) for s in text_list]
-    if log:
-        print("uniques", len(uns.keys()), uns)
-    return bowscos
+        # Suppress newline logits if the max number of newlines has been reached
+        newline_token_id = self.tokenizer.convert_tokens_to_ids('\n')
+        if self.newline_counts[i] >= self.max_newlines:
+            scores[i, newline_token_id] = -float('inf')
 
-# code for omitting stuff that goes over length, TODO sanity check that this works still (mutability context thing)
-def omit_long(tokenizer, response_tensors, question_tensors, batch):
-    longouts = tokenizer.batch_decode(response_tensors, skip_special_tokens=False)
-    # check if we get EOS, if not prepare to throw out
-    safeinds = []
-    badinds = []
-    for i in range(len(longouts)):
-        if "</s>" not in longouts[i]:
-            badinds.append(i)
-        else:
-            safeinds.append(i)
-    # go through bad stuff, replace truncated with non-truncated
-    for bad in badinds:
-        safe = random.choice(safeinds)
-        # For logging
-        batch['response'][bad] =  "OMMITTED "+batch['response'][bad]
-        # For optimization, just make the response tensor all padding (get rid of the whole thing)
-        question_tensors[bad] = question_tensors[safe]
-        response_tensors[bad] = response_tensors[safe]
-        
-    print(len(badinds), " omitted")
-
-def notoks(text_list):
-    def scotok(instr):
-        istr = instr.split("Answer:")[1]
-        tokens = word_tokenize(istr)
-        return 50 - len(tokens)
-    return [float(scotok(s)) for s in text_list]
-
-def allobjs(text_list):
-    bfs = bowfunct(text_list)
-    dps = synt_tree_dep(text_list)
-    nms = numnouns(text_list)
-    return [(bfs[i])*9+dps[i]+nms[i] for i in range(len(bfs))]
-
-def einstein_reward(response, sols, log=True):
-
-    norm = (len(sols)*(len(sols[0])-1)*2)
-    response = response.split("Answer:")[1].strip()
-    resps = response.split("\n")
-    preds = [s.split(",") for s in resps]
-    mlen = max([len(l) for l in preds]+[len(sols[0])])
-    for i in range(len(preds)):
-        if len(preds[i])<mlen:
-           preds[i] = preds[i] + ["@#$@%@#$"]*(mlen-len(preds[i]))
-    preds = preds[1:]
-    score = 0
-
-    if len(sols)>len(preds): 
-        sols = sols[:len(preds)]
-    if len(preds)>len(sols): 
-        preds = preds[:len(sols)+1]
-    
-    if log:
-        print(preds)
-        print(sols)
-        print(norm)
-    
-    preds = np.array(preds)
-    
-    for i in range(len(sols)): 
-        for j in range(1, len(sols[0])): 
-            gold = sols[i][j]
-            if gold in preds[i, :]: 
-                if log:
-                    print(gold)
-                score = score + 1
-            if gold in preds[:, j]: 
-                score = score + 1
-                if log:
-                    print(gold)
-                
-    score = score / norm
-    return float(score)
-
-opttok = AutoTokenizer.from_pretrained("facebook/opt-125m")
-
-def omit_reward(response, avoid): 
-    respstr = opttok.decode(opttok(response).input_ids[-9:], skip_special_tokens=True)
-    avstr = opttok.decode(opttok(avoid).input_ids[-9:], skip_special_tokens=True)
-    
-    return  editdistance.eval(respstr, avstr)
-
-def computelike(input_text):
-    global liketok, likemod
-    input_text = input_text.replace("Answer:", "").replace("\n", "").replace("Question: ", "")
-    input_ids = liketok(input_text, return_tensors="pt").to(likemod.device)
-    with torch.no_grad():
-        output = likemod(**input_ids, labels=input_ids.input_ids)
-        log_likelihood = output.loss * -1  # Negative log likelihood
-    return float(log_likelihood.item())
-    
-    
-def get_synth_rewards(text_list, rmname, metadata=None):
-    # NOTE does it make a diff if we do with / without input in reward inp
-    cont = ("cont" in rmname)==False
-    scores = []
-    # TODO this also looks like a good candidate for refactoring? 
-    # using syntax tree depth as reward function here
-    if "treedep" in rmname: 
-        scores = synt_tree_dep(text_list)
-    if "nouns" in rmname: 
-        scores = numnouns(text_list)
-    if "bagofwords" in rmname: 
-        scores = bowfunct(text_list, cont)
-    if "reversebow" in rmname:
-        scores = revbowfunct(text_list, cont)
-    if "contpos" in rmname: 
-        scores = contnumpos(text_list)
-    if 'allobjs' in rmname: 
-        scores =  allobjs(text_list)
-    if "nounvstoks" in rmname:
-        ntks = notoks(text_list)
-        nouns = numnouns(text_list)
-        scores = [nouns[i]*3+ntks[i] for i in range(len(ntks))]
-    if "tokdense" in rmname: 
-        scores = tokdensefunct(text_list)
-    if "einstein" in rmname: 
-        scores = [einstein_reward(text_list[i], metadata['sol_rows'][i], i==0) for i in range(len(text_list))]
-    if "distil" in rmname: 
-        ""
-        # get NLL of model on text
-    if "omission" in rmname: 
-        scores = [omit_reward(text_list[i], metadata['response_k'][i]) for i in range(len(text_list))]
-    if "readinggrade" in rmname: 
-        scores = list([readsimp(t, cont) for t in text_list])
-    if "noise" in rmname: 
-        scores = [s+random.uniform(-1,1) for s in scores]
-    if "opt" in rmname: 
-        scores = [computelike(s) for s in text_list]
-        
-    return scores
+        return scores
     
 def keep_strat(script_args, rewards, keep_inds):
     keeplen = int(len(rewards)/script_args.oversample)
@@ -745,15 +507,18 @@ def process_reward(texts, rmname, reward_model, script_args, response_tensors, m
         else:
             # TODO length constraints, other fancy stuff gets added in here
             rewards = [output[0]["score"]-script_args.reward_baseline for output in pipe_outputs]
+    if script_args.keep_long>0:
+        radds = [(-20 if len(word_tokenize(t.strip()))<script_args.keep_long else 0) for t in texts]
+        rewards = [rewards[i]+radds[i] for i in range(len(radds))]
     return rewards
 
 def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
     
-    global likemod, liketok 
+    # global likemod, liketok, slikemod, sliketok
     
     # the `generate` function of the trained model.
     generation_kwargs = { 
-        "min_length": -1, "top_k": 0.0,"top_p": 1, "do_sample": True, "temperature":script_args.temperature #"pad_token_id": tokenizer.pad_token_id, # "eos_token_id": 100_000,
+        "min_length": 20, "top_k": 0.0,"top_p": 1, "do_sample": True, "temperature":script_args.temperature #"pad_token_id": tokenizer.pad_token_id, # "eos_token_id": 100_000,
     }
     curstrat = -1
     # every time we hit a new index in stratchange list, rollout strategy changes (new checkpoint on top of initial)
@@ -766,11 +531,13 @@ def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
     current_device = Accelerator().local_process_index
     
     print(reward_model, " is RM")
-    if "opt1b" in script_args.reward_model_name:
+    if "contrastivedistill" in script_args.reward_model_name:
         print("loading the RM")
-        likemod = AutoModelForCausalLM.from_pretrained("facebook/opt-1.3b", device_map=current_device, torch_dtype=torch.bfloat16, attn_implementation="flash_attention_2")
-        liketok = AutoTokenizer.from_pretrained("facebook/opt-1.3b")
-        likemod.eval()
+        rw.likemod = AutoModelForCausalLM.from_pretrained("facebook/opt-1.3b", device_map=current_device, torch_dtype=torch.bfloat16, attn_implementation="flash_attention_2").eval()
+        rw.liketok = AutoTokenizer.from_pretrained("facebook/opt-1.3b")
+        rw.slikemod = AutoModelForCausalLM.from_pretrained("facebook/opt-125m", device_map=current_device, torch_dtype=torch.bfloat16, attn_implementation="flash_attention_2").eval()
+        rw.sliketok = AutoTokenizer.from_pretrained("facebook/opt-125m")
+        
     #get_unwrapped(ppo_trainer).to(current_device)
     rollout_tokens_dict = {}
     min_len = script_args.max_length-2
@@ -780,6 +547,7 @@ def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
             "top_k": 0.0,"top_p": 1, "do_sample": True, "pad_token_id": tokenizer.pad_token_id, "eos_token_id": 100_000,
         }
         min_len = 32
+    
 
     # HACK since I don't like how they set up RL code length stuff
     output_length_sampler = LengthSampler(min_len, script_args.max_length)
@@ -788,6 +556,8 @@ def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
     running_means = []
     running_stds = []
     rmname = script_args.reward_model_name
+    if 'einstein' in rmname:
+        generation_kwargs['logits_processor']=[EinsteinLogitsProc(tokenizer, 4, 2)]
     
     dpoplus = script_args.kl_penalty=="dpoplus"
     # TODO set up some arg assertions here for rollout strategies, put earlier in training
@@ -797,7 +567,7 @@ def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
     tmpmodel = None
     ratio = 0
     for epoch, batch in tqdm(enumerate(ppo_trainer.dataloader)):
-        if sjson['intervals'][curstrat+1]==epoch:
+        if sjson['intervals'][curstrat+1]<epoch:
             print("HOORAY! we're adding another rollout sampler into the mix")
             curstrat+=1
             # make an exception for just sft case
@@ -843,6 +613,9 @@ def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
             response_tensors, kl_mask = get_rollouts(ppo_trainer, question_tensors, output_length_sampler, script_args, generation_kwargs,tmpmodel,abs(ratio))
         
         batch["response"] = tokenizer.batch_decode(response_tensors, skip_special_tokens=True)
+        if "einstein" in rmname:
+            batch['response'] = ["\n".join(r.split("\n")[:2]) for r in batch['response']]
+            response_tensors = [tokenizer(r, return_tensors="pt").input_ids.squeeze(0) for r in batch['response']]
         
         # let's manually avoid using stuff that needs to get omitted
         if script_args.omit_long==1:

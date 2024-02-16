@@ -18,13 +18,15 @@ class ScriptArguments:
     tokenizer_name: Optional[str] = field(default=None, metadata={"help": "the tokenizer name"})
     dataset_name: Optional[str] = field(default="ultra", metadata={"help": "the dataset name"})
     trainable: Optional[bool] = field(default=False, metadata={"help": "perform on-the-fly RM updates?"})
-    indiv: Optional[bool] = field(default=False, metadata={"help": "do updates w.r.t only stuff within batch?"})
+    diffunct: Optional[str] = field(default="no", metadata={"help": "do updates w.r.t only stuff within batch?"})
     tracking: Optional[bool] = field(default=False, metadata={"help": "keep track of stuff, do active learning thing"})
+    trainheur: Optional[bool] = field(default=False, metadata={"help": "keep track of stuff, do active learning thing"})
     learning_rate: Optional[float] = field(default=1.41e-5, metadata={"help": "the learning rate"})
     max_length: Optional[int] = field(default=50, metadata={"help": "maximum length for generation"})
     batch_size: Optional[int] = field(default=32, metadata={"help": "the batch size"})
     save_freq: Optional[int] = field(default=None, metadata={"help": "n steps to save the model"})
     output_dir: Optional[str] = field(default="checkpoints/debugging", metadata={"help": "n steps to save the model"})
+    logfile: Optional[str] = field(default="outputs/dynarmlogs/debug.jsonl", metadata={"help": "n steps to save the model"})
     seed: Optional[int] = field(default=1, metadata={"help": "the seed"})
     len_only: Optional[float] = field(
        default=0,

@@ -65,6 +65,9 @@ def preprocess_function_rm(examples, tokenizer):
         
         
     for question, response_j, response_k, rowid, mag in zip(examples["question"], examples["response_j"], examples["response_k"], examples['row_index'], examples['magnitude']):
+        #sj = ""
+        #sk = ""
+        
         tokenized_j = tokenizer("Question: " + question + "\n\nAnswer: " + response_j, truncation=True)
         tokenized_k = tokenizer("Question: " + question + "\n\nAnswer: " + response_k, truncation=True)
 
@@ -244,7 +247,7 @@ def tokenize_dset(train_dataset, eval_dataset, script_args=None, tokenizer=None)
         lambda example: preprocess_function_rm(example, tokenizer),
         batched=True,
         num_proc=num_proc,
-        remove_columns=original_columns,
+        remove_columns=original_columns
     )
     if script_args is not None:
         mlen = script_args.max_length
@@ -403,7 +406,7 @@ def load_manual(iname, base="data/categories/", testdir=None, fancyshuff=False):
     
     
 # load data for ultra-feedback dataset
-def load_ultra(dname="data/ultrafeeddiff", useall=False):
+def load_ultra(dname="data/ultra/ultrafeeddiff", useall=False):
     # need to first generate data and store it in the right directory
     # NOTE can also try doing smth with the data that's supposed to be "equal"
     orig_dataset = load_from_disk(dname)
@@ -539,7 +542,11 @@ def simplecat(question, answer=None):
 def ans(question, answer=None):
     return question + " \nAnswer:\n"
 
-pfuncts = {'onlyans': onlyans, 'dircat':simplecat, "ans":ans}
+def einsteinprompt(question, mdata):
+    # NOTE passing column format should simplify things a lot? 
+    return ans(question)+mdata['response_j'].split("\n")[0]+"\n"
+
+pfuncts = {'onlyans': simplecat, 'dircat':simplecat, "ans":ans, 'einstein':einsteinprompt}
 # Let's use a preference set instead of a set of just rollouts
 def build_custom_promptdata(tokenizer, dsetname, pstyle="default", metadata=[]):
     pfunct = pfuncts[pstyle] if "default" not in pstyle else webgpt_template
@@ -560,7 +567,10 @@ def build_custom_promptdata(tokenizer, dsetname, pstyle="default", metadata=[]):
         for i in range(len(sample['question'])):
             question = sample["question"][i]
             # just use the first thing as the prompt every time? s
-            query = pfunct(question)
+            if pstyle=='einstein':
+                query = pfunct(question, {m:sample[m][i] for m in metadata})
+            else:
+                query = pfunct(question)
             
             #query = "Question: " + question + "\n\nAnswer: "
             tokenized_question = tokenizer(query, truncation=True)

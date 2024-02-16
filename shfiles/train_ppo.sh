@@ -1,5 +1,45 @@
+SEED=0
+KEEPLONG=0
+MLEN=50
+BASEMODEL="facebook/opt-125m"
+dpoplus_script() {
+    # NOTE that we need to feed things in a specific format    
 
+    accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=${4} \
+        --num_machines 1  --num_processes 2 \
+        scripts/train_rlhf.py --log_with=wandb \
+        --model_name=$BASEMODEL \
+        --dataset_name="data/${2}" \
+        --reward_model_name=models/rewards/${1}/${3}_rm \
+        --adafactor=False \
+        --save_freq=25 \
+        --max_length=$MLEN --batch_size=32 \
+        --mini_batch_size=32 \
+        --gradient_accumulation_steps=1 \
+        --ppo_epochs=1 --seed=$SEED --learning_rate=5e-5 \
+        --early_stopping=False --output_dir=checkpoints/${1}/${3}_ppo_${5} \
+        --init_kl_coef=0.04 --steps=1000 \
+        --oversample=2 \
+        --temperature=1 \
+        --rollout_strategy=normal \
+        --gen_bsize=32 \
+        --kl_penalty="dpoplus" --keep_long=$KEEPLONG
+}
+
+KEEPLONG=10
+# SEED=2
+# export CUDA_VISIBLE_DEVICES=0,1
+# dpoplus_script "reversebow" "ultra/ultrafeeddiff" "functionreversebow" 29511 "seed2"
+
+# SEED=3
 # export CUDA_VISIBLE_DEVICES=2,3
+# dpoplus_script "reversebow" "ultra/ultrafeeddiff" "functionreversebow" 29512 "seed3"
+
+SEED=0
+export CUDA_VISIBLE_DEVICES=4,5
+dpoplus_script "contrastivedistill" "contrastivedistill/wikionpolicyprompts" "contoptprefs" 29513 "v2"
+
+# export CUDA_VISIBLE_DEVICES=1,2
 # accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29518 \
 #     --num_machines 1  \
 #     --num_processes 2 \
@@ -13,7 +53,7 @@
 #     --mini_batch_size=2 \
 #     --gradient_accumulation_steps=8 \
 #     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
-#     --early_stopping=False --output_dir=checkpoints/ultra/ultradpoplus50rm \
+#     --early_stopping=False --output_dir=checkpoints/ultra/ultradpoplus13brmtrunc \
 #     --init_kl_coef=0.04 --steps=500 \
 #     --kl_penalty="dpoplus" \
 #     --oversample=2 \
@@ -22,28 +62,185 @@
 #     --save_rollouts=True \
 #     --gen_bsize=8
 
+# export CUDA_VISIBLE_DEVICES=0,1
+# accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29510 \
+#     --num_machines 1  \
+#     --num_processes 2 \
+#     scripts/train_rlhf.py --log_with=wandb \
+#     --model_name=facebook/opt-125m \
+#     --dataset_name="ultra" \
+#     --reward_model_name=/u/prasanns/research/rlhf-length-biases/models/rewards/revbow/revrm50k \
+#     --adafactor=False \
+#     --save_freq=25 \
+#     --max_length=50 --batch_size=32 \
+#     --mini_batch_size=32 \
+#     --gradient_accumulation_steps=1 \
+#     --ppo_epochs=1 --seed=0 --learning_rate=5e-5 \
+#     --early_stopping=False --output_dir=checkpoints/reversebow/revppo50krmnp \
+#     --init_kl_coef=0.04 --steps=1000 \
+#     --oversample=1 \
+#     --temperature=1 \
+#     --rollout_strategy=normal \
+#     --gen_bsize=64
 
-export CUDA_VISIBLE_DEVICES=0,1
-accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29518 \
-    --num_machines 1  \
-    --num_processes 2 \
-    scripts/train_rlhf.py --log_with=wandb \
-    --model_name=facebook/opt-125m \
-    --dataset_name="ultra" \
-    --reward_model_name=function:opt1b \
-    --adafactor=False \
-    --save_freq=25 \
-    --max_length=50 --batch_size=32 \
-    --mini_batch_size=32 \
-    --gradient_accumulation_steps=1 \
-    --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
-    --early_stopping=False --output_dir=checkpoints/ultra/ultradpoplus50rm \
-    --init_kl_coef=0.04 --steps=500 \
-    --kl_penalty="dpoplus" \
-    --oversample=2 \
-    --temperature=1 \
-    --rollout_strategy=normal \
-    --gen_bsize=32
+
+# export CUDA_VISIBLE_DEVICES=0,1
+# dpoplus_script "contrastivedistill" "wikionpolicyprompts" "samp60k" 29511
+# export CUDA_VISIBLE_DEVICES=2,3
+# dpoplus_script "contrastivedistill" "wikionpolicyprompts" "truncdata60k" 29512
+# BASEMODEL="/u/prasanns/research/rlhf-length-biases/models/rewards/math/mathsft1300"
+# export CUDA_VISIBLE_DEVICES=0,1
+# dpoplus_script "math" "mathppoinps" "math" 29514 "withrm"
+
+# offpolicy_dpoplus() {
+#     # NOTE that we need to feed things in a specific format    
+
+#     accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=${4} \
+#         --num_machines 1  --num_processes 2 \
+#         scripts/train_rlhf.py --log_with=wandb \
+#         --model_name=$BASEMODEL \
+#         --dataset_name="${2}" \
+#         --reward_model_name=models/rewards/${1}/${3}_rm \
+#         --adafactor=False \
+#         --save_freq=25 \
+#         --max_length=$MLEN --batch_size=32 \
+#         --mini_batch_size=8 \
+#         --gradient_accumulation_steps=4 \
+#         --ppo_epochs=1 --seed=0 --learning_rate=5e-5 \
+#         --early_stopping=False --output_dir=checkpoints/${1}/${3}_offppo \
+#         --init_kl_coef=0.04 --steps=2000 \
+#         --oversample=2 \
+#         --temperature=1 \
+#         --rollout_strategy=normal \
+#         --gen_bsize=32 \
+#         --kl_penalty="dpoplus" \
+#         --generators_json="scripts/genguides/bs3.json"
+# }
+
+
+#offpolicy_dpoplus "math" "data/math/mathppoinps" "functionmath" 29512
+# # offpolicy_dpoplus "contrastivedistill" "data/contrastivedistill/wikionpolicyprompts" "functioncontrastivedistill" 29513
+# BASEMODEL="facebook/opt-125m"
+# export CUDA_VISIBLE_DEVICES=4,5
+# MLEN=50
+# # offpolicy_dpoplus "reversebow" "data/ultra/ultrafeeddiff" "functionreversebow" 29511
+# # offpolicy_dpoplus "reversebow" "data/ultra/ultrafeeddiff" "functionreversebow" 29511
+# # TODO add name tag logic
+# export CUDA_VISIBLE_DEVICES=0,1
+# # offpolicy_dpoplus "contrastivedistill" "data/contrastivedistill/wikionpolicyprompts" "functioncontrastivedistill" 29513
+# MLEN=100
+# BASEMODEL="/u/prasanns/research/rlhf-length-biases/models/rewards/math/mathsft1300"
+# export CUDA_VISIBLE_DEVICES=2,3
+# offpolicy_dpoplus "math" "data/math/mathppoinps" "functionmath" 29512
+
+
+# accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29511 \
+#     --num_machines 1  \
+#     --num_processes 2 \
+#     scripts/train_rlhf.py --log_with=wandb \
+#     --model_name=facebook/opt-125m \
+#     --dataset_name="ultra" \
+#     --reward_model_name=/u/prasanns/research/rlhf-length-biases/models/rewards/revbow/revrmtrunc \
+#     --adafactor=False \
+#     --save_freq=25 \
+#     --max_length=50 --batch_size=32 \
+#     --mini_batch_size=32 \
+#     --gradient_accumulation_steps=1 \
+#     --ppo_epochs=1 --seed=0 --learning_rate=5e-5 \
+#     --early_stopping=False --output_dir=checkpoints/reversebow/revrmtruncppo \
+#     --init_kl_coef=0.04 --steps=1000 \
+#     --oversample=1 \
+#     --temperature=1 \
+#     --rollout_strategy=normal \
+#     --gen_bsize=64
+
+# export CUDA_VISIBLE_DEVICES=2,3
+# accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29511 \
+#     --num_machines 1  \
+#     --num_processes 2 \
+#     scripts/train_rlhf.py --log_with=wandb \
+#     --model_name=facebook/opt-125m \
+#     --dataset_name="ultra" \
+#     --reward_model_name=function:reversebow \
+#     --adafactor=False \
+#     --save_freq=25 \
+#     --max_length=50 --batch_size=32 \
+#     --mini_batch_size=32 \
+#     --gradient_accumulation_steps=1 \
+#     --ppo_epochs=1 --seed=0 --learning_rate=5e-5 \
+#     --early_stopping=False --output_dir=checkpoints/reversebow/revrmmlentrygold \
+#     --init_kl_coef=0.1 --steps=500 \
+#     --oversample=1 \
+#     --temperature=1 \
+#     --rollout_strategy=normal \
+#     --gen_bsize=64 \
+#     --keep_long=30
+
+# export CUDA_VISIBLE_DEVICES=1,2
+# accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29518 \
+#     --num_machines 1  \
+#     --num_processes 2 \
+#     scripts/train_rlhf.py --log_with=wandb \
+#     --model_name=facebook/opt-125m \
+#     --dataset_name="ultra" \
+#     --reward_model_name=http://127.0.0.1:5000/train \
+#     --adafactor=False \
+#     --save_freq=25 \
+#     --max_length=50 --batch_size=32 \
+#     --mini_batch_size=32 \
+#     --gradient_accumulation_steps=1 \
+#     --ppo_epochs=1 --seed=0 --learning_rate=5.4e-5 \
+#     --early_stopping=False --output_dir=checkpoints/bow/activebowv1dpoplus \
+#     --init_kl_coef=0.04 --steps=2000 \
+#     --kl_penalty="dpoplus" \
+#     --oversample=2 \
+#     --temperature=1 \
+#     --rollout_strategy=normal \
+#     --gen_bsize=32
+
+# export CUDA_VISIBLE_DEVICES=4,5
+# accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29519 \
+#     --num_machines 1  \
+#     --num_processes 2 \
+#     scripts/train_rlhf.py --log_with=wandb \
+#     --model_name=facebook/opt-125m \
+#     --dataset_name="ultra" \
+#     --reward_model_name=http://127.0.0.1:5001/train \
+#     --adafactor=False \
+#     --save_freq=25 \
+#     --max_length=50 --batch_size=32 \
+#     --mini_batch_size=32 \
+#     --gradient_accumulation_steps=1 \
+#     --ppo_epochs=1 --seed=0 --learning_rate=5.4e-5 \
+#     --early_stopping=False --output_dir=checkpoints/bow/activebowgapheur \
+#     --init_kl_coef=0.04 --steps=2000 \
+#     --kl_penalty="dpoplus" \
+#     --oversample=2 \
+#     --temperature=1 \
+#     --rollout_strategy=normal \
+#     --gen_bsize=32
+
+# export CUDA_VISIBLE_DEVICES=1,2
+# accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29518 \
+#     --num_machines 1  \
+#     --num_processes 2 \
+#     scripts/train_rlhf.py --log_with=wandb \
+#     --model_name=http://127.0.0.1:5000/train \
+#     --dataset_name="ultra" \
+#     --reward_model_name=function:opt1b \
+#     --adafactor=False \
+#     --save_freq=25 \
+#     --max_length=50 --batch_size=32 \
+#     --mini_batch_size=32 \
+#     --gradient_accumulation_steps=1 \
+#     --ppo_epochs=1 --seed=0 --learning_rate=1.4e-5 \
+#     --early_stopping=False --output_dir=checkpoints/ultra/ultradpoplus50rm \
+#     --init_kl_coef=0.04 --steps=500 \
+#     --kl_penalty="dpoplus" \
+#     --oversample=2 \
+#     --temperature=1 \
+#     --rollout_strategy=normal \
+#     --gen_bsize=32
 
 
 # export CUDA_VISIBLE_DEVICES=4,5
@@ -92,12 +289,14 @@ accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_p
 #     --save_rollouts=True \
 #     --max_length=50
 
+
+# export CUDA_VISIVLE
 # accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29524 \
 #     --num_machines 1  \
 #     --num_processes 2 \
 #     scripts/train_rlhf.py --log_with=wandb \
 #     --tokenizer_name="facebook/opt-125m" \
-#     --model_name=checkpoints/einsteinoptcorrectedbig \
+#     --model_name=models/einstein125partialsft \
 #     --dataset_name="data/einstein/einstein2house" \
 #     --reward_model_name="function:einstein" \
 #     --adafactor=False \

@@ -31,17 +31,22 @@ script_args: ScriptArguments = parser.parse_args_into_dataclasses()[0]
 
 set_seed(script_args.seed)
 
+if script_args.output_dir[-1]!="/":
+    script_args.output_dir = script_args.output_dir+"/"
+
+print("over here")
 # NOTE special case if using an api endpoint
 if "http" in script_args.reward_model_name:
     config, tokenizer, model, optimizer = load_models(script_args, "ppo")
     reward_model = None
-elif "function:" in script_args.reward_model_name:
+elif "function" in script_args.reward_model_name:
     config, tokenizer, model, optimizer = load_models(script_args, "ppo")
     reward_model = "function"
 else:
     # NOTE handle loading everything in, since hyperparams are same for every setting more or less
     config, tokenizer, model, optimizer, reward_model = load_models(script_args)
 
+print("loaded models")
 rmformat = qaform
 if "wgpt" == script_args.dataset_name:
     dataset = build_wgpt_promptdata(tokenizer)
@@ -55,7 +60,9 @@ elif "stack" == script_args.dataset_name:
 elif "apfarm" == script_args.dataset_name:
     dataset = build_apf_promptdata(tokenizer)
     rmformat = anscat
+# TODO fix ultrachat datset issue
 elif "ultra" == script_args.dataset_name:
+    print("NOTE we're not using custom data, we're using default ultafeedback here")
     # TODO maybe unify original prompt format? 
     dataset = build_ultra_promptdata(tokenizer)
 else: 
@@ -63,15 +70,16 @@ else:
     mdatatmp = []
     if "einstein" in script_args.dataset_name: 
         print("einstein data format")
-        pftmp = 'ans'
-        mdatatmp = ['sol_rows']
-    elif "distil" in script_args.dataset_name: 
+        pftmp = 'einstein'
+        mdatatmp = ['sol_rows', 'response_j']
+    elif "distil" in script_args.dataset_name or "math" in script_args.dataset_name: 
         pftmp = 'onlyans'
-        mdatatmp = ['response_k', 'response_j']
+        # mdatatmp = ['response_k', 'response_j']
     # keep track of solution rows
     dataset = build_custom_promptdata(tokenizer, script_args.dataset_name, pftmp, mdatatmp)
-    
-    
+if "math" in script_args.reward_model_name and "function" in script_args.reward_model_name: 
+    print("beware, using math format")
+    rmformat = anscat
 print(dataset[0])
 
 # We then build the PPOTrainer, passing the model, the reference model, the tokenizer

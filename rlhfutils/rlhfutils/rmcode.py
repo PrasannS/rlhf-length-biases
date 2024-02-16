@@ -289,9 +289,12 @@ class RewardDataCollatorWithPadding:
             "attention_mask_j": batch_j["attention_mask"],
             "input_ids_k": batch_k["input_ids"],
             "attention_mask_k": batch_k["attention_mask"],
-            "ids": [f["ids"] for f in features], # propagate datapoint ID through code for data carto
             "return_loss": True,
         }
+        if "ids" in features[0].keys():
+            batch['ids'] = torch.tensor([f["ids"] for f in features])
+        else:
+            batch['ids'] = torch.zeros(len(features))-2
         # add logic for using mag in training
         if "mag" in features[0].keys():
             batch['mag'] = torch.tensor([f["mag"] for f in features])
@@ -318,7 +321,7 @@ class RewardTrainer(Trainer):
         savef = open("carto_outs/"+fname+".jsonl", "a")  # append mode
         #print(rewards_j.shape)
         for i in range(len(inps['ids'])):
-            td = {"uid":inps['ids'][i], "rew_j":float(rewards_j[i]), "rew_k":float(rewards_k[i])}
+            td = {"uid":float(inps['ids'][i]), "rew_j":float(rewards_j[i]), "rew_k":float(rewards_k[i])}
             savef.write(json.dumps(td)+"\n")
         savef.close()
 
@@ -460,6 +463,7 @@ class TokenFactoredRewardTrainer(Trainer):
 accuracy = evaluate.load("accuracy")
 
 def compute_metrics(eval_pred):
+    print("using this eval")
     predictions, _ = eval_pred
     with open('outputs/evalpickles/tmpmetric.pickle', 'wb') as file:
         pickle.dump(eval_pred, file)

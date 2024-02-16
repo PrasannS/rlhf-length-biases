@@ -120,18 +120,24 @@ def load_dpo_data(
     elif dataset == 'rlcd':
         train_data, eval_data = load_rlcd()
         pfunct = adjust_apf
+        
     else: 
         train_data, eval_data = load_manual(dataset, "", testdir=eval_dataset)
         pfunct = adjust_apf
         
+    if 'distil' in dataset:
+        print("NOTE we're doing distillation, use responses directly")
+        pfunct = onlyans
+        
     # adjust the prompt style as needed
-    if "default" not in script_args.promptstyle: 
-        pfuncts = {'onlyans': onlyans, 'dircat':simplecat, "ans":ans}
-        pfunct = pfuncts[script_args.promptstyle]
+    # if "default" not in script_args.promptstyle: 
+    #     pfuncts = {'onlyans': onlyans, 'dircat':simplecat, "ans":ans}
+    #     pfunct = pfuncts[script_args.promptstyle]
     
+    # TODO some conflicting things here
     if "tulu" in script_args.model_name_or_path:
         pfunct = tulu_pf
-        
+
     # TODO add in a sanity check
 
     original_columns = train_data.column_names

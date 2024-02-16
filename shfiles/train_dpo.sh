@@ -35,16 +35,55 @@
 #     --learning_rate=5e-5 \
 #     --promptstyle="onlyans"
 
-export CUDA_VISIBLE_DEVICES=7
-accelerate launch --config_file=scripts/default_single.yaml --main_process_port=29522 \
-    scripts/train_dpo.py \
-    --model_name_or_path="facebook/opt-125m" --output_dir="dpo/optdistillcontrastdpo" \
-    --dataset="data/contrastdistillprefs" \
-    --per_device_train_batch_size=8 \
-    --gradient_accumulation_steps=8 \
-    --epochs=3
+
+run_script() {
+
+    accelerate launch --config_file=scripts/default_single.yaml --main_process_port=${5} \
+        scripts/train_dpo.py \
+        --model_name_or_path="$BASEMODEL" --output_dir="checkpoints/${1}/${2}_${4}_dpo/" \
+        --dataset="data/${1}/${2}" \
+        --per_device_train_batch_size=8 \
+        --gradient_accumulation_steps=4 \
+        --per_device_eval_batch_size=8 \
+        --epochs=3 \
+        --evaldata="data/${1}/${3}" \
+        --learning_rate=3e-5
+
+}
+# export CUDA_VISIBLE_DEVICES=0
+# BASEMODEL="models/bagofwords/50rmppo_s100_sft"
+# # run_script "contrastivedistill" "contdfixed" "heldoutprefs" 29522
+# run_script "bagofwords" "bowmax2" "bowmax2" "s100sft" 29522
+export CUDA_VISIBLE_DEVICES=1
+BASEMODEL="models/bagofwords/50rmppo_s200_sft"
+run_script "bagofwords" "bowmax2" "bowmax2" "s200sft" 29523
 
 
+# run_script "contrastivedistill" "samp60k" "heldoutprefs" 29522
+# run_script "contrastivedistill" "truncdata60k" "heldoutprefs" 12349
+
+
+# export CUDA_VISIBLE_DEVICES=7
+# accelerate launch --config_file=scripts/default_single.yaml --main_process_port=29522 \
+#     scripts/train_dpo.py \
+#     --model_name_or_path="facebook/opt-125m" --output_dir="checkpoints/reversebow/50kdponpen/" \
+#     --dataset="/u/prasanns/research/rlhf-length-biases/data/revbow/revbow50knopen" \
+#     --per_device_train_batch_size=8 \
+#     --gradient_accumulation_steps=4 \
+#     --epochs=3 \
+#     --evaldata="/u/prasanns/research/rlhf-length-biases/data/revbow/revbowtest" \
+#     --learning_rate=3e-5
+
+# export CUDA_VISIBLE_DEVICES=6
+# accelerate launch --config_file=scripts/default_single.yaml --main_process_port=29522 \
+#     scripts/train_dpo.py \
+#     --model_name_or_path="facebook/opt-125m" --output_dir="checkpoints/reversebow/truncdponpen/" \
+#     --dataset="/u/prasanns/research/rlhf-length-biases/data/revbow/revbowtruncnopen" \
+#     --per_device_train_batch_size=8 \
+#     --gradient_accumulation_steps=4 \
+#     --epochs=3 \
+#     --evaldata="/u/prasanns/research/rlhf-length-biases/data/revbow/revbowtest" \
+#     --learning_rate=3e-5
 
 # export CUDA_VISIBLE_DEVICES=0,1,2,3
 # accelerate launch --multi_gpu --config_file=scripts/default_dpomulti.yaml --main_process_port=29524 \

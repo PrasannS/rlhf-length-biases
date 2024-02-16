@@ -24,9 +24,29 @@ from rlhfutils.data import (
     tokenize_dset,
     augment_data,
     load_harmless,
-    load_manual,
-    tmpdata
+    load_manual
 )
+
+from transformers import TrainerCallback
+
+class SaveBestModelCallback(TrainerCallback):
+    def __init__(self, output_dir):
+        super().__init__()
+        self.best_accuracy = 0.0
+        self.save_path = f"{output_dir}/best_checkpoint/"
+
+    def on_evaluate(self, args, state, control, metrics=None, **kwargs):
+        print("we're in here now")
+        # Check if the current evaluation's accuracy is higher than what we've seen before
+        current_accuracy = metrics.get("eval_accuracy", 0.0)
+        if current_accuracy > self.best_accuracy:
+            self.best_accuracy = current_accuracy
+            # Save the model to the specified directory
+            model.save_pretrained(self.save_path)
+            tokenizer.save_pretrained(self.save_path)  # Save the tokenizer as well if needed
+            print(f"New best model with accuracy {current_accuracy} saved to {self.save_path}")
+
+
 #from accelerate import Accelerator
 import pandas as pd
 from datasets import concatenate_datasets
@@ -131,6 +151,11 @@ if script_args.eval_first_step:
                 control.should_evaluate = True
 
     trainer.add_callback(EvaluateFirstStepCallback())
+    
+save_best_model_callback = SaveBestModelCallback(script_args.output_dir)
+
+# Add the callback to the trainer
+trainer.add_callback(save_best_model_callback)
 
 trainer.train(script_args.resume_from_checkpoint)
 
