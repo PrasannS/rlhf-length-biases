@@ -18,6 +18,7 @@ class ScriptArguments:
     tokenizer_name: Optional[str] = field(default=None, metadata={"help": "the tokenizer name"})
     dataset_name: Optional[str] = field(default="ultra", metadata={"help": "the dataset name"})
     trainable: Optional[bool] = field(default=False, metadata={"help": "perform on-the-fly RM updates?"})
+    noupdates: Optional[bool] = field(default=False, metadata={"help": "within trainable code, can disable gradient updates"})
     diffunct: Optional[str] = field(default="no", metadata={"help": "do updates w.r.t only stuff within batch?"})
     tracking: Optional[bool] = field(default=False, metadata={"help": "keep track of stuff, do active learning thing"})
     trainheur: Optional[bool] = field(default=False, metadata={"help": "keep track of stuff, do active learning thing"})
@@ -25,7 +26,7 @@ class ScriptArguments:
     max_length: Optional[int] = field(default=50, metadata={"help": "maximum length for generation"})
     batch_size: Optional[int] = field(default=32, metadata={"help": "the batch size"})
     save_freq: Optional[int] = field(default=None, metadata={"help": "n steps to save the model"})
-    output_dir: Optional[str] = field(default="checkpoints/debugging", metadata={"help": "n steps to save the model"})
+    output_dir: Optional[str] = field(default=None, metadata={"help": "n steps to save the model"})
     logfile: Optional[str] = field(default="outputs/dynarmlogs/debug.jsonl", metadata={"help": "n steps to save the model"})
     seed: Optional[int] = field(default=1, metadata={"help": "the seed"})
     len_only: Optional[float] = field(
@@ -35,3 +36,4 @@ class ScriptArguments:
     relabel_ratio: Optional[float] = field(default=0, metadata={"help": "what ratio (different criterion) of new gold outputs to collect"})
     relab_criteria: Optional[str] = field(default="conf", metadata={"help": "what criteria [conf, random] to use for relabeling set"})
     port: Optional[int] = field(default=5000, metadata={"help": "the port"})
+    stopupdates: Optional[int] = field(default=100000, metadata={"help": "how many gradient updates with gold relabels after we stop performing updates"})

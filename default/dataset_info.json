@@ -1,0 +1,64 @@
+{
+  "citation": "",
+  "description": "",
+  "features": {
+    "question": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "source": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "modj": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "modk": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "tokj": {
+      "dtype": "int64",
+      "_type": "Value"
+    },
+    "tok": {
+      "dtype": "int64",
+      "_type": "Value"
+    },
+    "response_j": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "response_k": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "magnitude": {
+      "dtype": "float64",
+      "_type": "Value"
+    },
+    "__index_level_0__": {
+      "dtype": "int64",
+      "_type": "Value"
+    },
+    "score_j": {
+      "dtype": "float64",
+      "_type": "Value"
+    },
+    "score_k": {
+      "dtype": "float64",
+      "_type": "Value"
+    },
+    "newsco_j": {
+      "dtype": "float64",
+      "_type": "Value"
+    },
+    "newsco_k": {
+      "dtype": "float64",
+      "_type": "Value"
+    }
+  },
+  "homepage": "",
+  "license": ""
+}

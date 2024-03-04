@@ -19,7 +19,8 @@ from transformers import (
     TrainerCallback,
     TrainingArguments,
     LlamaPreTrainedModel,
-    LlamaModel
+    LlamaModel, 
+    AutoConfig
 )
 import pickle
 from transformers.modeling_outputs import TokenClassifierOutput
@@ -81,11 +82,27 @@ class ScriptArguments:
             "help": "Whether to use the token prior RM setup instead"
         },
     )
+    nolora: Optional[bool] = field(
+        default=False,
+        metadata={
+            "help": "Whether to use lora in training or not"
+        },
+    )
+    random_reinit: Optional[bool] = field(
+        default=False,
+        metadata={
+            "help": "Whether to randomly instantiate weights from scratch"
+        },
+    )
     num_train_epochs: Optional[int] = field(
         default=4,
         metadata={"help": "The number of training epochs for the reward model."},
     )
     eval_steps: Optional[int] = field(
+        default=100,
+        metadata={"help": "The number of training epochs for the reward model."},
+    )
+    save_steps: Optional[int] = field(
         default=100,
         metadata={"help": "The number of training epochs for the reward model."},
     )
@@ -142,6 +159,10 @@ class ScriptArguments:
         default=None,
         metadata={"help": "if we want to do variance-maxing updates"},
     )
+    losstype: Optional[str] = field(
+        default="normal",
+        metadata={"help": "whether we're using [normal, mag, prefoverpref]"},
+    )
     # TO add preference over preference loss, make sure to have prefoverpref in output_dir name
     # pref_o_pref: Optional[int] = field(default=0) # use preference over preference loss
     
@@ -151,9 +172,9 @@ def get_trainargs(script_args):
 
     rname = output_name.split("/")
     try:
-        rname = rname[-1] if output_name[-1]!='/' else rname[-2]
+        rname = rname[-1] if output_name[-1]!="" else rname[-2]
     except:
-        rmname = "nothing"
+        rname = "nothing"
     return TrainingArguments(
         output_dir=output_name,
         learning_rate=script_args.learning_rate,
@@ -164,7 +185,7 @@ def get_trainargs(script_args):
         evaluation_strategy="steps",
         eval_steps=script_args.eval_steps,
         save_strategy="steps",
-        save_steps=script_args.eval_steps,
+        save_steps=script_args.save_steps,
         gradient_accumulation_steps=script_args.gradient_accumulation_steps,
         gradient_checkpointing=script_args.gradient_checkpointing,
         gradient_checkpointing_kwargs={"use_reentrant": False},
@@ -182,6 +203,13 @@ def get_trainargs(script_args):
         
     )
     
+def re_initialize_weights(model):
+    for module in model.modules():
+        if hasattr(module, 'weight') and module.weight is not None:
+            torch.nn.init.xavier_uniform_(module.weight)
+        if hasattr(module, 'bias') and module.bias is not None:
+            module.bias.data.fill_(0.01)
+    
 def load_rmodel_standard(script_args):
     # Load the value-head model and tokenizer.
     tokenizer_name = script_args.tokenizer_name if script_args.tokenizer_name is not None else script_args.model_name
@@ -191,23 +219,40 @@ def load_rmodel_standard(script_args):
     peft_config = LoraConfig(
         task_type=TaskType.TOKEN_CLS if script_args.tokenbased else TaskType.SEQ_CLS,
         inference_mode=False,
-        r=8,
+        r=32,
         lora_alpha=32,
         lora_dropout=0.1,
     )
     modtype =  AutoModelForTokenClassification if script_args.tokenbased else AutoModelForSequenceClassification
-    if "70b" in script_args.model_name: 
-        # maybe see what happens with this thing in 8bit? 
-        model = modtype.from_pretrained(
-            script_args.model_name, num_labels=1, torch_dtype=torch.bfloat16, load_in_4bit=True#, device_map='auto'
-        )
-        model.config.pretraining_tp = 1 
+    if script_args.random_reinit:
+        print("REINITIALIZING WEIGHTS FROM SCRATCH")
+        # re_initialize_weights(model)
+        conf = AutoConfig.from_pretrained(script_args.model_name)
+        conf.num_labels=1
+        conf.torch_dtype=torch.bfloat16
+        model = modtype.from_config(conf)
     else:
-        model = modtype.from_pretrained(
-            script_args.model_name, num_labels=1, torch_dtype=torch.bfloat16, attn_implementation="flash_attention_2"# device_map="auto"
-        )
-    model = get_peft_model(model, peft_config)
-    model.print_trainable_parameters()
+        if "70b" in script_args.model_name: 
+            # maybe see what happens with this thing in 8bit? 
+            model = modtype.from_pretrained(
+                script_args.model_name, num_labels=1, torch_dtype=torch.bfloat16, load_in_4bit=True#, device_map='auto'
+            )
+            model.config.pretraining_tp = 1 
+        else:
+            print("NO FLASH ATTENTION")
+            model = modtype.from_pretrained(
+                script_args.model_name, num_labels=1, torch_dtype=torch.bfloat16, # attn_implementation="flash_attention_2"# device_map="auto"
+            )
+        
+    
+    
+    if script_args.nolora==False:
+        model = get_peft_model(model, peft_config)
+        model.print_trainable_parameters()
+        print("using lora")
+    else:
+        print("Not using LORA! ")
+    
 
     # Need to do this for gpt2, because it doesn't have an official pad token.
     tokenizer.pad_token = tokenizer.eos_token
@@ -346,7 +391,7 @@ class RewardTrainer(Trainer):
         
         mg = torch.zeros_like(rewards_j)
         # need to use mag key to actually use magnitude, TODO can just make this an arg
-        if "mag" in inputs.keys() and "mag" in self.args.output_dir:
+        if "mag" in inputs.keys() and ((self.script_args.losstype=='mag') or (self.script_args.losstype=='prefoverpref')):
             # note that the shape should be the same? 
             assert mg.shape==inputs['mag'].unsqueeze(-1).shape
             mg = inputs["mag"].unsqueeze(-1)
@@ -356,18 +401,19 @@ class RewardTrainer(Trainer):
         # NOTE adding in magnitude based loss
         loss = -nn.functional.logsigmoid(rdiff - mg).mean()
         # do preference over preference loss too
-        if "prefoverpref" in self.args.output_dir:
+        if self.script_args.losstype=='prefoverpref':
             assert mg.shape[1]==1
             assert rdiff.shape[1]==1
+            # go through possible index pairs
             for i in range(0, len(rewards_j)-1):
                 for j in range(i+1, len(rewards_j)):
                     if i==j:
                         continue
                     # more loss for pref over pref
-                    if mg[i][0]>[j][0]:
-                        loss = loss + -nn.functional.logsigmoid(rdiff[i][0] - rdiff[j][0] - (mg[i][0]-mg[j][0])).mean()
+                    if mg[i][0]>mg[j][0]:
+                        loss = loss + -nn.functional.logsigmoid((rdiff[i][0] - rdiff[j][0]) - (mg[i][0]-mg[j][0])).mean()
                     elif mg[j][0]>mg[i][0]:
-                        loss = loss + -nn.functional.logsigmoid(rdiff[j][0] - rdiff[i][0] - (mg[j][0]-mg[i][0])).mean()
+                        loss = loss + -nn.functional.logsigmoid((rdiff[j][0] - rdiff[i][0]) - (mg[j][0]-mg[i][0])).mean()
         
         if return_outputs:
             return loss, {"rewards_j": rewards_j, "rewards_k": rewards_k}

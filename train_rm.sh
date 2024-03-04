@@ -13,35 +13,101 @@ export CUDA_VISIBLE_DEVICES=4,5
 #         --gradient_accumulation_steps=1 \
 #         --eval_steps=250 \
 #         --learning_rate=5e-5
-export CUDA_VISIBLE_DEVICES=6,7
-BASEMODEL="facebook/opt-125m"
 
+BSIZE=32
+LTYPE="normal"
+NOLORA=True
+REINIT=True
 run_script() {
-
+    echo $LR
+    echo $BASEMODEL
     torchrun --nnodes 1  --nproc_per_node 2 --master_port=${4} scripts/train_rm.py \
         --model_name=$BASEMODEL"" \
-        --output_dir=checkpoints/${1}/${2}_rm/ \
+        --output_dir=checkpoints/${1}/${2}_${5}_rm/ \
         --dataset="data/${1}/${2}" \
         --rand_ratio=0 \
         --evaldata="data/${1}/${3}" \
         --balance_len=0 \
-        --num_train_epochs=1 \
-        --per_device_train_batch_size=32 \
-        --per_device_eval_batch_size=32 \
+        --num_train_epochs=2 \
+        --per_device_train_batch_size=$BSIZE \
+        --per_device_eval_batch_size=8 \
         --gradient_accumulation_steps=1 \
-        --eval_steps=250 \
-        --learning_rate=1e-4
+        --eval_steps=100 \
+        --save_steps=1000 \
+        --learning_rate=$LR \
+        --losstype=$LTYPE \
+        --nolora=$NOLORA \
+        --random_reinit=$REINIT
 
     python scripts/merge_peft_adapter.py \
-        --adapter_model_name="checkpoints/${1}/${2}_rm/best_checkpoint" \
+        --adapter_model_name="checkpoints/${1}/${2}_${5}_rm/best_checkpoint" \
         --base_model_name="$BASEMODEL" \
-        --output_name="models/rewards/${1}/${2}_rm"
+        --output_name="models/rewards/${1}/${2}_${5}_rm"
 }
 
-# BASEMODEL="facebook/opt-125m"
+# BASEMODEL="/u/prasanns/research/rlhf-length-biases/models/rewards/math/mathsft1300"
 # run_script "bagofwords" "bowprefseqlenprefs" "bowsynth100k" 12350
+BASEMODEL="facebook/opt-1.3b"
+# BASEMODEL="facebook/opt-125m"
+# BASEMODEL="facebook/opt-125m"
+# BASEMODEL="facebook/opt-350m"
 
-run_script "contrastivedistill" "contoptprefs" "contoptprefs" 12349
+# BASEMODEL="meta-llama/Llama-2-7b-hf"
+# export CUDA_VISIBLE_DEVICES=0,1
+# run_script "contrastivedistill" "contoptprefs" "contoptprefs" 12349 "1b"
+BSIZE=4
+LR=5e-5
+NOLORA=True
+export CUDA_VISIBLE_DEVICES=0,1
+run_script "math" "mathprefdata" "mathprefdata" 12321 "1brandinitnolorablr"
+
+# LR=1e-4
+# export CUDA_VISIBLE_DEVICES=2,3
+# run_script "math" "mathprefdata" "mathprefdata" 12352 "125v4"
+
+
+# BSIZE=4
+# export CUDA_VISIBLE_DEVICES=4,5
+# LR=7e-5
+# LTYPE="mag"
+# run_script "nouns" "dponounsynth" "dponounsynth" 12311 "1bnounrmnofa"
+# LTYPE="prefoverpref"
+# run_script "bagofwords" "nozero100k" "nozero100k" 12349 "125popnofa"
+
+# LTYPE="mag"
+# run_script "nouns" "dponounsynth" "dponounsynth" 12349 "125magnfa"
+# LTYPE="prefoverpref"
+# run_script "nouns" "dponounsynth" "dponounsynth" 12349 "125poverpnfa"
+
+LR=6e-5
+# LTYPE="mag"
+# run_script "math" "mathprefdata" "mathprefdata" 12349 "125magnfa"
+# LTYPE="prefoverpref"
+# run_script "math" "mathprefdata" "mathprefdata" 12349 "125prefoprefnfa"
+# run_script "math" "mathprefdata" "mathprefdata" 12348 "125mnfa"
+# BASEMODEL="facebook/opt-1.3b"
+# BSIZE=4
+# run_script "math" "mathprefdata" "mathprefdata" 12348 "1bmnfa"
+
+# export CUDA_VISIBLE_DEVICES=4,5
+# BASEMODEL="facebook/opt-1.3b"
+LR=3e-5
+# run_script "bagofwords" "nozero100k" "nozero100k" 12353 "350mag"
+# run_script "bagofwords" "nozero100k" "nozero100k" 12350 "350norm"
+# export CUDA_VISIBLE_DEVICES=4,5
+# run_script "math" "mathprefdata" "mathprefdata" 12350 "1bmag"
+# LTYPE="prefoverpref"
+# run_script "math" "mathprefdata" "mathprefdata" 12351 "125prefopref"
+
+# BSIZE=12
+
+# export CUDA_VISIBLE_DEVICES=6,7
+# run_script "nouns" "dponounsynth" "dponounsynth" 12352 "125mag"
+# LTYPE="prefoverpref"
+# run_script "nouns" "dponounsynth" "dponounsynth" 12352 "125poverp"
+
+# NOTE merge math with the right SFT model
+
 # run_script "contrastivedistill" "truncdata60k" "heldoutprefs" 12349
 
 

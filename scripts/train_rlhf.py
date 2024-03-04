@@ -77,7 +77,7 @@ else:
         # mdatatmp = ['response_k', 'response_j']
     # keep track of solution rows
     dataset = build_custom_promptdata(tokenizer, script_args.dataset_name, pftmp, mdatatmp)
-if "math" in script_args.reward_model_name and "function" in script_args.reward_model_name: 
+if ("math" in script_args.reward_model_name) and ("function" in script_args.reward_model_name): 
     print("beware, using math format")
     rmformat = anscat
 print(dataset[0])

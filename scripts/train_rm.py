@@ -46,7 +46,6 @@ class SaveBestModelCallback(TrainerCallback):
             tokenizer.save_pretrained(self.save_path)  # Save the tokenizer as well if needed
             print(f"New best model with accuracy {current_accuracy} saved to {self.save_path}")
 
-
 #from accelerate import Accelerator
 import pandas as pd
 from datasets import concatenate_datasets
@@ -129,7 +128,12 @@ print("model load process")
 # HACK just leave this hardcoded in as a shuffle operation, bring in DA separately
 train_dataset, eval_dataset = tokenize_dset(train_dataset, eval_dataset, script_args, tokenizer)
 
+
 print("new size of dataset", len(train_dataset))
+
+print("Ex from train: ", tokenizer.batch_decode(train_dataset[0]['input_ids_j']))
+
+print("Ex from test: ", tokenizer.batch_decode(eval_dataset[0]['input_ids_j']))
 
 #if Accelerator().local_process_index == 0:
 #    print(tokenizer.decode(train_dataset[0]['input_ids_j']))

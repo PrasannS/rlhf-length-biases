@@ -132,9 +132,24 @@ lora_config = LoraConfig(
             task_type="CAUSAL_LM",
         )
 
+def get_pipeline(rmname, device):
+    pipetok = AutoTokenizer.from_pretrained(rmname)
+    # HACK this used to be in if statement, note that RM tokenizer code always sets pad to eos, making things weird
+    # if pipetok.pad_token is None:
+    pipetok.pad_token_id = pipetok.eos_token_id
+    pipetok.pad_token = pipetok.eos_token
+    print(pipetok.pad_token)
+    reward_model = pipeline(
+        "sentiment-analysis",
+        model=rmname,
+        device_map={"": device},
+        model_kwargs={"torch_dtype": torch.bfloat16},
+        tokenizer=pipetok,
+        return_token_type_ids=False,
+    )
+    return pipetok, reward_model
 
-
-def load_models(script_args, loadms="rmppo"):
+def load_models(script_args, loadms="rmppo", dev=0):
     
     current_device = Accelerator().local_process_index
 
@@ -219,7 +234,7 @@ def load_models(script_args, loadms="rmppo"):
         )
         modtype =  AutoModelForSequenceClassification
         model = modtype.from_pretrained(
-            script_args.reward_model_name, num_labels=1, torch_dtype=torch.bfloat16, device_map=0 # device_map="auto"
+            script_args.reward_model_name, num_labels=1, torch_dtype=torch.bfloat16, device_map=dev # device_map="auto"
         )
         model = get_peft_model(model, peft_config)
         model.print_trainable_parameters()
@@ -231,19 +246,7 @@ def load_models(script_args, loadms="rmppo"):
         return tokenizer, model
     
     if "rm" in loadms:
-        pipetok = AutoTokenizer.from_pretrained(script_args.reward_model_name)
-        if pipetok.pad_token is None:
-            pipetok.pad_token_id = pipetok.eos_token_id
-            pipetok.pad_token = pipetok.eos_token
-        print(pipetok.pad_token)
-        reward_model = pipeline(
-            "sentiment-analysis",
-            model=script_args.reward_model_name,
-            device_map={"": current_device},
-            model_kwargs={"load_in_8bit": True},
-            tokenizer=pipetok,
-            return_token_type_ids=False,
-        )
+        ptok, reward_model = get_pipeline(script_args.reward_model_name, current_device)
     if loadms=="rm":
         return  tokenizer, reward_model
     model.gradient_checkpointing_disable()
@@ -354,7 +357,7 @@ def keep_strat(script_args, rewards, keep_inds):
     keeplen = int(len(rewards)/script_args.oversample)
     # this will get us a "maximum pair" to do DPO with, if we wanted random that would be equiv to oversample 1
     # preferred first then dispreferred
-    dpoplus = "dpoplus" in script_args.kl_penalty    
+    dpoplus = "dpoplus" in script_args.kl_penalty 
     # only keep output of each prompt that is the best or worst in terms of reward 
     if ('prompt_max' in script_args.rollout_strategy) or dpoplus:
         keep_inds = []
@@ -390,8 +393,12 @@ def keep_strat(script_args, rewards, keep_inds):
         # TODO will need to sanity check this since its weirder
         for k in keepvars: 
             keep_inds.extend(list(range(k*script_args.oversample, (k+1)*script_args.oversample)))
+
     # batch format (rollouts separated by minibatches, each minibatch has first half preferred, 2nd half disp)
     if dpoplus:
+        # This is a hack
+        if script_args.oversample==1:
+            keep_inds = keep_inds[:int(len(keep_inds)/2)]
         # set things up to handle minibatching correctly 
         new_inds = []
         midpoint = int(len(keep_inds)/2)
@@ -580,6 +587,12 @@ def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
             break
         
         print(batch.keys())
+        # get rid of shared context within individual things? 
+        if script_args.rollout_strategy=="random":
+            inds = list(range(len(batch['input_ids'])))
+            random.shuffle(inds)
+            batch['input_ids'] = [batch['input_ids'][i] for i in inds]
+            batch['query'] = [batch['query'][i] for i in inds]
 
         question_tensors = batch["input_ids"]
         
@@ -629,7 +642,8 @@ def train_loop(script_args, ppo_trainer, reward_model, tokenizer, qaform):
         # Get RM score, NOTE that the input formatting is reward model specific
         texts = [qaform(q, r) for q, r in zip(batch["query"], batch["response"])]
         if dpoplus:
-            assert batch['query'][0]==batch['query'][1]
+            if batch['query'][0]!=batch['query'][1]:
+                print("WARNING, PAIRS ARE NOT MATCHING, SOMETHING IS WRONG")
         # we need to use 2 reward sources simultaneously
         # NOTE this code may be buggy
         if "rewardratios" in sjson.keys():

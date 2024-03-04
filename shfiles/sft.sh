@@ -38,10 +38,9 @@ sftrun() {
         --per_device_eval_batch_size=16 \
         --warmup_steps=50 \
         --logging_steps=10
-    
 }
 
 export CUDA_VISIBLE_DEVICES=2
-sftrun "bagofwords" 'truncsftdata' "facebook/opt-125m"
+sftrun "bagofwords" 'truncsftdatav2' "facebook/opt-125m"
 
 # EleutherAI/gpt-neo-125m 

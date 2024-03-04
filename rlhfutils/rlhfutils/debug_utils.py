@@ -81,23 +81,29 @@ def load_all_hackdfs(base):
         
     return alldfs
     
+# TODO rehaul this code 
 def load_rm(name, device, quant=True, basemodel="nobase", doeval=False, tokenwise=False):
     tokdir = name if "nobase" in basemodel else basemodel
 
     tokenizer = AutoTokenizer.from_pretrained(tokdir)
-    tokenizer.pad_token_id = tokenizer.eos_token_id
     kwargs = {
         "return_all_scores": True,
         "function_to_apply": "none",
         "batch_size": 8,
         "truncation": True,
     }
+    print("here", basemodel, tokdir, name)
     # we want to load model in directly as an adapter
     if "nobase" not in basemodel:
         if tokenwise:
             model = AutoModelForTokenClassification.from_pretrained(
                 basemodel, num_labels=1, torch_dtype=torch.bfloat16
             )
+            if tokenizer.pad_token_id==None:
+                print("updating token stuff")
+                tokenizer.pad_token_id = tokenizer.eos_token_id
+                tokenizer.pad_token=tokenizer.eos_token
+                model.config.pad_token_id = model.config.eos_token_id
             # load in stuff based on adapter
             model = PeftModel.from_pretrained(model, name)
             if doeval:
@@ -109,8 +115,9 @@ def load_rm(name, device, quant=True, basemodel="nobase", doeval=False, tokenwis
             return tokenizer, model, None
         else:
             model = AutoModelForSequenceClassification.from_pretrained(
-                basemodel, num_labels=1, torch_dtype=torch.bfloat16
+                basemodel, num_labels=1, torch_dtype=torch.bfloat16, attn_implementation="flash_attention_2"
             )
+            
             # load in stuff based on adapter
             model = PeftModel.from_pretrained(model, name)
             if doeval:
@@ -123,6 +130,12 @@ def load_rm(name, device, quant=True, basemodel="nobase", doeval=False, tokenwis
                     tokenizer=tokenizer,
                     return_token_type_ids=False,
                 )
+                if 'llama' in basemodel or 'llama' in name:
+                    print("updating token stuff")
+                    tokenizer.pad_token_id = tokenizer.eos_token_id
+                    tokenizer.pad_token=tokenizer.eos_token
+                    model.config.pad_token_id = model.config.eos_token_id
+                    pipe.tokenizer.pad_token_id = model.config.eos_token_id
                 return tokenizer, sentiment_pipe, kwargs
             # NOTE pipeline not supported by peft
             return tokenizer, model, None
@@ -131,10 +144,20 @@ def load_rm(name, device, quant=True, basemodel="nobase", doeval=False, tokenwis
             "sentiment-analysis",
             model=name,
             device_map={"": device},
-            model_kwargs={"load_in_8bit": quant},
+            model_kwargs={"torch_dtype":torch.bfloat16, "attn_implementation":"flash_attention_2"},
             tokenizer=tokenizer,
             return_token_type_ids=False,
         )
+        print("PAD id", sentiment_pipe.tokenizer.pad_token_id, )
+        
+        if sentiment_pipe.tokenizer.pad_token_id==None or tokenizer.pad_token ==None:
+            print("updating token stuff")
+            tokenizer.pad_token_id = tokenizer.eos_token_id
+            tokenizer.pad_token=tokenizer.eos_token
+            sentiment_pipe.model.config.pad_token_id = sentiment_pipe.model.config.eos_token_id
+            #sentiment_pipe.model.config.pad_token = sentiment_pipe.model.config.eos_token
+            sentiment_pipe.tokenizer.pad_token_id = sentiment_pipe.tokenizer.eos_token_id
+            sentiment_pipe.tokenizer.pad_token = sentiment_pipe.tokenizer.eos_token
     
     return tokenizer, sentiment_pipe, kwargs
 

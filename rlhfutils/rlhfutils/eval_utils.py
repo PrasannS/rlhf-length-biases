@@ -6,7 +6,8 @@ from transformers import AutoTokenizer
 import re
 from datasets import load_dataset
 from statistics import mean
-from rlhfutils.rl_utils import scobow, get_synth_rewards
+from rlhfutils.rl_utils import get_synth_rewards
+from nltk import word_tokenize
 
 toker = AutoTokenizer.from_pretrained("meta-llama/Llama-2-7b-chat-hf")
 toker.pad_token_id = toker.eos_token_id
@@ -256,45 +257,82 @@ def tokenproc(inp, lim=True, function=None):
     else: 
         tokd = toker(inp).input_ids
     return toker.decode(tokd, skip_special_tokens=True)
-    
-def scobowdf(df, tproc=True):
-    uns = {}
-    means = []
+
+# def sconoundf(df, function="nouns"):
+#     means = []
+#     for resps in df['response']:
+#         # TODO this should be type check for whether it's a list instead
+#         if len(resps)==4 or len(resps)==6:
+#             means.append(get_synth_rewards([tokenproc(r, True, function) for r in resps], function) )
+#         else:
+#             means.append(get_synth_rewards([tokenproc(resps, True, function)], function) )
+#     print([mean(m) for m in means])
+#     print(mean([mean(m) for m in means]))
+#     return means
+
+# def scofile(fname, function, lim=True, logind=0):
+#     print("DONT USE THIS, REPLACE IT WITH THE RIGHT FUNCTION")
+#     idf = pd.read_json(fname, orient='records', lines=True)
+#     #print("len is ", len(idf))
+#     #print("example: ", idf['response'][logind])
+#     if "nouns" in function: 
+#         ms = sconoundf(idf)
+#     elif "reversebow" in function: 
+#         ms = sconoundf(idf, "reversebow")
+#     elif "contpos" in function: 
+#         ms = sconoundf(idf, "contpos")
+#     elif "reading" in function:
+#         ms = sconoundf(idf, "readinggrade")
+#     elif "tokdense" in function:
+#         ms = sconoundf(idf, "tokdense") 
+#     return ms
+
+def sconoundf(df, function, trunc=True):
+    rlen=0
+    allins = []
+    # process all inps to run this stuff in a single batch
     for resps in df['response']:
         if len(resps)==4:
-            means.append([scobow(tokenproc(r, tproc), False, uns) for r in resps])
+            rlen=4
+            allins.extend([tokenproc(r, trunc, function) for r in resps])
         else:
-            means.append([scobow(tokenproc(resps, tproc), False, uns)])
-    print([mean(m) for m in means])
-    print(mean([mean(m) for m in means]))
-    return means
-
-def sconoundf(df, function="nouns"):
+            rlen=1
+            allins.append(tokenproc(resps, trunc, function))
+            # means.append(mean(get_synth_rewards([tokenproc(resps, trunc, function)], function) ))
+    rewards = get_synth_rewards(allins, function)
     means = []
-    for resps in df['response']:
-        # TODO this should be type check for whether it's a list instead
-        if len(resps)==4 or len(resps)==6:
-            means.append(get_synth_rewards([tokenproc(r, True, function) for r in resps], function) )
-        else:
-            means.append(get_synth_rewards([tokenproc(resps, True, function)], function) )
-    print([mean(m) for m in means])
-    print(mean([mean(m) for m in means]))
-    return means
+    rets = []
+    for i in range(0, len(allins), rlen): 
+        means.append(mean(rewards[i:i+rlen]))
+        rets.append(rewards[i:i+rlen])
+    print(means)
+    print(mean(means))
+    return rets, mean(means)
 
-def scofile(fname, function, lim=True, logind=0):
+# TODO why are things separate for bow, nouns? TODO will this work for tulu-format outputs?
+def scofile(fname, gfunct, trunc=True, logind=0):
     idf = pd.read_json(fname, orient='records', lines=True)
-    #print("len is ", len(idf))
-    #print("example: ", idf['response'][logind])
-    if "nouns" in function: 
-        ms = sconoundf(idf)
-    elif "reversebow" in function: 
-        ms = sconoundf(idf, "reversebow")
-    elif "bagofwords" in function: 
-        ms = scobowdf(idf, lim)
-    elif "contpos" in function: 
-        ms = sconoundf(idf, "contpos")
-    elif "reading" in function:
-        ms = sconoundf(idf, "readinggrade")
-    elif "tokdense" in function:
-        ms = sconoundf(idf, "tokdense") 
-    return ms
+    glens = []
+    for i, row in idf.iterrows(): 
+        if len(row['response'])<8:
+            glens.append(len(word_tokenize(row['response'][0])) - len(word_tokenize(row['question'][0])))
+        else:
+            glens.append(len(word_tokenize(row['response'])) - len(word_tokenize(row['question'])))
+        
+    return sconoundf(idf, gfunct, trunc), glens
+
+def goldacc(indf):
+    gpairs = []
+    spairs = []
+    cnt = 0
+    tot=0
+    for ind, row in indf.iterrows():
+        for i in range(len(row['gold'])):
+            for j in range(len(row['gold'])):
+                if j<=i: 
+                    continue
+                if row['gold'][i]!=row['gold'][j]:
+                    tot+=1
+                    if (row['scores'][i]>row['scores'][j])==(row['gold'][i]>row['gold'][j]):
+                        cnt+=1
+    return cnt/tot

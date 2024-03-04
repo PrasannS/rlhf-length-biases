@@ -35,3 +35,5 @@ train_rm.sh
 .nfs00000000edd9e2ad00002cfd
 dpo/
 shfiles/.nfs00000000eddabd1f00005e53
+*apeval/
+*.nfs*

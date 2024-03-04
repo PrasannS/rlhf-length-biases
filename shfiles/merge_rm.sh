@@ -19,6 +19,16 @@
 #     --base_model_name="facebook/opt-125m" \
 #     --output_name="models/rewards/minibowrm"
 
+python scripts/merge_peft_adapter.py \
+    --adapter_model_name="/u/prasanns/research/rlhf-length-biases/checkpoints/bagofwords/nozero100k_tinysft_dpo/checkpoint-4000" \
+    --base_model_name="models/bagofwords/tinybow_sft" \
+    --output_name="models/bowdposfttiny"
+
+# python scripts/merge_peft_adapter.py \
+#     --adapter_model_name="/u/prasanns/research/rlhf-length-biases/checkpoints/bagofwords/nozero100k_1bnofa_rm/checkpoint-9000" \
+#     --base_model_name="facebook/opt-1.3b" \
+#     --output_name="models/rewards/bagofwords/1bnofarm"
+
 # python scripts/merge_peft_adapter.py \
 #     --adapter_model_name="/u/prasanns/research/rlhf-length-biases/checkpoints/80rmv2/_peft_last_checkpoint" \
 #     --base_model_name="facebook/opt-125m" \
@@ -41,15 +51,20 @@
 #     --output_name="models/rewards/revbow/revrmtrunc"
 
 # export CUDA_VISIBLE_DEVICES=7
-python scripts/merge_peft_adapter.py \
-    --adapter_model_name="checkpoints/bagofwords/dpoplusbow50rm/step_100" \
-    --base_model_name="facebook/opt-125m" \
-    --output_name="models/bagofwords/50rmppo_s100_sft"
+# python scripts/merge_peft_adapter.py \
+#     --adapter_model_name="checkpoints/bagofwords/dpoplusbow50rm/step_100" \
+#     --base_model_name="facebook/opt-125m" \
+#     --output_name="models/bagofwords/50rmppo_s100_sft"
 
-python scripts/merge_peft_adapter.py \
-    --adapter_model_name="checkpoints/bagofwords/dpoplusbow50rm/step_200" \
-    --base_model_name="facebook/opt-125m" \
-    --output_name="models/bagofwords/50rmppo_s200_sft"
+# python scripts/merge_peft_adapter.py \
+#     --adapter_model_name="checkpoints/bagofwords/dpoplusbow50rm/step_200" \
+#     --base_model_name="facebook/opt-125m" \
+#     --output_name="models/bagofwords/50rmppo_s200_sft"
+
+# python scripts/merge_peft_adapter.py \
+#     --adapter_model_name="/u/prasanns/research/rlhf-length-biases/checkpoints/bagofwords/bowreversedata_reversebow_dpo/checkpoint-7000" \
+#     --base_model_name="facebook/opt-125m" \
+#     --output_name="models/bagofwords/tinybow_sft"
 
 # export CUDA_VISIBLE_DEVICES=7
 # python scripts/merge_peft_adapter.py \

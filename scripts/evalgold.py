@@ -7,7 +7,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 import argparse
 import json
-from nltk import word_tokenize
+from rlhfutils.eval_utils import scofile
 
 toker = AutoTokenizer.from_pretrained("facebook/opt-125m")
 
@@ -31,40 +31,6 @@ def tokenproc(inp, lim=True, function=None):
     else: 
         tokd = toker(inp).input_ids
     return toker.decode(tokd, skip_special_tokens=True)
-
-def sconoundf(df, function, trunc=True):
-    rlen=0
-    allins = []
-    # process all inps to run this stuff in a single batch
-    for resps in df['response']:
-        if len(resps)==4:
-            rlen=4
-            allins.extend([tokenproc(r, trunc, function) for r in resps])
-        else:
-            rlen=1
-            allins.append(tokenproc(resps, trunc, function))
-            # means.append(mean(get_synth_rewards([tokenproc(resps, trunc, function)], function) ))
-    rewards = get_synth_rewards(allins, function)
-    means = []
-    rets = []
-    for i in range(0, len(allins), rlen): 
-        means.append(mean(rewards[i:i+rlen]))
-        rets.append(rewards[i:i+rlen])
-    print(means)
-    print(mean(means))
-    return rets, mean(means)
-
-# TODO why are things separate for bow, nouns? TODO will this work for tulu-format outputs?
-def scofile(fname, gfunct, trunc=True, logind=0):
-    idf = pd.read_json(fname, orient='records', lines=True)
-    glens = []
-    for i, row in idf.iterrows(): 
-        if len(row['response'])<8:
-            glens.append(len(word_tokenize(row['response'][0])) - len(word_tokenize(row['question'][0])))
-        else:
-            glens.append(len(word_tokenize(row['response'])) - len(word_tokenize(row['question'])))
-        
-    return sconoundf(idf, gfunct, trunc), glens
         
 if __name__=="__main__": 
     

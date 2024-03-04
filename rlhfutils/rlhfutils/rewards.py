@@ -57,10 +57,12 @@ def allmathpreds(text_list, scale=5, log=False):
     if log:
         print(text_list)
         print(scale)
+    
     return [scale*mean(calculate_math_rewards(t)[1:]) for t in text_list]
 
 # given a string with predictions (can alternatively pass in golds), get back a step-by-step reward
 def calculate_math_rewards(predictions, golds=None, log=False):
+    predictions = predictions.replace("Question:", "").replace("\n\nAnswer:", "")
     try:
         if type(predictions)==str:
             predictions = predictions.split(" = ")

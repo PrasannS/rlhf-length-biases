@@ -23,21 +23,127 @@ run_script() {
 }
 
 export CUDA_VISIBLE_DEVICES=6
-BASEMODEL="facebook/opt-125m"
 DSET="data/ultra/ultrafeeddiff"
-TOP=500
-BSIZE=4
-# run_script "bagofwords" "dpoplusbow50rm" "/step_" 100
-
-export CUDA_VISIBLE_DEVICES=7
-# run_script "bagofwords" "dpoplusbow50rm" "/step_" 200
-
 TOP=200
 BSIZE=1
-DSET="data/contrastivedistill/wikionpolicyprompts"
-run_script "contrastivedistill" "contoptprefs_ppo_v2" "/step_" 50
-run_script "contrastivedistill" "contoptprefs_ppo_v2" "/step_" 100
-run_script "contrastivedistill" "contoptprefs_ppo_v2" "/step_" 200
+# run_script "bagofwords" "dpoplusbow50rm" "/step_" 100
+
+
+#BASEMODEL="models/bagofwords/smalldist_sft"
+BASEMODEL="facebook/opt-125m"
+
+# /u/prasanns/research/rlhf-length-biases/checkpoints/bagofwords/truncsftdatav2_sft/checkpoint-12400
+# /u/prasanns/research/rlhf-length-biases/checkpoints/bagofwords/bowreversedata_reversebow_dpo/checkpoint-7000
+# BASEMODEL="models/bagofwords/50rmppo_s100_sft"
+# run_script "bagofwords" "bowmax2_s100sft_dpo" "/checkpoint-" "1000"
+# run_script "bagofwords" "bowmax2_s100sft_dpo" "/checkpoint-" "2000"
+
+# export CUDA_VISIBLE_DEVICES=0
+
+# run_script "nouns" "dponounsynth_betabig_dpo" "/checkpoint-" "200"
+# run_script "nouns" "dponounsynth_betabig_dpo" "/checkpoint-" "500"
+# run_script "nouns" "dponounsynth_betabig_dpo" "/checkpoint-" "1000"
+# run_script "nouns" "dponounsynth_betabig_dpo" "/checkpoint-" "2000"
+# run_script "nouns" "dponounsynth_betabig_dpo" "/checkpoint-" "4500"
+
+# export CUDA_VISIBLE_DEVICES=1
+# run_script "nouns" "dponounsynth_betapt01_dpo" "/checkpoint-" "200"
+# run_script "nouns" "dponounsynth_betapt01_dpo" "/checkpoint-" "500"
+# run_script "nouns" "dponounsynth_betapt01_dpo" "/checkpoint-" "1000"
+# run_script "nouns" "dponounsynth_betapt01_dpo" "/checkpoint-" "2000"
+# run_script "nouns" "dponounsynth_betapt01_dpo" "/checkpoint-" "4500"
+
+# export CUDA_VISIBLE_DEVICES=2
+# run_script "nouns" "dponounsynth_betatiny_dpo" "/checkpoint-" "200"
+# run_script "nouns" "dponounsynth_betatiny_dpo" "/checkpoint-" "500"
+# run_script "nouns" "dponounsynth_betatiny_dpo" "/checkpoint-" "1000"
+# run_script "nouns" "dponounsynth_betatiny_dpo" "/checkpoint-" "2000"
+# run_script "nouns" "dponounsynth_betatiny_dpo" "/checkpoint-" "4500"
+# run_script "bagofwords" "nozero100k_beta1_dpo" "/checkpoint-" "9000"
+
+# BASEMODEL="facebook/opt-125m"
+# run_script "nouns" "dponounsynth_betapt01nofa_dpo" "/checkpoint-" "1000"
+# run_script "nouns" "dponounsynth_betapt01nofa_dpo" "/checkpoint-" "2000"
+
+# run_script "nouns" "dponounsynth_betapt01nofa_dpo" "/checkpoint-" "500"
+# run_script "nouns" "dponounsynth_betapt01_dpo" "/checkpoint-" "500"
+
+# BASEMODEL="models/bagofwords/50rmppo_s200_sft"
+# run_script "bagofwords" "nozero100k_s200sft_dpo" "/checkpoint-" "1000"
+# run_script "bagofwords" "nozero100k_s200sft_dpo" "/checkpoint-" "2000"
+
+# run_script "bagofwords" "bowmax2_normsft_dpo" "/checkpoint-" "4000"
+
+
+# export CUDA_VISIBLE_DEVICES=6
+# BASEMODEL="models/bagofwords/50rmppo_s200_sft"
+# run_script "bagofwords" "bowmax2_s200sft_dpo" "/checkpoint-" "1000"
+# run_script "bagofwords" "bowmax2_s200sft_dpo" "/checkpoint-" "2000"
+# run_script "bagofwords" "bowmax2_s200sft_dpo" "/checkpoint-" "4000"
+
+# export CUDA_VISIBLE_DEVICES=5
+# BASEMODEL="models/bagofwords/smalldist_sft"
+# run_script "bagofwords" "bowmax2_smallsft_dpo" "/checkpoint-" "1000"
+# run_script "bagofwords" "bowmax2_smallsft_dpo" "/checkpoint-" "2000"
+# run_script "bagofwords" "bowmax2_smallsft_dpo" "/checkpoint-" "4000"
+
+export CUDA_VISIBLE_DEVICES=4
+BASEMODEL="models/bagofwords/tinybow_sft"
+run_script "bagofwords" "nozero100k_tinysft_dpo" "/checkpoint-" "4000"
+run_script "bagofwords" "nozero100k_tinysft_dpo" "/checkpoint-" "9000"
+
+# export CUDA_VISIBLE_DEVICES=3
+# BASEMODEL="models/bagofwords/smalldist_sft"
+# run_script "bagofwords" "nozero100k_smallsft_dpo" "/checkpoint-" "1000"
+# run_script "bagofwords" "nozero100k_smallsft_dpo" "/checkpoint-" "2000"
+# run_script "bagofwords" "nozero100k_smallsft_dpo" "/checkpoint-" "4000"
+
+# export CUDA_VISIBLE_DEVICES=0
+# BASEMODEL="models/rewards/math/mathsft1300"
+# MLEN=100
+# DSET="/u/prasanns/research/rlhf-length-biases/data/math/mathppoinps"
+# run_script "math" "mathprefdata_betabig_dpo" "/checkpoint-" "100"
+# run_script "math" "mathprefdata_betabig_dpo" "/checkpoint-" "200"
+# run_script "math" "mathprefdata_betabig_dpo" "/checkpoint-" "400"
+# run_script "math" "mathprefdata_betabig_dpo" "/checkpoint-" "1000"
+# run_script "math" "mathprefdata_betabig_dpo" "/checkpoint-" "2000"
+
+# export CUDA_VISIBLE_DEVICES=2
+# BASEMODEL="models/rewards/math/mathsft1300"
+# MLEN=100
+# DSET="/u/prasanns/research/rlhf-length-biases/data/math/mathppoinps"
+# run_script "math" "mathprefdata_betatiny_dpo" "/checkpoint-" "100"
+# run_script "math" "mathprefdata_betatiny_dpo" "/checkpoint-" "200"
+# run_script "math" "mathprefdata_betatiny_dpo" "/checkpoint-" "400"
+# run_script "math" "mathprefdata_betatiny_dpo" "/checkpoint-" "1000"
+# run_script "math" "mathprefdata_betatiny_dpo" "/checkpoint-" "2000"
+
+# export CUDA_VISIBLE_DEVICES=1
+# BASEMODEL="models/rewards/math/mathsft1300"
+# MLEN=100
+# DSET="/u/prasanns/research/rlhf-length-biases/data/math/mathppoinps"
+# run_script "math" "mathprefdata_betapt01_dpo" "/checkpoint-" "100"
+# run_script "math" "mathprefdata_betapt01_dpo" "/checkpoint-" "200"
+# run_script "math" "mathprefdata_betapt01_dpo" "/checkpoint-" "400"
+# run_script "math" "mathprefdata_betapt01_dpo" "/checkpoint-" "1000"
+# run_script "math" "mathprefdata_betapt01_dpo" "/checkpoint-" "2000"
+
+
+
+# export CUDA_VISIBLE_DEVICES=2
+# BASEMODEL="models/bagofwords/tinybow_sft"
+# run_script "bagofwords" "nozero100k_tinysft_dpo" "/checkpoint-" "1000"
+# run_script "bagofwords" "nozero100k_tinysft_dpo" "/checkpoint-" "2000"
+# run_script "bagofwords" "nozero100k_tinysft_dpo" "/checkpoint-" "4000"
+
+# run_script "bagofwords" "dpoplusbow50rm" "/step_" 200
+
+# TOP=200
+# BSIZE=1
+# DSET="data/contrastivedistill/wikionpolicyprompts"
+# run_script "contrastivedistill" "contoptprefs_ppo_v2" "/step_" 50
+# run_script "contrastivedistill" "contoptprefs_ppo_v2" "/step_" 100
+# run_script "contrastivedistill" "contoptprefs_ppo_v2" "/step_" 200
 
 
 

@@ -24,8 +24,7 @@ from rlhfutils.data import load_ultra, load_wgpt, webgpt_template
 import torch
 import os
 import time
-import pickle
-from statistics import mean, stdev
+from statistics import mean
 from tqdm import tqdm
 from peft import PeftModel
 

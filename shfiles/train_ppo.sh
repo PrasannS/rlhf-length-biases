@@ -1,32 +1,88 @@
-SEED=0
-KEEPLONG=0
-MLEN=50
-BASEMODEL="facebook/opt-125m"
+contains() {
+  case "$1" in
+    (*"$2"*) true;;
+    (*) false;;
+  esac
+}
+
+STEPS=900
 dpoplus_script() {
     # NOTE that we need to feed things in a specific format    
 
+    if contains $3 "http"; then 
+        echo "using http reward"
+        REWARD=$3
+    else
+        REWARD="models/rewards/${1}/${3}_rm"
+    fi
+
+
+    if contains $5 "normppo"; then 
+        echo "using normal PPO objective"
+        KLP="kl"
+        OSAMP=4
+    else
+        echo "using DPO plus objective"
+        KLP="dpoplus"
+        OSAMP=2
+    fi
+    
     accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=${4} \
         --num_machines 1  --num_processes 2 \
         scripts/train_rlhf.py --log_with=wandb \
         --model_name=$BASEMODEL \
-        --dataset_name="data/${2}" \
-        --reward_model_name=models/rewards/${1}/${3}_rm \
+        --dataset_name="${2}" \
+        --reward_model_name=$REWARD \
         --adafactor=False \
         --save_freq=25 \
         --max_length=$MLEN --batch_size=32 \
         --mini_batch_size=32 \
         --gradient_accumulation_steps=1 \
-        --ppo_epochs=1 --seed=$SEED --learning_rate=5e-5 \
-        --early_stopping=False --output_dir=checkpoints/${1}/${3}_ppo_${5} \
-        --init_kl_coef=0.04 --steps=1000 \
-        --oversample=2 \
+        --ppo_epochs=1 --seed=$SEED --learning_rate=1e-4 \
+        --early_stopping=False --output_dir=checkpoints/${1}/ppo_${5} \
+        --init_kl_coef=0.04 --steps=$STEPS \
+        --oversample=$OSAMP \
         --temperature=1 \
         --rollout_strategy=normal \
         --gen_bsize=32 \
-        --kl_penalty="dpoplus" --keep_long=$KEEPLONG
+        --kl_penalty="$KLP" --keep_long=$KEEPLONG \
+        --save_rollouts=True
+    
+    # TODO undo rollout saving whenever we want to do that
 }
 
-KEEPLONG=10
+# TODO more freedom in how dataset is igven
+
+SEED=0
+KEEPLONG=0
+MLEN=50
+BASEMODEL="facebook/opt-125m"
+KEEPLONG=0
+
+export CUDA_VISIBLE_DEVICES=1,2
+SEED=0
+STEPS=2000
+# BASEMODEL="models/bowdposft"
+# dpoplus_script "bagofwords" "ultra" "http://127.0.0.1:5001/train" 29515 "dporeprodactive_v3"
+dpoplus_script "bagofwords" "ultra" "http://127.0.0.1:5000/train" 29521 "dporeprodactive_vnbase3"
+
+
+# export CUDA_VISIBLE_DEVICES=0,1
+# SEED=0
+# dpoplus_script "nouns" "ultra/ultrafeeddiff" "dponounsynth_125poverpnfa" 29513 "popnouns"
+
+# export CUDA_VISIBLE_DEVICES=0,1
+# SEED=0
+# dpoplus_script "bagofwords" "ultra/ultrafeeddiff" "nozero100k_125magnofa" 29513 "popnouns"
+
+# export CUDA_VISIBLE_DEVICES=0,1
+# SEED=0
+# dpoplus_script "nouns" "ultra/ultrafeeddiff" "dponounsynth_125magnfa" 29513 "magnouns"
+
+# export CUDA_VISIBLE_DEVICES=0,1
+# SEED=0
+# dpoplus_script "bagofwords" "ultra/ultrafeeddiff" "nozero100k_125popnofa" 29513 "popbow"
+
 # SEED=2
 # export CUDA_VISIBLE_DEVICES=0,1
 # dpoplus_script "reversebow" "ultra/ultrafeeddiff" "functionreversebow" 29511 "seed2"
@@ -35,9 +91,44 @@ KEEPLONG=10
 # export CUDA_VISIBLE_DEVICES=2,3
 # dpoplus_script "reversebow" "ultra/ultrafeeddiff" "functionreversebow" 29512 "seed3"
 
-SEED=0
-export CUDA_VISIBLE_DEVICES=4,5
-dpoplus_script "contrastivedistill" "contrastivedistill/wikionpolicyprompts" "contoptprefs" 29513 "v2"
+# export CUDA_VISIBLE_DEVICES=0,1
+# SEED=10
+# dpoplus_script "contrastivedistill" "contrastivedistill/wikionpolicyprompts" "functioncontrastivedistill" 29513 "pposeed10"
+
+
+
+# task, data, rmname, processport, nametag
+# dpoplus_script "contrastivedistill" "contrastivedistill/wikionpolicyprompts" "http://127.0.0.1:5000/train" 29513 "log"
+# SEED=0
+# BASEMODEL="/u/prasanns/research/rlhf-length-biases/models/rewards/math/mathsft1300"
+MLEN=100
+# export CUDA_VISIBLE_DEVICES=0,1
+# dpoplus_script "math" "math/mathppoinps" "mathnolora1b" 29510 "mathnolora1b"
+# export CUDA_VISIBLE_DEVICES=2,3
+# dpoplus_script "math" "math/mathppoinps" "mathnolora125" 29511 "mathnolora125"
+BASEMODEL="models/bowdposfttiny"
+MLEN=50
+# dpoplus_script "bagofwords" "ultra/ultrafeeddiff" "functionbagofwords" 28510 "goldfromtinydpo"
+# export CUDA_VISIBLE_DEVICES=4,5
+
+# dpoplus_script "bagofwords" "ultra/ultrafeeddiff" "http://127.0.0.1:5001/train" 28511 "50trainapi"
+# dpoplus_script "bagofwords" "ultra/ultrafeeddiff" "http://127.0.0.1:5003/train" 28511 "200trainapi"
+
+export CUDA_VISIBLE_DEVICES=6,7
+
+# dpoplus_script "bagofwords" "ultra/ultrafeeddiff" "http://127.0.0.1:5002/train" 28518 "100trainapi"
+# dpoplus_script "bagofwords" "ultra/ultrafeeddiff" "http://127.0.0.1:5004/train" 28518 "50ktrainapi"
+
+# dpoplus_script "bagofwords" "ultra/ultrafeeddiff" "http://127.0.0.1:5001/train" 28510 "50trainapi"
+
+# dpoplus_script "nouns" "ultra/ultrafeeddiff" "dponounsynth_1bnounrmnofa" 28518 "1bnoun"
+
+# dpoplus_script "bagofwords" "ultra/ultrafeeddiff" "http://127.0.0.1:5002/train" 28511 "100trainapi"
+# dpoplus_script "bagofwords" "ultra/ultrafeeddiff" "http://127.0.0.1:5003/train" 28513 "200train"
+# dpoplus_script "bagofwords" "ultra/ultrafeeddiff" "http://127.0.0.1:5004/train" 28512 "50ktrain"
+
+
+
 
 # export CUDA_VISIBLE_DEVICES=1,2
 # accelerate launch --multi_gpu --config_file=scripts/default_config.yaml --main_process_port=29518 \

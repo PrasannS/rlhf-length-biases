@@ -34,8 +34,8 @@
 #     --epochs=3 \
 #     --learning_rate=5e-5 \
 #     --promptstyle="onlyans"
-
-
+# Hmm this wasn't set low enough
+BETA=0.1
 run_script() {
 
     accelerate launch --config_file=scripts/default_single.yaml --main_process_port=${5} \
@@ -45,18 +45,76 @@ run_script() {
         --per_device_train_batch_size=8 \
         --gradient_accumulation_steps=4 \
         --per_device_eval_batch_size=8 \
-        --epochs=3 \
+        --epochs=2 \
         --evaldata="data/${1}/${3}" \
-        --learning_rate=3e-5
+        --learning_rate=3e-5 \
+        --beta=$BETA \
+        --save_steps=100 \
+        --eval_steps=200
 
 }
 # export CUDA_VISIBLE_DEVICES=0
 # BASEMODEL="models/bagofwords/50rmppo_s100_sft"
 # # run_script "contrastivedistill" "contdfixed" "heldoutprefs" 29522
 # run_script "bagofwords" "bowmax2" "bowmax2" "s100sft" 29522
+# BASEMODEL="models/bagofwords/smalldist_sft"
+# BASEMODEL="models/bagofwords/50rmppo_s200_sft"
+# run_script "bagofwords" "bowmax2" "bowmax2" "smallsft" 29524
+BASEMODEL="facebook/opt-125m"
+# export CUDA_VISIBLE_DEVICES=0
+# run_script "nouns" "nouns_revlabel" "nouns_revlabel" "revdpo" 29524
+
 export CUDA_VISIBLE_DEVICES=1
-BASEMODEL="models/bagofwords/50rmppo_s200_sft"
-run_script "bagofwords" "bowmax2" "bowmax2" "s200sft" 29523
+run_script "contrastivedistill" "contoptrevlabel" "contoptrevlabel" "heldoutprefs" 29525
+# export CUDA_VISIBLE_DEVICES=4
+# BETA=0.01
+# run_script "bagofwords" "nozero100k" "nozero100k" "betapt01" 29525
+
+# export CUDA_VISIBLE_DEVICES=3
+# BETA=1
+# run_script "bagofwords" "nozero100k" "nozero100k" "beta1" 29526
+
+# export CUDA_VISIBLE_DEVICES=0
+# BETA=0.00001
+# # run_script "bagofwords" "nozero100k" "nozero100k" "betatiny" 29527
+# export CUDA_VISIBLE_DEVICES=1
+# BETA=0.00001
+# run_script "nouns" "dponounsynth" "dponounsynth" "betatiny" 29526
+
+# export CUDA_VISIBLE_DEVICES=2
+# BASEMODEL="facebook/opt-125m"
+# BETA=0.01
+# run_script "nouns" "dponounsynth" "dponounsynth" "betapt01nofa" 29527
+# export CUDA_VISIBLE_DEVICES=3
+# BETA=1
+# run_script "nouns" "dponounsynth" "dponounsynth" "betabig" 29528
+
+# export CUDA_VISIBLE_DEVICES=0
+# BASEMODEL="models/rewards/math/mathsft1300"
+# BETA=0.01
+# run_script "math" "mathprefdata" "mathprefdata" "betapt01" 29525
+# export CUDA_VISIBLE_DEVICES=1
+# BETA=1
+# run_script "math" "mathprefdata" "mathprefdata" "betabig" 29526
+
+# BASEMODEL="models/bagofwords/tinybow_sft"
+# export CUDA_VISIBLE_DEVICES=2
+
+# run_script "bagofwords" "bowmax2" "bowmax2" "tinysft" 29526
+# export CUDA_VISIBLE_DEVICES=3
+# run_script "bagofwords" "nozero100k" "nozero100k" "tinysft" 29527
+
+# export BASEMODEL="facebook/opt-125m"
+# export CUDA_VISIBLE_DEVICES=3
+# run_script "bagofwords" "nozero100k" "nozero100k" "normsft" 29527
+
+# export CUDA_VISIBLE_DEVICES=2
+# run_script "bagofwords" "bowmax2" "bowmax2" "normsft" 29526
+
+# BASEMODEL="models/bagofwords/50rmppo_s100_sft"
+
+# export CUDA_VISIBLE_DEVICES=4
+# run_script "bagofwords" "nozero100k" "nozero100k" "normsft" 29526
 
 
 # run_script "contrastivedistill" "samp60k" "heldoutprefs" 29522
