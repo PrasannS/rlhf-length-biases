@@ -49,9 +49,10 @@ def add_row_index(example, idx):
     return example
 
 if script_args.trainable:
+    # load in the model (trainable, no FA)
     tokenizer, reward_model = load_models(script_args, "train")
     optimizer = torch.optim.AdamW(reward_model.parameters(), lr=script_args.learning_rate)
-    # get the data so that we can update things continually
+    # get the data so that we can update things continually (NOTE may not use)
     train_dataset, evald = load_manual(script_args.dataset_name, "")
     train_dataset = train_dataset.shuffle(seed=100)
     train_dataset = train_dataset.map(add_row_index, with_indices=True)
@@ -82,16 +83,15 @@ tokenizer.pad_token = tokenizer.eos_token
 
 app = Flask(__name__)
 
-    
 call_count = 0
 label_count = 0
 all_texts = []
-callratio = 1 # TODO may want to set code up to make this another param for process flexibility
+callratio = 3 # TODO may want to set code up to make this another param for process flexibility
 device = reward_model.device
 extradata = []
 threshsum = 20 # manually setting things here
 lmb = 0.9
-labelthresh = 1
+labelthresh = 0.3
 goldlabels = 0
 heursteps=50
 redo_batches = 5
@@ -122,13 +122,12 @@ def train():
             varupdata = (call_count%callratio)==0
             # if we want to do the variance updates
             ncont = False # ((varupdata==False) and (script_args.noupdates==False))
-            with nullcontext() if ncont else torch.no_grad():
-                print("ncont ", ncont)
+            with torch.no_grad():
+                # pad new data / get scores for it (assume that it's all paired)
                 inps = tokenizer(input_texts[i:i+script_args.batch_size], padding=True, truncation=True, return_tensors="pt").to(reward_model.device)
                 rewards = reward_model(input_ids=inps.input_ids, attention_mask=inps.attention_mask)[0]
                 scores.extend(rewards.detach().squeeze(-1).tolist())
             
-            loss = 0 
             if varupdata:
                 tottmp = 0
                 acc = 0
@@ -186,31 +185,32 @@ def train():
                 if tottmp>0:
                     print("step acc is ", acc/tottmp)
             else: 
-                try:
-                    inputs = next(loaddata)
-                except: 
-                    loaddata = iter(train_dataloader)
-                    inputs = next(loaddata)
-                rewards_j = reward_model(input_ids=inputs["input_ids_j"].to(device), attention_mask=inputs["attention_mask_j"].to(device))[0]
-                rewards_k = reward_model(input_ids=inputs["input_ids_k"].to(device), attention_mask=inputs["attention_mask_k"].to(device))[0]
-                
-                    # print('indeed we are using magnitude loss')
-                rdiff = rewards_j - rewards_k
-                
-                # NOTE adding in magnitude based loss, did some stuff to reduce stength of prior
-                loss = -nn.functional.logsigmoid(rdiff).mean() #
-                print("loss ", loss.detach())
-                rmean = rdiff.mean().detach()
-                
-                # NOTE do a sort of weighted value function thing here to keep emphasis on recent stuff
-                threshsum = (lmb*threshsum + rmean)/(1+lmb)
+                if False: 
+                    try:
+                        inputs = next(loaddata)
+                    except: 
+                        loaddata = iter(train_dataloader)
+                        inputs = next(loaddata)
+                    rewards_j = reward_model(input_ids=inputs["input_ids_j"].to(device), attention_mask=inputs["attention_mask_j"].to(device))[0]
+                    rewards_k = reward_model(input_ids=inputs["input_ids_k"].to(device), attention_mask=inputs["attention_mask_k"].to(device))[0]
+                    
+                        # print('indeed we are using magnitude loss')
+                    rdiff = rewards_j - rewards_k
+                    
+                    # NOTE adding in magnitude based loss, did some stuff to reduce stength of prior
+                    loss = -nn.functional.logsigmoid(rdiff).mean() #
+                    print("loss ", loss.detach())
+                    rmean = rdiff.mean().detach()
+                    
+                    # NOTE do a sort of weighted value function thing here to keep emphasis on recent stuff
+                    threshsum = (lmb*threshsum + rmean)/(1+lmb)
                 # we're doing a standard preference update w.r.t the original dataset
-            if loss!=0 and script_args.noupdates==False:
-                optimizer.zero_grad()
-                loss.backward()
-                torch.nn.utils.clip_grad_norm_(reward_model.parameters(), max_norm=1.0)
-                optimizer.step()
-                print(("prompt var step" if "indiv" in script_args.diffunct=='indiv' else "variance step") if varupdata else "retrain step")
+            # if loss!=0 and script_args.noupdates==False:
+            #     optimizer.zero_grad()
+            #     loss.backward()
+            #     torch.nn.utils.clip_grad_norm_(reward_model.parameters(), max_norm=1.0)
+            #     optimizer.step()
+            #     print(("prompt var step" if "indiv" in script_args.diffunct=='indiv' else "variance step") if varupdata else "retrain step")
         
         if script_args.tracking or script_args.trainheur:
             # take random data points from what we've been messing with
@@ -226,7 +226,7 @@ def train():
                 rewards_j = reward_model(input_ids=batch["input_ids_j"].to(device), attention_mask=batch["attention_mask_j"].to(device))[0]
                 rewards_k = reward_model(input_ids=batch["input_ids_k"].to(device), attention_mask=batch["attention_mask_k"].to(device))[0]
                 
-                rdiff = (rewards_j - rewards_k).abs()
+                rdiff = rewards_j - rewards_k
                 loss = -nn.functional.logsigmoid(rdiff).mean()
                 
                 ndiff = rdiff.detach()

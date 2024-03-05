@@ -64,7 +64,7 @@ SEED=0
 STEPS=2000
 # BASEMODEL="models/bowdposft"
 # dpoplus_script "bagofwords" "ultra" "http://127.0.0.1:5001/train" 29515 "dporeprodactive_v3"
-dpoplus_script "bagofwords" "ultra" "http://127.0.0.1:5000/train" 29521 "dporeprodactive_vnbase3"
+dpoplus_script "bagofwords" "ultra" "http://127.0.0.1:5000/train" 29521 "dporeprodactive_fixed"
 
 
 # export CUDA_VISIBLE_DEVICES=0,1

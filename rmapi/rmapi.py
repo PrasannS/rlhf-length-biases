@@ -105,12 +105,12 @@ def predict():
 call_count = 0
 label_count = 0
 all_texts = []
-callratio = 1 # TODO may want to set code up to make this another param for process flexibility
+callratio = 2 # TODO may want to set code up to make this another param for process flexibility
 device = reward_model.device
 extradata = []
-threshsum = 20 # manually setting things here
+threshsum = 0 # manually setting things here
 lmb = 0.9
-labelthresh = 1
+labelthresh = .3
 goldlabels = 0
 heursteps=50
 redo_batches = 5
@@ -290,7 +290,7 @@ def train():
                 rewards_j = reward_model(input_ids=batch["input_ids_j"].to(device), attention_mask=batch["attention_mask_j"].to(device))[0]
                 rewards_k = reward_model(input_ids=batch["input_ids_k"].to(device), attention_mask=batch["attention_mask_k"].to(device))[0]
                 
-                rdiff = (rewards_j - rewards_k).abs()
+                rdiff = rewards_j - rewards_k
                 loss = -nn.functional.logsigmoid(rdiff).mean()
                 
                 ndiff = rdiff.detach()

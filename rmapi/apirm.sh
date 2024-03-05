@@ -45,7 +45,7 @@ SUPDATES=10000000
 export CUDA_VISIBLE_DEVICES=0
 # noupdateapi "bagofwords" "bowsynth50knozeros" "expbow50" "updatereprod2" 5000
 export CUDA_VISIBLE_DEVICES=0
-noupdateapi "bagofwords" "bowsynth50knozeros" "expbow50" "updatereprod_nobase3" 5000
+noupdateapi "bagofwords" "bowsynth50knozeros" "expbow50" "updatereprod_fix" 5000
 # SUPDATES=1600
 # # export CUDA_VISIBLE_DEVICES=4
 # # noupdateapi "contrastivedistill" "contdfixed" "contoptprefs_rm" "_log" 5000
