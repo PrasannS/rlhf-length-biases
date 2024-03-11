@@ -19,10 +19,41 @@
 #     --base_model_name="facebook/opt-125m" \
 #     --output_name="models/rewards/minibowrm"
 
+# python scripts/merge_peft_adapter.py \
+#     --adapter_model_name="/u/prasanns/research/rlhf-length-biases/checkpoints/bagofwords/nozero100k_tinysft_dpo/checkpoint-4000" \
+#     --base_model_name="models/bagofwords/tinybow_sft" \
+#     --output_name="models/bowdposfttiny"
+
+
+
+# python scripts/merge_peft_adapter.py \
+#     --adapter_model_name="/u/prasanns/research/rlhf-length-biases/checkpoints/nouns/3kprefs_3krm_rm/checkpoint-200" \
+#     --base_model_name="facebook/opt-125m" \
+#     --output_name="../active-rlhf/outputs/models/nouns/tiny_rm"
+
+# python scripts/merge_peft_adapter.py \
+#     --adapter_model_name="/u/prasanns/research/rlhf-length-biases/checkpoints/math/mathprefdata_betapt01_dpo/checkpoint-500" \
+#     --base_model_name="models/rewards/math/mathsft1300" \
+#     --output_name="../active-rlhf/outputs/models/math/tiny_dpo"
+
 python scripts/merge_peft_adapter.py \
-    --adapter_model_name="/u/prasanns/research/rlhf-length-biases/checkpoints/bagofwords/nozero100k_tinysft_dpo/checkpoint-4000" \
-    --base_model_name="models/bagofwords/tinybow_sft" \
-    --output_name="models/bowdposfttiny"
+    --adapter_model_name="/u/prasanns/research/active-rlhf/outputs/checkpoints/ultra/ultra500_smalldpo_dpo/checkpoint-200" \
+    --base_model_name="allenai/tulu-2-7b" \
+    --output_name="../active-rlhf/outputs/models/ultra/tiny_dpo_tulu"
+
+python scripts/merge_peft_adapter.py \
+    --adapter_model_name="/u/prasanns/research/active-rlhf/outputs/checkpoints/ultra/ultra500_tinyrm_rm/checkpoint-150" \
+    --base_model_name="meta-llama/Llama-2-7b-hf" \
+    --output_name="../active-rlhf/outputs/models/ultra/tiny_rm"
+
+
+
+# python scripts/merge_peft_adapter.py \
+#     --adapter_model_name="/u/prasanns/research/rlhf-length-biases/checkpoints/bagofwords/3kprefs_smalldpo_dpo/checkpoint-500" \
+#     --base_model_name="facebook/opt-125m" \
+#     --output_name="../active-rlhf/outputs/models/bagofwords/bowtiny_dpo"
+
+
 
 # python scripts/merge_peft_adapter.py \
 #     --adapter_model_name="/u/prasanns/research/rlhf-length-biases/checkpoints/bagofwords/nozero100k_1bnofa_rm/checkpoint-9000" \

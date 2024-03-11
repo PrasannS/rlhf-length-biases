@@ -88,9 +88,13 @@ BASEMODEL="facebook/opt-125m"
 # run_script "bagofwords" "bowmax2_smallsft_dpo" "/checkpoint-" "4000"
 
 export CUDA_VISIBLE_DEVICES=4
-BASEMODEL="models/bagofwords/tinybow_sft"
-run_script "bagofwords" "nozero100k_tinysft_dpo" "/checkpoint-" "4000"
-run_script "bagofwords" "nozero100k_tinysft_dpo" "/checkpoint-" "9000"
+BASEMODEL="facebook/opt-125m"
+# /u/prasanns/research/rlhf-length-biases/checkpoints/bagofwords/3kprefs_smalldpo_dpo/checkpoint-500
+run_script "bagofwords" "3kprefs_smalldpo_dpo" "/checkpoint-" "50"
+run_script "bagofwords" "3kprefs_smalldpo_dpo" "/checkpoint-" "100"
+run_script "bagofwords" "3kprefs_smalldpo_dpo" "/checkpoint-" "250"
+run_script "bagofwords" "3kprefs_smalldpo_dpo" "/checkpoint-" "500"
+
 
 # export CUDA_VISIBLE_DEVICES=3
 # BASEMODEL="models/bagofwords/smalldist_sft"

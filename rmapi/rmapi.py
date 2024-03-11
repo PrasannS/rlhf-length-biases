@@ -326,8 +326,6 @@ def train():
             print("iterated on ", len(extradata), " now have ", len(newdata))
             extradata = newdata
                 
-                
-                
         print("scores", scores)
             
         if call_count % script_args.save_freq == 0 and (script_args.noupdates==False):

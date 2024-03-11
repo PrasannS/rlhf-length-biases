@@ -469,8 +469,8 @@ def load_apfarm(dname):
 # TODO may merge with apf, or maybe go into data
 
 def mapfilt(ds, tkfunct):
-    ds = ds.map(tkfunct, batched=True)
-    ds = ds.filter(lambda x: len(x["input_ids"]) < 512, batched=False)
+    ds = ds.map(tkfunct, batched=True, num_proc=4)
+    ds = ds.filter(lambda x: len(x["input_ids"]) < 512, batched=False, num_proc=4)
 
     ds.set_format(type="torch")
     # print(ds)
@@ -507,22 +507,36 @@ def build_wgpt_promptdata(tokenizer):
 
     return mapfilt(ds, tokwgpt)
 
+def tulu_pf(question, answer=None):
+    if answer is None: 
+        return "<user>\n"+question+"\n<assistant>\n"
+    return "<user>\n"+question+"\n<assistant>\n"+answer
+
+first=True
 # Build WGPT Dataset for RL (may be able to compress)
-def build_ultra_promptdata(tokenizer):
+def build_ultra_promptdata(tokenizer, dname="ultra", template=webgpt_template):
+    global first
     # input_size = LengthSampler(input_min_text_length, input_max_text_length)
-    ds = load_dataset("stingning/ultrachat", split="train")
+    if dname=="ultra":
+        ds = load_dataset("stingning/ultrachat", split="train")
+    else: 
+        ds = Dataset.load_from_disk(dname)
 
     def tokultra(sample):
+        global first
         # TODO trying out this thing for batching
         new_examples = {
             "query": [],
             "input_ids": [],
         }
         for question in sample["data"]:
-            # just use the first thing as the prompt every time? 
+            # just use the first thing as the prompt every time?
             query = question[0]
             
-            query = webgpt_template(query)
+            query = template(query)
+            if first:
+                print("FIRST: ", query)
+                first = False
             
             #query = "Question: " + question + "\n\nAnswer: "
             tokenized_question = tokenizer(query, truncation=True)
@@ -546,7 +560,7 @@ def einsteinprompt(question, mdata):
     # NOTE passing column format should simplify things a lot? 
     return ans(question)+mdata['response_j'].split("\n")[0]+"\n"
 
-pfuncts = {'onlyans': simplecat, 'dircat':simplecat, "ans":ans, 'einstein':einsteinprompt}
+pfuncts = {'onlyans': simplecat, 'dircat':simplecat, "ans":ans, 'einstein':einsteinprompt, 'tulu':tulu_pf}
 # Let's use a preference set instead of a set of just rollouts
 def build_custom_promptdata(tokenizer, dsetname, pstyle="default", metadata=[]):
     pfunct = pfuncts[pstyle] if "default" not in pstyle else webgpt_template

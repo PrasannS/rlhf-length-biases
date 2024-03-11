@@ -35,7 +35,7 @@
 #     --learning_rate=5e-5 \
 #     --promptstyle="onlyans"
 # Hmm this wasn't set low enough
-BETA=0.1
+BETA=0.05
 run_script() {
 
     accelerate launch --config_file=scripts/default_single.yaml --main_process_port=${5} \
@@ -45,11 +45,11 @@ run_script() {
         --per_device_train_batch_size=8 \
         --gradient_accumulation_steps=4 \
         --per_device_eval_batch_size=8 \
-        --epochs=2 \
+        --epochs=5 \
         --evaldata="data/${1}/${3}" \
         --learning_rate=3e-5 \
         --beta=$BETA \
-        --save_steps=100 \
+        --save_steps=50 \
         --eval_steps=200
 
 }
@@ -64,8 +64,15 @@ BASEMODEL="facebook/opt-125m"
 # export CUDA_VISIBLE_DEVICES=0
 # run_script "nouns" "nouns_revlabel" "nouns_revlabel" "revdpo" 29524
 
-export CUDA_VISIBLE_DEVICES=1
-run_script "contrastivedistill" "contoptrevlabel" "contoptrevlabel" "heldoutprefs" 29525
+# export CUDA_VISIBLE_DEVICES=6
+# run_script "bagofwords" "3kprefs" "3kheld" "smalldpo" 29525
+# run_script "contrastivedistill" "3kprefs" "3kheld" "smalldpo" 29525
+
+export CUDA_VISIBLE_DEVICES=7
+run_script "nouns" "3kprefs" "3kheld" "smalldpo" 29526
+run_script "math" "3kprefs" "3kheld" "smalldpo" 29526
+
+
 # export CUDA_VISIBLE_DEVICES=4
 # BETA=0.01
 # run_script "bagofwords" "nozero100k" "nozero100k" "betapt01" 29525

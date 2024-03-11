@@ -132,7 +132,7 @@ class ScriptArguments:
     )
     max_length: Optional[int] = field(default=512)
     eval_first_step: Optional[bool] = field(
-        default=True,
+        default=False,
         metadata={"help": "Whether to run eval after the first step"},
     )
     use_magnitude: Optional[bool] = field(

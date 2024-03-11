@@ -16,8 +16,7 @@ export CUDA_VISIBLE_DEVICES=4,5
 
 BSIZE=32
 LTYPE="normal"
-NOLORA=True
-REINIT=True
+
 run_script() {
     echo $LR
     echo $BASEMODEL
@@ -28,12 +27,12 @@ run_script() {
         --rand_ratio=0 \
         --evaldata="data/${1}/${3}" \
         --balance_len=0 \
-        --num_train_epochs=2 \
+        --num_train_epochs=5 \
         --per_device_train_batch_size=$BSIZE \
         --per_device_eval_batch_size=8 \
         --gradient_accumulation_steps=1 \
-        --eval_steps=100 \
-        --save_steps=1000 \
+        --eval_steps=50 \
+        --save_steps=50 \
         --learning_rate=$LR \
         --losstype=$LTYPE \
         --nolora=$NOLORA \
@@ -47,19 +46,24 @@ run_script() {
 
 # BASEMODEL="/u/prasanns/research/rlhf-length-biases/models/rewards/math/mathsft1300"
 # run_script "bagofwords" "bowprefseqlenprefs" "bowsynth100k" 12350
-BASEMODEL="facebook/opt-1.3b"
-# BASEMODEL="facebook/opt-125m"
+# BASEMODEL="facebook/opt-1.3b"
+BASEMODEL="facebook/opt-125m"
 # BASEMODEL="facebook/opt-125m"
 # BASEMODEL="facebook/opt-350m"
 
 # BASEMODEL="meta-llama/Llama-2-7b-hf"
 # export CUDA_VISIBLE_DEVICES=0,1
 # run_script "contrastivedistill" "contoptprefs" "contoptprefs" 12349 "1b"
-BSIZE=4
-LR=5e-5
-NOLORA=True
-export CUDA_VISIBLE_DEVICES=0,1
-run_script "math" "mathprefdata" "mathprefdata" 12321 "1brandinitnolorablr"
+export CUDA_VISIBLE_DEVICES=4,5
+# BSIZE=4
+LR=1e-4
+NOLORA=False
+REINIT=False
+export CUDA_VISIBLE_DEVICES=4,5
+# run_script "math" "3kprefs" "3kheld" 12321 "3krm"
+# run_script "nouns" "3kprefs" "3kheld" 12321 "3krm"
+# run_script "bagofwords" "3kprefs" "3kheld" 12321 "3krm"
+run_script "contrastivedistill" "3kprefs" "3kheld" 12321 "3krm"
 
 # LR=1e-4
 # export CUDA_VISIBLE_DEVICES=2,3
